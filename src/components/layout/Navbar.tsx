@@ -89,10 +89,6 @@ export default function Navbar() {
             {user ? (
               <div className="nav-user">
                 <NotificationBell />
-                {/* <Link href="/ai-chat" className="nav-ai-btn" title="المساعد الذكي">
-                  <i className="fa-solid fa-robot" />
-                  <span className="nav-ai-label">المساعد</span>
-                </Link> */}
                 <Link href="/settings" className="nav-avatar" title="الإعدادات">
                   {user.userName?.[0]?.toUpperCase() || '👤'}
                 </Link>
