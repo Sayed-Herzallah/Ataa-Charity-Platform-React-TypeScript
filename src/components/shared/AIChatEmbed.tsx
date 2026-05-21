@@ -36,8 +36,6 @@ const QUICK_REPLIES = [
 ];
 
 // ─── AIChatEmbed ─────────────────────────────────────────────────────────────
-// نفس AIChat.tsx بالظبط — بدون sidebar وبدون topbar
-// مناسب يتحط جوه tab في أي dashboard
 
 export default function AIChatEmbed() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -198,8 +196,8 @@ export default function AIChatEmbed() {
     <>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
 
-      {/* wrapper يحاكي ac-main بس بدون sidebar */}
-      <div className="ac-main" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* wrapper مخصص للـ embed — بدون height:100dvh بتاعة ac-main */}
+      <div className="ac-embed-root" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
 
         {/* Topbar مصغر داخل الـ tab */}
         <div className="ac-topbar" style={{ borderBottom: '1.5px solid var(--ac-border, #e5e7eb)' }}>

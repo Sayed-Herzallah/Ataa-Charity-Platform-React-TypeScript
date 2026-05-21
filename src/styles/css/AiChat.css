@@ -2,6 +2,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* ══ ROOT ══════════════════════════════════════════════════════════ */
 .ac-root {
   --br:         #10a37f;
   --br-dk:      #0a7c62;
@@ -20,26 +21,32 @@
   font-family: 'Tajawal', 'Segoe UI', sans-serif;
   direction: rtl;
   display: flex;
-  height: 100vh;
+  /* ✅ FIX: استخدم dvh عشان الموبايل يحسب الـ keyboard صح */
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--main-bg);
+  /* ✅ FIX: منع أي overflow على الـ root */
   overflow: hidden;
   color: var(--t1);
   font-size: 15px;
   line-height: 1.7;
+  /* ✅ FIX: isolation عشان الـ stacking context يكون صح */
+  isolation: isolate;
 }
 
-/* ══ OVERLAY ══ */
+/* ══ OVERLAY ══════════════════════════════════════════════════════ */
 .ac-overlay {
   display: none;
   position: fixed;
-  top: 56px; right: 0; bottom: 0; left: 0;
+  inset: 0;
+  top: 56px;
   background: rgba(0,0,0,.4);
   z-index: 40;
   backdrop-filter: blur(2px);
 }
 .ac-overlay.visible { display: block; }
 
-/* ══ SIDEBAR ══ */
+/* ══ SIDEBAR ══════════════════════════════════════════════════════ */
 .ac-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -47,6 +54,9 @@
   border-left: 1px solid var(--bd);
   display: flex;
   flex-direction: column;
+  /* ✅ FIX: sidebar يملأ الطول كله */
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   transition: width .25s cubic-bezier(.4,0,.2,1),
               opacity .2s ease,
@@ -59,6 +69,7 @@
     position: fixed;
     top: 0; right: 0; bottom: 0;
     width: 280px;
+    height: 100dvh;
     box-shadow: none;
   }
   .ac-sidebar:not(.closed) {
@@ -78,7 +89,7 @@
   }
 }
 
-/* Sidebar header with close button */
+/* Sidebar header */
 .ac-sb-header {
   display: flex;
   align-items: center;
@@ -86,6 +97,7 @@
   padding: 16px 14px;
   border-bottom: 1px solid var(--bd);
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .ac-sb-brand {
@@ -104,26 +116,26 @@
   color: white; font-size: 19px; flex-shrink: 0;
 }
 
-.ac-sb-brand-info { 
-  display: flex; 
+.ac-sb-brand-info {
+  display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.ac-sb-brand-name { 
-  font-size: 14px; 
-  font-weight: 700; 
-  color: var(--t1); 
-  line-height: 1.2; 
+.ac-sb-brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+  line-height: 1.2;
 }
 
-.ac-sb-brand-sub  { 
-  font-size: 11px; 
-  color: var(--t3); 
-  margin-top: 1px; 
+.ac-sb-brand-sub {
+  font-size: 11px;
+  color: var(--t3);
+  margin-top: 1px;
 }
 
-/* Close button - احترافي */
+/* Close button */
 .ac-sb-close-btn {
   display: none;
   width: 32px;
@@ -146,14 +158,10 @@
   transform: scale(1.05);
 }
 
-.ac-sb-close-btn:active {
-  transform: scale(.95);
-}
+.ac-sb-close-btn:active { transform: scale(.95); }
 
 @media (max-width: 767px) {
-  .ac-sb-close-btn {
-    display: flex;
-  }
+  .ac-sb-close-btn { display: flex; }
 }
 
 /* New chat btn */
@@ -164,6 +172,7 @@
   background: white; font-size: 13.5px; font-weight: 600;
   font-family: inherit; color: var(--t2); cursor: pointer;
   transition: all .15s ease;
+  flex-shrink: 0;
 }
 
 .ac-new-btn:hover {
@@ -175,9 +184,13 @@
 
 /* Nav */
 .ac-sb-nav {
-  flex: 1; overflow-y: auto;
+  flex: 1;
+  overflow-y: auto;
   padding: 6px 10px;
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
 }
 
 .ac-sb-nav::-webkit-scrollbar { width: 3px; }
@@ -218,6 +231,7 @@
   padding: 12px 14px;
   border-top: 1px solid var(--bd);
   display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
 }
 
 .ac-sb-footer-av {
@@ -232,25 +246,33 @@
   font-size: 13px; font-weight: 600; color: var(--t1);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
 .ac-sb-footer-role { font-size: 11px; color: var(--t3); }
 
-/* ══ MAIN ══ */
+/* ══ MAIN ══════════════════════════════════════════════════════════ */
 .ac-main {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  /* ✅ FIX: الـ main يملأ كل الارتفاع ويقسم نفسه بين msgs و input */
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--main-bg);
+  overflow: hidden;
 }
 
-/* Topbar */
+/* ══ TOPBAR ════════════════════════════════════════════════════════ */
 .ac-topbar {
-  height: 56px; flex-shrink: 0;
+  /* ✅ FIX: flex-shrink: 0 عشان الـ topbar ما ينضغطش */
+  flex-shrink: 0;
+  height: 56px;
   border-bottom: 1px solid var(--bd);
   display: flex; align-items: center;
   justify-content: space-between;
   padding: 0 18px;
   background: rgba(255,255,255,.92);
   backdrop-filter: blur(8px);
+  z-index: 10;
 }
 
 .ac-topbar-left  { display: flex; align-items: center; gap: 10px; }
@@ -302,10 +324,13 @@
 
 .ac-user-av:hover { border-color: var(--br); }
 
-/* ══ MESSAGES ══ */
-.ac-msgs { 
-  flex: 1; 
-  overflow-y: auto; 
+/* ══ MESSAGES ══════════════════════════════════════════════════════ */
+/* ✅ FIX: flex: 1 + min-height: 0 هما السر — بيخلوا الـ msgs تاخد المساحة المتاحة بس */
+.ac-msgs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
@@ -318,13 +343,17 @@
   max-width: 740px; margin: 0 auto;
   padding: 32px 24px 16px;
   display: flex; flex-direction: column;
+  /* ✅ FIX: min-height بدل height عشان المحتوى الصغير يظهر في الأعلى مش في النص */
+  min-height: 100%;
 }
 
 /* Welcome */
 .ac-welcome {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  min-height: 62vh; text-align: center; padding: 24px 16px;
+  /* ✅ FIX: بدل min-height: 62vh نستخدم flex-grow عشان يملأ المساحة المتاحة */
+  flex: 1;
+  text-align: center; padding: 24px 16px;
   animation: ac-fadein .45s ease both;
 }
 
@@ -440,17 +469,17 @@
 }
 
 .ac-img-wrap {
-  border-radius: 14px; 
+  border-radius: 14px;
   overflow: hidden;
-  max-width: 280px; 
+  max-width: 280px;
   border: 1px solid var(--bd);
 }
 
-.ac-img-wrap img { 
-  width: 100%; 
-  max-height: 220px; 
-  object-fit: cover; 
-  display: block; 
+.ac-img-wrap img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  display: block;
 }
 
 .ac-analysis-badge {
@@ -508,12 +537,16 @@
 
 .ac-qr-btn:disabled { opacity: .35; cursor: not-allowed; }
 
-/* ══ INPUT ZONE ══ */
+/* ══ INPUT ZONE ════════════════════════════════════════════════════ */
+/* ✅ FIX: flex-shrink: 0 + position relative عشان يبقى في الأسفل دايماً */
 .ac-input-zone {
-  padding: 10px 18px 18px; flex-shrink: 0;
+  flex-shrink: 0;
+  padding: 10px 18px 18px;
   background: rgba(255,255,255,.95);
   border-top: 1px solid var(--bd);
   backdrop-filter: blur(8px);
+  /* ✅ FIX: Safe area للموبايل (notch/home indicator) */
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
 }
 
 .ac-input-inner { max-width: 740px; margin: 0 auto; }
@@ -544,95 +577,113 @@
   flex-shrink: 0;
 }
 
-.ac-pending-gallery::-webkit-scrollbar {
-  height: 3px;
-}
+.ac-pending-gallery::-webkit-scrollbar { height: 3px; }
+.ac-pending-gallery::-webkit-scrollbar-thumb { background: var(--br); border-radius: 2px; }
 
-.ac-pending-gallery::-webkit-scrollbar-thumb {
-  background: var(--br);
-  border-radius: 2px;
-}
-
-.ac-pend-thumb { 
-  position: relative; 
-  width: 56px; 
-  height: 56px; 
+.ac-pend-thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
 }
 
 .ac-pend-thumb img {
-  width: 100%; 
-  height: 100%; 
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 9px; 
+  border-radius: 9px;
   border: 2px solid var(--br);
 }
 
 .ac-pend-x {
-  position: absolute; 
-  top: -8px; 
+  position: absolute;
+  top: -8px;
   left: -8px;
-  width: 24px; 
+  width: 24px;
   height: 24px;
-  background: #dc2626; 
-  border: 2px solid white; 
+  background: #dc2626;
+  border: 2px solid white;
   border-radius: 50%;
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
+  cursor: pointer;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  font-size: 12px; 
-  color: white; 
+  font-size: 12px;
+  color: white;
   transition: all .12s;
   padding: 0;
 }
 
-.ac-pend-x:hover { 
+.ac-pend-x:hover {
   background: #991b1b;
   transform: scale(1.1);
 }
 
-.ac-pend-x:active {
-  transform: scale(.9);
-}
+.ac-pend-x:active { transform: scale(.9); }
 
-.ac-pend-label { 
-  font-size: 13px; 
-  font-weight: 600; 
+.ac-pend-label {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--br-dk);
   white-space: nowrap;
 }
 
-.ac-pend-label span { 
-  display: block; 
-  font-size: 11.5px; 
-  font-weight: 400; 
-  color: var(--br); 
-  margin-top: 2px; 
+.ac-pend-label span {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--br);
+  margin-top: 2px;
 }
 
+/* ✅ FIX: Input row — الأزرار والـ textarea في نفس السطر */
 .ac-input-row {
-  display: flex; align-items: flex-end; gap: 6px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
   padding: 10px 10px 10px 12px;
 }
 
 .ac-textarea {
-  flex: 1; background: transparent; border: none; outline: none;
-  font-family: inherit; font-size: 15px; color: var(--t1);
-  resize: none; direction: rtl;
-  min-height: 26px; max-height: 200px;
-  overflow-y: auto; line-height: 1.65; padding: 2px 0;
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--t1);
+  resize: none;
+  direction: rtl;
+  /* ✅ FIX: min-height ثابت عشان الـ textarea ما تتقلصش */
+  min-height: 26px;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.65;
+  padding: 2px 0;
   text-align: right;
+  /* ✅ FIX: align-self عشان تكون محاذية مع الأزرار من الأسفل */
+  align-self: flex-end;
+  margin-bottom: 2px;
 }
 
 .ac-textarea::placeholder { color: var(--t3); }
 .ac-textarea::-webkit-scrollbar { display: none; }
 
 .ac-icon-btn {
-  width: 36px; height: 36px; border-radius: 50%; border: none;
-  cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s ease; font-size: 19px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+  font-size: 19px;
+  /* ✅ FIX: الأزرار ثابتة في الأسفل دايماً */
+  align-self: flex-end;
+  margin-bottom: 0;
 }
 
 .ac-img-btn { background: transparent; color: var(--t3); }
@@ -671,13 +722,38 @@
   font-size: 10px; font-family: monospace;
 }
 
-/* ══ RESPONSIVE ══ */
+/* ══ RESPONSIVE ════════════════════════════════════════════════════ */
 @media (max-width: 700px) {
   .ac-msgs-inner  { padding: 20px 14px 14px; }
-  .ac-input-zone  { padding: 8px 12px 14px; }
+  .ac-input-zone  { padding: 8px 12px max(14px, env(safe-area-inset-bottom)); }
   .ac-cards       { grid-template-columns: 1fr; max-width: 320px; }
   .ac-topbar      { padding: 0 12px; }
   .ac-qr          { padding: 4px 0; }
   .ac-welcome h2  { font-size: 22px; }
   .ac-pend-thumb  { width: 52px; height: 52px; }
+  /* ✅ FIX: على الموبايل الـ hint اختياري */
+  .ac-hint        { display: none; }
+}
+
+/* ✅ FIX: منع الـ bounce على iOS */
+@supports (-webkit-touch-callout: none) {
+  .ac-root {
+    height: -webkit-fill-available;
+  }
+  .ac-main {
+    height: -webkit-fill-available;
+  }
+}
+
+/* ══ EMBED MODE OVERRIDES ══════════════════════════════════════════
+   لما يتحمل AiChat.css جوه AdminPanel، الـ ac-root CSS بيتعارض
+   مع الـ embed wrapper. هنا بنعمل reset للـ properties اللي بتتعارض
+   ══════════════════════════════════════════════════════════════════ */
+
+/* منع الـ ac-root من تعيين height على أي حاجة جوه الـ admin */
+.ap-ai-chat-container .ac-root,
+.ap-ai-chat-container .ac-main {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
