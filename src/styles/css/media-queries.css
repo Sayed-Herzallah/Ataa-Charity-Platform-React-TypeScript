@@ -39,9 +39,12 @@
   .team-grid      { grid-template-columns: 1fr 1fr; }
 
   /* Settings */
-  .settings-layout    { flex-direction: column; }
+  .settings-layout    { flex-direction: column; padding-bottom: 100px; }
   .settings-nav       { width: 100%; }
   .settings-nav-card  { position: static; }
+  .settings-nav-links { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
+  .nav-link-item      { width: auto; padding: 8px 14px; border-radius: 8px; border-right: none !important; }
+  .nav-link-item.active { border-right: none !important; border-bottom: 2px solid var(--teal-600) !important; }
 
   /* Chat */
   .chat-main      { flex-direction: column; }
@@ -60,7 +63,8 @@
   /* Cards & Grids */
   .charity-cards    { grid-template-columns: 1fr; }
   .charities-grid   { grid-template-columns: 1fr; }
-  .stats-grid       { grid-template-columns: 1fr; }
+  .stats-grid       { grid-template-columns: 1fr; gap: 12px; }
+  .stat-card-val     { font-size: 26px; }
   .values-grid      { grid-template-columns: 1fr; }
   .team-grid        { grid-template-columns: 1fr 1fr; }
 

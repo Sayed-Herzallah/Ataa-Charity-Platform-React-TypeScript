@@ -35,7 +35,7 @@
   --sidebar-w:           242px;
   --sidebar-w-collapsed:  64px;
   --header-h:             58px;
-  --mobile-nav-h:         60px;
+  --mobile-nav-h:         68px;
 
   --radius:    13px;
   --radius-sm:  8px;
@@ -249,7 +249,12 @@ html:has(.ap-layout) {
   justify-content: space-around;
   align-items: stretch;
   box-shadow: 0 -4px 28px rgba(0,0,0,0.45);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  scrollbar-width: none;
 }
+.ap-mobile-nav::-webkit-scrollbar { display: none; }
 .ap-mobile-nav-item {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; padding: 6px 1px 4px; border: none;
@@ -268,6 +273,8 @@ html:has(.ap-layout) {
   background: var(--teal);
   box-shadow: 0 0 10px rgba(14,201,127,0.6);
 }
+.ap-mobile-nav-logout { color: var(--red) !important; opacity: 0.75; }
+.ap-mobile-nav-logout:hover { opacity: 1; background: rgba(240,71,90,0.08); }
 
 /* ══ MAIN ═══════════════════════════════════════════════════════════ */
 .ap-main {
@@ -391,11 +398,11 @@ html:has(.ap-layout) {
   transform: translateY(-6px) scale(1.015);
   border-color: var(--border3);
   box-shadow: 0 14px 44px rgba(0,0,0,0.55),
-    0 0 30px color-mix(in srgb, var(--kpi-color, var(--teal)) 10%, transparent);
+    0 0 30px rgba(14,201,127,0.12);
 }
 .ap-kpi-icon-wrap {
   width: 38px; height: 38px; border-radius: 10px;
-  background: color-mix(in srgb, var(--kpi-color, var(--teal)) 14%, transparent);
+  background: rgba(14,201,127,0.14);
   color: var(--kpi-color, var(--teal)); font-size: 19px;
   display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
 }
@@ -486,7 +493,7 @@ html:has(.ap-layout) {
 
 /* Alternating row colors — subtle */
 .ap-table tbody tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--surface2) 50%, var(--surface));
+  background: var(--surface2);
 }
 
 .ap-table-row-clickable { cursor: pointer; }
@@ -978,14 +985,14 @@ html:has(.ap-layout) {
 .ap-quick-action-btn:hover {
   transform: translateY(-3px);
   border-color: var(--border2);
-  box-shadow: 0 6px 22px rgba(0,0,0,0.3), 0 0 16px color-mix(in srgb, var(--qa-color, var(--teal)) 8%, transparent);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.3), 0 0 16px rgba(14,201,127,0.1);
   background: var(--surface2);
 }
 .ap-quick-action-btn:hover::before { width: 5px; }
 .ap-quick-action-btn:hover .ap-qa-arrow { transform: translateX(-4px); opacity: 1; color: var(--qa-color, var(--teal)); }
 .ap-qa-icon-wrap {
   width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-  background: color-mix(in srgb, var(--qa-color, var(--teal)) 14%, transparent);
+  background: rgba(14,201,127,0.12);
   color: var(--qa-color, var(--teal)); font-size: 18px;
   display: flex; align-items: center; justify-content: center;
 }
@@ -1025,9 +1032,9 @@ html:has(.ap-layout) {
 }
 .ap-sched-btn:hover { background: var(--surface3); color: var(--t1); border-color: var(--border2); }
 .ap-sched-btn.active {
-  background: color-mix(in srgb, var(--sched-color, var(--teal)) 14%, transparent);
+  background: rgba(14,201,127,0.12);
   color: var(--sched-color, var(--teal));
-  border-color: color-mix(in srgb, var(--sched-color, var(--teal)) 40%, transparent);
+  border-color: rgba(14,201,127,0.35);
   font-weight: 800;
 }
 .ap-next-run {
@@ -1167,7 +1174,7 @@ input[type="datetime-local"].ap-form-input {
 .ap-light-theme .ap-page-header { background: #fff; border-bottom-color: rgba(30,60,120,0.09); box-shadow: 0 2px 14px rgba(10,22,40,0.06); }
 .ap-light-theme .ap-mobile-nav { background: #fff; border-top-color: rgba(30,60,120,0.09); }
 .ap-light-theme .ap-kpi-card { background: #fff; border-color: rgba(30,60,120,0.08); box-shadow: 0 2px 12px rgba(10,22,40,0.05); }
-.ap-light-theme .ap-kpi-card:hover { border-color: rgba(30,60,120,0.16); box-shadow: 0 10px 36px rgba(10,22,40,0.12), 0 0 24px color-mix(in srgb, var(--kpi-color,var(--teal)) 8%, transparent); }
+.ap-light-theme .ap-kpi-card:hover { border-color: rgba(30,60,120,0.16); box-shadow: 0 10px 36px rgba(10,22,40,0.12), 0 0 24px rgba(0,158,114,0.1); }
 .ap-light-theme .ap-chart-card, .ap-light-theme .ap-pro-chart-card { background: #fff; border-color: rgba(30,60,120,0.08); box-shadow: 0 2px 12px rgba(10,22,40,0.05); }
 .ap-light-theme .ap-pro-chart-card::before { background-image: linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px); }
 .ap-light-theme .ap-table-wrap { background: #fff; border-color: rgba(30,60,120,0.08); box-shadow: 0 2px 12px rgba(10,22,40,0.05); }
@@ -1225,7 +1232,9 @@ input[type="datetime-local"].ap-form-input {
 
 /* ══ RESPONSIVE ══════════════════════════════════════════════════════ */
 @media (max-width: 1280px) {
-  .ap-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ap-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ap-kpi-value { font-size: 22px; }
+  .ap-kpi-card { padding: 14px 12px 11px; }
   .ap-charts-row { grid-template-columns: 1fr; }
   .ap-quick-actions-row { grid-template-columns: repeat(2, 1fr); }
   .ap-settings-grid { grid-template-columns: 1fr; }
@@ -1234,7 +1243,7 @@ input[type="datetime-local"].ap-form-input {
 @media (max-width: 900px) {
   .ap-sidebar { display: none; }
   .ap-mobile-nav { display: flex; }
-  .ap-content:not(.ap-content--ai) { padding-bottom: calc(var(--mobile-nav-h) + 20px); }
+  .ap-content:not(.ap-content--ai) { padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 16px); }
   .ap-page-header { padding: 0 16px; }
   .ap-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .ap-kpi-card { padding: 12px 12px 11px; }
@@ -1262,13 +1271,13 @@ input[type="datetime-local"].ap-form-input {
 }
 
 @media (max-width: 600px) {
-  .ap-kpi-grid   { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-  .ap-kpi-card   { padding: 10px 10px 10px; flex-direction: row; align-items: center; gap: 10px; }
-  .ap-kpi-card::before { top: 0; right: 0; left: 0; bottom: auto; height: 2px; width: auto; }
-  .ap-kpi-icon-wrap { width: 32px; height: 32px; font-size: 15px; margin-bottom: 0; flex-shrink: 0; border-radius: 9px; }
-  .ap-kpi-value  { font-size: 19px; line-height: 1.1; }
-  .ap-kpi-label  { font-size: 10px; margin-bottom: 3px; }
-  .ap-kpi-change { font-size: 9.5px; }
+  .ap-kpi-grid   { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ap-kpi-card   { padding: 12px 12px 10px; flex-direction: column; gap: 0; }
+  .ap-kpi-card::before { height: 3px; }
+  .ap-kpi-icon-wrap { width: 28px; height: 28px; font-size: 14px; margin-bottom: 8px; border-radius: 8px; }
+  .ap-kpi-value  { font-size: 22px; letter-spacing: -0.5px; }
+  .ap-kpi-label  { font-size: 10.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ap-kpi-change { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ap-card-grid  { grid-template-columns: 1fr; }
   .ap-cron-stats-row { flex-direction: column; }
   .ap-table { min-width: 400px; }
@@ -1454,4 +1463,872 @@ input[type="datetime-local"].ap-form-input {
     max-width: 100%;
     flex: 1;
   }
+}
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ADMIN PANEL — Enhanced Production UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── KPI Cards — Enhanced with shimmer effect ── */
+.ap-kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 18px 16px;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--spring-fast),
+    border-color var(--transition),
+    box-shadow var(--transition);
+  will-change: transform;
+  cursor: default;
+}
+
+/* Left accent bar colored by --kpi-color */
+.ap-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--kpi-color, var(--teal));
+  border-radius: 0 var(--radius) var(--radius) 0;
+  opacity: 0.75;
+  transition: width var(--transition), opacity var(--transition);
+}
+
+/* Subtle glow on hover */
+.ap-kpi-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 90% 50%,
+    rgba(14,201,127,0.12),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.ap-kpi-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(14,201,127,0.12);
+  box-shadow:
+    0 12px 38px rgba(0,0,0,0.38),
+    0 0 0 1px rgba(14,201,127,0.12);
+}
+.ap-kpi-card:hover::before { width: 4px; opacity: 1; }
+.ap-kpi-card:hover::after  { opacity: 1; }
+
+.ap-kpi-icon-wrap {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: rgba(14,201,127,0.12);
+  color: var(--kpi-color, var(--teal));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  transition: transform var(--spring-fast);
+}
+.ap-kpi-card:hover .ap-kpi-icon-wrap {
+  transform: scale(1.1) rotate(-3deg);
+}
+
+.ap-kpi-value {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--t1);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.ap-kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t3);
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ap-kpi-change {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+}
+.ap-kpi-change.up      { background: rgba(14,201,127,0.12); color: #0ec97f; }
+.ap-kpi-change.down    { background: rgba(240,71,90,0.12); color: #f0475a; }
+.ap-kpi-change.neutral { background: rgba(100,125,160,0.12); color: var(--t3); }
+
+/* ── Section header ── */
+.ap-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── Charts row ── */
+.ap-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 14px;
+  margin-top: 16px;
+}
+.ap-chart-card--wide { grid-column: 1; }
+/* When only one card exists (charities list hidden), go full width */
+.ap-charts-row:has(> :only-child) { grid-template-columns: 1fr !important; }
+@media (max-width: 1100px) {
+  .ap-charts-row { grid-template-columns: 1fr; }
+}
+
+/* ── Entity cards ── */
+.ap-entity-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 16px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition:
+    transform var(--spring-fast),
+    border-color var(--transition),
+    box-shadow var(--transition);
+  will-change: transform;
+}
+.ap-entity-card:hover {
+  transform: translateY(-4px) scale(1.012);
+  border-color: var(--border2);
+  box-shadow: 0 12px 38px rgba(0,0,0,0.36);
+}
+.ap-entity-card-header { display: flex; align-items: flex-start; gap: 10px; }
+.ap-entity-avatar {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800;
+}
+/* User avatar: subtle teal background with teal letter */
+.ap-entity-avatar.user {
+  background: var(--teal-dim);
+  color: var(--teal);
+  border: 1px solid rgba(14,201,127,0.2);
+  font-size: 15px;
+}
+/* Charity avatar: subtle blue background with blue icon */
+.ap-entity-avatar.charity {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border: 1px solid rgba(79,142,247,0.2);
+}
+.ap-entity-name  { font-size: 13.5px; font-weight: 700; color: var(--t1); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-entity-email { font-size: 11.5px; color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-entity-meta  { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-entity-date  { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--t4); font-family: 'IBM Plex Mono', monospace; }
+.ap-entity-actions { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--border); }
+
+/* ── Table improvements ── */
+.ap-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  overflow-y: visible;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+.ap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ap-table th {
+  padding: 11px 14px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ap-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--t2);
+  vertical-align: middle;
+  transition: background var(--transition);
+}
+.ap-table tbody tr:last-child td { border-bottom: none; }
+.ap-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+.ap-table-row-clickable { cursor: pointer; }
+.ap-table-row-clickable:hover td { background: var(--surface3) !important; }
+.ap-table-avatar {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--surface3);
+  color: var(--t2); font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.ap-table-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--t3); }
+
+/* ── Action buttons ── */
+.ap-action-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer; border: 1px solid transparent;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.ap-action-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.12); }
+.ap-action-btn:active:not(:disabled) { transform: scale(0.97); }
+.ap-action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.ap-action-btn.approve {
+  background: rgba(14,201,127,0.13); color: var(--teal); border-color: rgba(14,201,127,0.28);
+}
+.ap-action-btn.approve:hover:not(:disabled) { background: rgba(14,201,127,0.22); }
+
+.ap-action-btn.reject {
+  background: rgba(240,71,90,0.12); color: var(--red); border-color: rgba(240,71,90,0.28);
+}
+.ap-action-btn.reject:hover:not(:disabled) { background: rgba(240,71,90,0.22); }
+
+.ap-action-btn.edit {
+  background: rgba(59,130,246,0.12); color: var(--blue); border-color: rgba(59,130,246,0.28);
+}
+.ap-action-btn.edit:hover:not(:disabled) { background: rgba(59,130,246,0.22); }
+
+.ap-action-btn.delete {
+  background: rgba(240,71,90,0.08); color: var(--red); border-color: rgba(240,71,90,0.2);
+}
+.ap-action-btn.delete:hover:not(:disabled) { background: rgba(240,71,90,0.18); }
+
+.ap-eye-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: transparent; color: var(--t3);
+  font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.ap-eye-btn:hover { background: var(--surface3); color: var(--t1); border-color: var(--border2); }
+
+.ap-card-eye-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--t3); font-family: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer; flex: 1; justify-content: center;
+  transition: all var(--transition);
+}
+.ap-card-eye-btn:hover { background: var(--surface3); color: var(--t1); border-color: var(--border2); }
+
+/* ── View toggle ── */
+.ap-view-switcher {
+  display: flex; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 2px; gap: 2px;
+}
+.ap-view-btn {
+  width: 28px; height: 26px; border-radius: 6px; border: none;
+  background: transparent; color: var(--t3); font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--transition);
+}
+.ap-view-btn.active { background: var(--surface4); color: var(--t1); }
+.ap-view-btn:hover:not(.active) { color: var(--t2); background: var(--surface3); }
+
+/* ── Filter tabs ── */
+.ap-filter-tabs {
+  display: flex; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 2px; gap: 2px; flex-shrink: 0;
+}
+.ap-filter-tab {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 11px; border-radius: 6px; border: none;
+  background: transparent; color: var(--t3); font-family: inherit;
+  font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: all var(--transition);
+}
+.ap-filter-tab:hover:not(.active) { color: var(--t2); background: var(--surface3); }
+.ap-filter-tab.active { background: var(--surface4); color: var(--t1); font-weight: 700; }
+.ap-filter-badge {
+  min-width: 16px; height: 16px; border-radius: 8px;
+  background: var(--red); color: #fff; font-size: 9px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; padding: 0 3px;
+}
+
+/* ── Search ── */
+.ap-search-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.ap-search-icon {
+  position: absolute; right: 9px; color: var(--t4); font-size: 13px; pointer-events: none;
+}
+.ap-search-input {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--t1); font-family: inherit;
+  font-size: 12.5px; padding: 7px 30px 7px 28px; outline: none; width: 220px;
+  transition: all var(--transition);
+}
+.ap-search-input::placeholder { color: var(--t4); }
+.ap-search-input:focus { border-color: var(--teal); background: var(--surface3); box-shadow: var(--shadow-teal); width: 260px; }
+.ap-search-clear {
+  position: absolute; left: 7px; width: 18px; height: 18px; border-radius: 50%;
+  border: none; background: var(--surface4); color: var(--t3); font-size: 10px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: all var(--transition);
+}
+.ap-search-clear:hover { background: var(--red-dim); color: var(--red); }
+
+/* ── Section title ── */
+.ap-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 800; color: var(--t1);
+}
+.ap-section-title .ti { font-size: 18px; }
+.ap-count-badge {
+  min-width: 22px; height: 20px; border-radius: 10px;
+  color: #fff; font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; padding: 0 5px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Load more button ── */
+.ap-load-more-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 22px; border-radius: var(--radius);
+  border: 1.5px solid var(--border2); background: var(--surface);
+  color: var(--t2); font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all var(--transition);
+}
+.ap-load-more-btn:hover:not(:disabled) {
+  background: var(--surface3); border-color: var(--teal);
+  color: var(--teal); transform: translateY(-1px);
+}
+.ap-load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Tab pane ── */
+.ap-tab-pane { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Report cards ── */
+.ap-report-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  display: flex; flex-direction: column; gap: 10px; cursor: pointer;
+  transition: transform var(--spring-fast), border-color var(--transition), box-shadow var(--transition);
+}
+.ap-report-card:hover {
+  transform: translateY(-4px) scale(1.013);
+  border-color: rgba(244,161,24,0.3);
+  box-shadow: 0 12px 38px rgba(0,0,0,0.35), 0 0 0 1px rgba(244,161,24,0.12);
+}
+.ap-report-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ap-report-num { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; color: var(--amber); }
+.ap-report-date { font-size: 11px; color: var(--t4); display: flex; align-items: center; gap: 4px; font-family: 'IBM Plex Mono', monospace; }
+.ap-report-sender { display: flex; align-items: center; gap: 9px; }
+.ap-report-sender-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.ap-report-body { font-size: 13px; color: var(--t2); line-height: 1.65; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
+.ap-report-full-body { font-size: 13.5px; color: var(--t2); line-height: 1.8; background: var(--surface2); border-radius: var(--radius-sm); padding: 14px; border: 1px solid var(--border); }
+
+/* ── Card grid ── */
+.ap-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 12px;
+}
+
+/* ── KPI grid ── */
+.ap-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* ── Chart card ── */
+.ap-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 18px 14px;
+  min-width: 0;
+  transition: border-color var(--transition);
+}
+.ap-chart-card:hover { border-color: var(--border2); }
+.ap-chart-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; gap: 8px;
+}
+.ap-chart-title {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: var(--t1);
+}
+
+/* ── Header user ── */
+.ap-header-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), #0aaa68);
+  color: #fff; font-size: 11px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(14,201,127,0.35);
+}
+.ap-header-username-text { font-size: 12px; font-weight: 600; color: var(--t2); }
+.ap-header-user:hover { background: var(--surface3); border-color: var(--border2); }
+
+/* ── Badge ── */
+.ap-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.ap-badge-dot {
+  width: 5.5px; height: 5.5px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── Content area ── */
+.ap-content {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 16px;
+  scrollbar-width: thin; scrollbar-color: var(--surface4) transparent;
+  min-height: 0;
+}
+.ap-content::-webkit-scrollbar { width: 5px; }
+.ap-content::-webkit-scrollbar-thumb { background: var(--surface4); border-radius: 3px; }
+
+/* ── Chart tooltip ── */
+.ap-chart-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+  min-width: 130px;
+}
+.ap-chart-tooltip-label { font-size: 11px; color: var(--t3); font-weight: 700; margin-bottom: 6px; }
+.ap-chart-tooltip-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px; color: var(--t2); gap: 12px;
+}
+
+/* ── Theme btn ── */
+.ap-theme-btn {
+  transition: all var(--transition);
+}
+.ap-theme-btn:hover {
+  background: rgba(245,158,11,0.1) !important;
+  color: var(--amber) !important;
+  border-color: rgba(245,158,11,0.3) !important;
+}
+
+/* ══ FIX: Prevent unwanted scroll on small content pages ════════════ */
+/* Automation page & small tabs: don't force min-height that creates scroll */
+.ap-tab-pane { min-height: 0; }
+/* ap-content should allow content to determine height, not force overflow */
+.ap-content { min-height: 0 !important; }
+
+/* ══ DATE RANGE INPUT styling ════════════════════════════════════════ */
+.ap-sched-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
+}
+.ap-light-theme .ap-sched-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+/* ══ AI CHAT EMBED — Theme-aware colors in dashboard context ════════ */
+/* Fix: when AIChatEmbed is inside charity/admin dashboard, use dashboard theme vars */
+.ap-content--ai .ac-embed-root {
+  --ac-bg: var(--bg);
+  --ac-surface: var(--surface);
+  --ac-border: var(--border);
+  --ac-text1: var(--t1);
+  --ac-text2: var(--t2);
+  --ac-text3: var(--t3);
+  --ac-teal: var(--teal);
+  background: var(--bg);
+}
+.ap-content--ai .ac-topbar {
+  background: var(--surface) !important;
+  border-bottom-color: var(--border) !important;
+  color: var(--t1) !important;
+}
+.ap-content--ai .ac-topbar * { color: var(--t2); }
+.ap-content--ai .ac-model-badge { color: var(--teal) !important; }
+.ap-content--ai .ac-msgs-area {
+  background: var(--bg) !important;
+}
+.ap-content--ai .ac-input-bar {
+  background: var(--surface) !important;
+  border-top-color: var(--border) !important;
+}
+.ap-content--ai .ac-textarea {
+  background: var(--surface2) !important;
+  color: var(--t1) !important;
+  border-color: var(--border) !important;
+}
+.ap-content--ai .ac-textarea::placeholder { color: var(--t4) !important; }
+.ap-content--ai .ac-send-btn {
+  background: var(--teal) !important;
+}
+/* Light theme chat fixes */
+.ap-light-theme .ap-content--ai .ac-embed-root {
+  background: #f0f4f8;
+}
+.ap-light-theme .ap-content--ai .ac-topbar { background: #fff !important; border-bottom-color: #dde6f0 !important; }
+.ap-light-theme .ap-content--ai .ac-topbar * { color: #4a6080; }
+.ap-light-theme .ap-content--ai .ac-msgs-area { background: #f0f4f8 !important; }
+.ap-light-theme .ap-content--ai .ac-input-bar { background: #fff !important; border-top-color: #dde6f0 !important; }
+.ap-light-theme .ap-content--ai .ac-textarea { background: #f5f8fc !important; color: #1a2a40 !important; border-color: #c8d8ec !important; }
+.ap-light-theme .ap-content--ai .ac-msg-bot .ac-bubble { background: #fff !important; color: #1a2a40 !important; }
+.ap-light-theme .ap-content--ai .ac-msg-user .ac-bubble { background: var(--teal) !important; color: #fff !important; }
+
+/* ══ OVERVIEW TAB — fix empty space when only one chart card ════════ */
+.ap-charts-row:has(> :only-child) { grid-template-columns: 1fr; }
+.ap-charts-row > .ap-chart-card--wide { flex: 2; min-width: 0; }
+.ap-charts-row > .ap-chart-card:not(.ap-chart-card--wide) { flex: 1; min-width: 280px; }
+/* ══ LIGHT THEME — select & date inputs inside layout ══════════════ */
+.ap-light-theme .ap-layout select,
+.ap-light-theme .ap-layout select option {
+  background: #ffffff;
+  color: #0a1628;
+}
+
+.ap-light-theme .ap-layout .ap-filter-tab.active {
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(10,22,40,0.09);
+}
+
+/* ══ Sort/Date filter row — improved visual grouping ══════════════ */
+.ap-sort-date-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.ap-sort-date-group input[type="date"] {
+  background: transparent;
+  border: none;
+  color: var(--t1);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  min-width: 110px;
+  color-scheme: dark;
+}
+
+.ap-sort-date-sep {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t4);
+  user-select: none;
+}
+
+.ap-light-theme .ap-sort-date-group input[type="date"] {
+  color-scheme: light;
+  color: #0a1628;
+}
+
+/* ══ LIGHT — notification dropdown ═════════════════════════════════ */
+.ap-light-theme .cd-notif-dropdown {
+  background: #ffffff;
+  border-color: rgba(30,60,120,0.10);
+  box-shadow: 0 8px 32px rgba(10,22,40,0.14);
+}
+.ap-light-theme .cd-notif-header { border-bottom-color: rgba(30,60,120,0.08); }
+.ap-light-theme .cd-notif-title  { color: #0a1628; }
+.ap-light-theme .cd-notif-count  { background: rgba(0,158,114,0.12); color: #007d5a; }
+.ap-light-theme .cd-notif-mark-all { color: #009e72; }
+.ap-light-theme .cd-notif-mark-all:hover { background: rgba(0,158,114,0.08); }
+.ap-light-theme .cd-notif-filter-tabs { background: #f0f4fb; border-bottom-color: rgba(30,60,120,0.07); }
+.ap-light-theme .cd-notif-filter-tab { color: #4a6080; }
+.ap-light-theme .cd-notif-filter-tab.active { color: #009e72; border-bottom-color: #009e72; }
+.ap-light-theme .cd-notif-item { border-bottom-color: rgba(30,60,120,0.06); }
+.ap-light-theme .cd-notif-item:hover { background: #f5f9ff; }
+.ap-light-theme .cd-notif-item.unread { background: rgba(0,158,114,0.04); }
+.ap-light-theme .cd-notif-item-title { color: #0a1628; }
+.ap-light-theme .cd-notif-item-msg   { color: #223354; }
+.ap-light-theme .cd-notif-item-time  { color: #7a96b8; }
+.ap-light-theme .cd-notif-del-btn    { color: #7a96b8; }
+.ap-light-theme .cd-notif-del-btn:hover { color: #d93050; background: rgba(217,48,80,0.08); }
+.ap-light-theme .cd-notif-empty { color: #4a6080; }
+.ap-light-theme .cd-notif-loading { color: #4a6080; }
+/* ══ SCROLL TO TOP BUTTON — Fixed for RTL dashboard ══════════════════ */
+.ap-scroll-top-btn {
+  position: fixed;
+  bottom: 28px;
+  /* LTR side since sidebar is on right in RTL layout */
+  left: 28px;
+  z-index: 9999;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal) 0%, #00a87a 100%);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 4px 20px rgba(0,212,154,0.45);
+  transition: all 0.25s cubic-bezier(0.22,1,0.36,1);
+  animation: scrollTopIn 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.ap-scroll-top-btn:hover {
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 0 8px 28px rgba(0,212,154,0.55);
+}
+@keyframes scrollTopIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* On mobile, scroll-top should be above mobile nav */
+@media (max-width: 900px) {
+  .ap-scroll-top-btn {
+    bottom: calc(var(--mobile-nav-h, 60px) + 14px);
+    left: 14px;
+    width: 38px;
+    height: 38px;
+    font-size: 14px;
+  }
+}
+
+/* ══ DATE RANGE FILTER — Styled for admin panel ══════════════════════ */
+.ap-date-range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-size: 12px;
+  height: 36px;
+}
+.ap-date-range-wrap .ap-date-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  height: 100%;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.ap-date-range-wrap .ap-date-field:first-child { border-left: none; }
+.ap-date-range-wrap .ap-date-label {
+  font-size: 10px;
+  color: var(--t4);
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.ap-date-range-wrap input[type="date"] {
+  background: transparent;
+  border: none;
+  color: var(--t1);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  min-width: 110px;
+  color-scheme: dark;
+  padding: 0;
+}
+.ap-date-range-wrap input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+.ap-date-range-wrap input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+.ap-date-range-sep {
+  display: none;
+}
+.ap-date-range-clear {
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--t4);
+  font-size: 11px;
+  padding: 0 10px;
+  height: 100%;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+}
+.ap-date-range-clear:hover { color: var(--red); background: rgba(244,63,94,0.1); }
+
+.ap-light-theme .ap-date-range-wrap input[type="date"] {
+  color-scheme: light;
+  color: #0a1628;
+}
+
+/* ══ FORM ERROR MESSAGES — Beautiful inline errors ══════════════════ */
+.ap-form-err {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  background: rgba(244,63,94,0.08);
+  border: 1px solid rgba(244,63,94,0.20);
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 11.5px;
+  font-weight: 500;
+  animation: errIn 0.2s ease;
+}
+.ap-form-err i { font-size: 11px; flex-shrink: 0; }
+@keyframes errIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ap-form-input.error {
+  border-color: rgba(244,63,94,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(244,63,94,0.10);
+}
+
+/* ══ KPI GRID — Ensure 4-column on desktop overview ═════════════════ */
+/* Already defined above but force on overview specifically */
+.ap-tab-pane .ap-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .ap-tab-pane .ap-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 500px) {
+  .ap-tab-pane .ap-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+}
+@media (max-width: 360px) {
+  .ap-tab-pane .ap-kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* ══ CHARTS ROW — Responsive fixes ═══════════════════════════════════ */
+.ap-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .ap-charts-row { grid-template-columns: 1fr; }
+}
+
+/* ══ AP-MAIN ensure full width on mobile ════════════════════════════ */
+@media (max-width: 900px) {
+  .ap-layout { flex-direction: column; }
+  .ap-main { width: 100%; }
+}
+/* ══ RESPONSIVE FIXES — KPI Numbers & Layout ════════════════════════ */
+
+/* KPI Value — responsive font size using clamp for smooth scaling */
+.ap-kpi-value {
+  font-size: clamp(18px, 4vw, 28px) !important;
+  letter-spacing: -0.5px;
+}
+.ap-kpi-label {
+  font-size: clamp(10px, 1.5vw, 12px) !important;
+}
+.ap-kpi-change {
+  font-size: clamp(9px, 1.2vw, 11px) !important;
+}
+
+/* Mobile: very compact KPI cards */
+@media (max-width: 600px) {
+  .ap-kpi-value { font-size: 20px !important; }
+  .ap-kpi-label { font-size: 10.5px !important; }
+  .ap-kpi-change { font-size: 10px !important; }
+  .ap-kpi-card { padding: 12px 10px 10px !important; }
+  .ap-kpi-icon-wrap { width: 28px !important; height: 28px !important; font-size: 13px !important; margin-bottom: 8px !important; }
+}
+@media (max-width: 400px) {
+  .ap-kpi-value { font-size: 18px !important; letter-spacing: -0.5px; }
+  .ap-kpi-grid { gap: 7px !important; }
+  .ap-kpi-card { padding: 10px 9px 9px !important; }
+}
+
+/* ══ CONTENT AREA — ensure nothing is hidden below mobile nav ══════ */
+@media (max-width: 900px) {
+  /* Layout: column so main takes remaining space */
+  .ap-layout { flex-direction: column; }
+  .ap-main {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    /* Subtract mobile nav height so content doesn't go under nav */
+    height: calc(100dvh - var(--mobile-nav-h, 68px));
+    max-height: calc(100dvh - var(--mobile-nav-h, 68px));
+    overflow: hidden;
+  }
+  /* Content scrollable area — extra bottom padding so last item visible above mobile nav */
+  .ap-content:not(.ap-content--ai) {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Settings grid — single column on mobile */
+  .ap-settings-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  /* Section header stacked on small screens */
+  .ap-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+}
+
+/* ══ MOBILE NAV — Icon label fix ═════════════════════════════════════ */
+.ap-mobile-nav-item .ap-nav-icon-wrap {
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+}
+
+/* Tabler icon inside mobile nav — ensure correct display */
+.ap-mobile-nav-item .ti {
+  font-size: 18px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }

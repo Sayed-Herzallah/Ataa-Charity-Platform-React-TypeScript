@@ -1,28 +1,9 @@
 import { Link } from 'wouter';
-import { useState, useEffect } from 'react';
+import ScrollToTop from '../shared/ScrollToTop';
 
 export default function Footer() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 300);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-
   return (
     <>
-      {/* ✅ زر العودة للأعلى — فوق الفوتر وخارجه */}
-      <button
-        className={`scroll-top-btn${visible ? ' visible' : ''}`}
-        onClick={scrollTop}
-        aria-label="العودة للأعلى"
-      >
-        <i className="fas fa-arrow-up" />
-      </button>
-
       <footer className="footer">
         <div className="footer-body">
           <div className="footer-brand">
@@ -102,7 +83,7 @@ export default function Footer() {
 
           <div className="footer-col">
             <h4>الصفحات</h4>
-            <Link href="/" onClick={scrollTop}>الرئيسية</Link>
+            <Link href="/" onClick={ScrollToTop}>الرئيسية</Link>
             <Link href="/charities">الجمعيات</Link>
             <Link href="/about">عن المنصة</Link>
             <Link href="/contact">تواصل معنا</Link>
@@ -127,49 +108,6 @@ export default function Footer() {
           <p>© {new Date().getFullYear()} عطاء – جميع الحقوق محفوظة</p>
         </div>
       </footer>
-
-      {/* ✅ CSS للزر */}
-      <style>{`
-        .scroll-top-btn {
-          position: fixed;
-          bottom: 32px;
-          right: 32px;
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          background: var(--primary, #234124);
-          color: white;
-          border: none;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          box-shadow: 0 4px 16px rgba(35,65,36,0.3);
-          opacity: 0;
-          transform: translateY(20px);
-          transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s;
-          z-index: 999;
-          pointer-events: none;
-        }
-        .scroll-top-btn.visible {
-          opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto;
-        }
-        .scroll-top-btn:hover {
-          background: var(--primary-dark, #1a3019);
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(35,65,36,0.4);
-        }
-        .scroll-top-btn:hover i {
-          animation: bounceUp 0.5s ease infinite alternate;
-        }
-        @keyframes bounceUp {
-          from { transform: translateY(0); }
-          to   { transform: translateY(-4px); }
-        }
-      `}</style>
     </>
   );
 }

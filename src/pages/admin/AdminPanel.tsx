@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
 import '../../styles/css/AdminPanel.css';
+import '@tabler/icons-webfont/dist/tabler-icons.css';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
@@ -39,30 +40,6 @@ const NAV_ITEMS = [
   { id: 'settings',   label: 'الإعدادات',        icon: 'ti-settings'            },
   { id: 'ai-chat',    label: 'مساعد الذكاء',     icon: 'ti-brain'               },
 ];
-// // استرجاع الجدولة المحفوظة من localStorage عند التحميل
-// useEffect(() => {
-//   (['reminder', 'report'] as const).forEach(key => {
-//     const saved = localStorage.getItem(`ap-sched-${key}`);
-//     if (!saved) return;
-//     const target = new Date(saved).getTime();
-//     const now = Date.now();
-//     if (target <= now) {
-//       localStorage.removeItem(`ap-sched-${key}`);
-//       if (key === 'reminder') runDonationReminder();
-//       else runAdminReport();
-//       return;
-//     }
-//     setNextRunTimes(prev => ({ ...prev, [key]: new Date(saved).toLocaleString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true }) }));
-//     const delay = target - now;
-//     const timer = setTimeout(async () => {
-//       if (key === 'reminder') await runDonationReminder();
-//       else await runAdminReport();
-//       localStorage.removeItem(`ap-sched-${key}`);
-//       setNextRunTimes(p => ({ ...p, [key]: null }));
-//     }, delay);
-//     setSchedulerTimers(prev => ({ ...prev, [key]: timer as any }));
-//   });
-// }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 // ─── Sidebar Component ────────────────────────────────────────────────────────
 function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, collapsed, onToggleCollapse }: {
@@ -143,10 +120,11 @@ function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, col
 }
 
 // ─── Mobile Bottom Nav ────────────────────────────────────────────────────────
-function MobileNav({ activeTab, onTabChange, pendingCount }: {
+function MobileNav({ activeTab, onTabChange, pendingCount, onLogout }: {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   pendingCount: number;
+  onLogout: () => void;
 }) {
   return (
     <nav className="ap-mobile-nav">
@@ -165,6 +143,10 @@ function MobileNav({ activeTab, onTabChange, pendingCount }: {
           <span>{item.label}</span>
         </button>
       ))}
+      <button className="ap-mobile-nav-item ap-mobile-nav-logout" onClick={onLogout}>
+        <span className="ap-nav-icon-wrap"><i className="ti ti-logout" /></span>
+        <span>خروج</span>
+      </button>
     </nav>
   );
 }
@@ -718,6 +700,8 @@ export default function AdminPanel() {
   const [error,         setError]         = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast,         setToast]         = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [confirmOpts,   setConfirmOpts]   = useState<ConfirmState | null>(null);
   const [confirmLoading,setConfirmLoading]= useState(false);
   const [rejectTarget,  setRejectTarget]  = useState<{ id: string; name: string } | null>(null);
@@ -739,6 +723,14 @@ export default function AdminPanel() {
   const [reportsSort,   setReportsSort]   = useState<SortDir>('newest');
   const [usersRoleFilter, setUsersRoleFilter] = useState<string>('all');
   const [reportsSenderFilter, setReportsSenderFilter] = useState<string>('all');
+
+  // ─── Date Range Filters ────────────────────────────────────────────────────
+  const [usersDateFrom,     setUsersDateFrom]     = useState('');
+  const [usersDateTo,       setUsersDateTo]       = useState('');
+  const [charitiesDateFrom, setCharitiesDateFrom] = useState('');
+  const [charitiesDateTo,   setCharitiesDateTo]   = useState('');
+  const [reportsDateFrom,   setReportsDateFrom]   = useState('');
+  const [reportsDateTo,     setReportsDateTo]     = useState('');
 
   const [cronLoading, setCronLoading] = useState({ reminder: false, report: false });
   const [cronLog, setCronLog]         = useState<{ type: 'success' | 'error'; text: string; time: string }[]>([]);
@@ -893,6 +885,15 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
   }, [logout]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // ── Scroll-to-top inside admin content ──
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const onScroll = () => setShowScrollTop(el.scrollTop > 300);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   const loadMoreUsers = async () => {
     const next = usersPage + 1;
@@ -1097,6 +1098,16 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
   const [profileForm, setProfileForm] = useState({ userName: '', phone: '', address: '' });
   const [passForm, setPassForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+  const [passErrors, setPassErrors] = useState<Record<string, string>>({});
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+
+  // ─── Admin Panel Validation Regexes ───────────────────────────────────────
+  const AP_nameRegex = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
+  const AP_passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
+  const AP_phoneRegex = /^(002|\+2)?01[0125][0-9]{8}$/;
 
   useEffect(() => {
     if (user) {
@@ -1111,7 +1122,12 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
   const { refreshUser } = useAuth();
 
   const saveProfile = async () => {
-    if (!profileForm.userName.trim()) { showMsg('error', 'اسم المستخدم مطلوب'); return; }
+    const errs: Record<string, string> = {};
+    if (!AP_nameRegex.test(profileForm.userName)) errs.userName = 'الاسم: يبدأ بحرف، 3-30 حرف، بدون رموز خاصة';
+    if (profileForm.phone && !AP_phoneRegex.test(profileForm.phone)) errs.phone = 'رقم غير صالح — أدخل رقماً مصرياً صحيحاً';
+    if (profileForm.address && (profileForm.address.length < 5 || profileForm.address.length > 100)) errs.address = 'العنوان يجب أن يكون بين 5 و 100 حرف';
+    setProfileErrors(errs);
+    if (Object.keys(errs).length) return;
     setSettingsSaving(true);
     try {
       await usersApi.updateProfile(profileForm);
@@ -1123,14 +1139,12 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
   };
 
   const savePassword = async () => {
-    if (!passForm.oldPassword || !passForm.newPassword) {
-      showMsg('error', 'يرجى ملء جميع الحقول');
-      return;
-    }
-    if (passForm.newPassword !== passForm.confirmPassword) {
-      showMsg('error', 'كلمتا المرور غير متطابقتين');
-      return;
-    }
+    const errs: Record<string, string> = {};
+    if (!passForm.oldPassword) errs.oldPassword = 'كلمة المرور الحالية مطلوبة';
+    if (!AP_passwordRegex.test(passForm.newPassword)) errs.newPassword = 'يجب: حرف كبير، حرف صغير، رقم، و8 أحرف على الأقل';
+    if (passForm.newPassword !== passForm.confirmPassword) errs.confirmPassword = 'كلمتا المرور غير متطابقتين';
+    setPassErrors(errs);
+    if (Object.keys(errs).length) return;
     setSettingsSaving(true);
     try {
       await usersApi.changePassword(passForm);
@@ -1144,6 +1158,8 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
   const filteredUsers = users
     .filter(u => {
       if (usersRoleFilter !== 'all' && u.roleType !== usersRoleFilter) return false;
+      if (usersDateFrom && u.createdAt && new Date(u.createdAt) < new Date(usersDateFrom)) return false;
+      if (usersDateTo && u.createdAt && new Date(u.createdAt) > new Date(usersDateTo + 'T23:59:59')) return false;
       if (!usersSearch) return true;
       const q = usersSearch.toLowerCase();
       return (
@@ -1176,6 +1192,9 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
   const filteredCharities = charities
     .filter(c => charitiesFilter === 'all' || c.approvalStatus === charitiesFilter)
     .filter(c => {
+      const ts = getCharityTimestamp(c);
+      if (charitiesDateFrom && ts < new Date(charitiesDateFrom).getTime()) return false;
+      if (charitiesDateTo && ts > new Date(charitiesDateTo + 'T23:59:59').getTime()) return false;
       if (!charitiesSearch) return true;
       const q = charitiesSearch.toLowerCase();
       return (
@@ -1198,6 +1217,8 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
         if (reportsSenderFilter === 'charity' && !isCharity) return false;
         if (reportsSenderFilter === 'user' && isCharity) return false;
       }
+      if (reportsDateFrom && r.createdAt && new Date(r.createdAt) < new Date(reportsDateFrom)) return false;
+      if (reportsDateTo && r.createdAt && new Date(r.createdAt) > new Date(reportsDateTo + 'T23:59:59')) return false;
       if (!reportsSearch) return true;
       const q = reportsSearch.toLowerCase();
       return (
@@ -1356,7 +1377,18 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
           </header>
         )}
 
-        <div className={`ap-content${tab === 'ai-chat' ? ' ap-content--ai' : ''}`}>
+        <div ref={contentRef} className={`ap-content${tab === 'ai-chat' ? ' ap-content--ai' : ''}`}>
+          {/* زر العودة للأعلى داخل لوحة الأدمن */}
+          {showScrollTop && tab !== 'ai-chat' && (
+            <button
+              className="ap-scroll-top-btn"
+              onClick={() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              aria-label="العودة للأعلى"
+              title="العودة للأعلى"
+            >
+              <i className="ti ti-arrow-up" />
+            </button>
+          )}
           {error && !loading && <ErrorBanner msg={error} onRetry={loadData} />}
 
           {loading ? <PageSkeleton /> : (
@@ -1530,6 +1562,20 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                           <i className="ti ti-sort-ascending" /> الأقدم
                         </button>
                       </div>
+                      {/* Date Range */}
+                      <div className="ap-date-range-wrap">
+                        <div className="ap-date-field">
+                          <span className="ap-date-label">من</span>
+                          <input type="date" value={usersDateFrom} onChange={e => setUsersDateFrom(e.target.value)} title="من تاريخ" />
+                        </div>
+                        <div className="ap-date-field">
+                          <span className="ap-date-label">إلى</span>
+                          <input type="date" value={usersDateTo} onChange={e => setUsersDateTo(e.target.value)} title="إلى تاريخ" />
+                        </div>
+                        {(usersDateFrom || usersDateTo) && (
+                          <button className="ap-date-range-clear" onClick={() => { setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
+                        )}
+                      </div>
                       <SearchBox value={usersSearch} onChange={setUsersSearch} placeholder="بحث بالاسم أو البريد أو الـ ID..." />
                     </div>
                   </div>
@@ -1663,6 +1709,20 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                         <button className={`ap-filter-tab${charitiesSort === 'oldest' ? ' active' : ''}`} onClick={() => setCharitiesSort('oldest')}>
                           <i className="ti ti-sort-ascending" /> الأقدم
                         </button>
+                      </div>
+                      {/* Date Range */}
+                      <div className="ap-date-range-wrap">
+                        <div className="ap-date-field">
+                          <span className="ap-date-label">من</span>
+                          <input type="date" value={charitiesDateFrom} onChange={e => setCharitiesDateFrom(e.target.value)} title="من تاريخ" />
+                        </div>
+                        <div className="ap-date-field">
+                          <span className="ap-date-label">إلى</span>
+                          <input type="date" value={charitiesDateTo} onChange={e => setCharitiesDateTo(e.target.value)} title="إلى تاريخ" />
+                        </div>
+                        {(charitiesDateFrom || charitiesDateTo) && (
+                          <button className="ap-date-range-clear" onClick={() => { setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
+                        )}
                       </div>
                       <SearchBox value={charitiesSearch} onChange={setCharitiesSearch} placeholder="بحث بالاسم أو البريد أو الـ ID..." />
                     </div>
@@ -1815,6 +1875,20 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                         <button className={`ap-filter-tab${reportsSort === 'oldest' ? ' active' : ''}`} onClick={() => setReportsSort('oldest')}>
                           <i className="ti ti-sort-ascending" /> الأقدم
                         </button>
+                      </div>
+                      {/* Date Range */}
+                      <div className="ap-date-range-wrap">
+                        <div className="ap-date-field">
+                          <span className="ap-date-label">من</span>
+                          <input type="date" value={reportsDateFrom} onChange={e => setReportsDateFrom(e.target.value)} title="من تاريخ" />
+                        </div>
+                        <div className="ap-date-field">
+                          <span className="ap-date-label">إلى</span>
+                          <input type="date" value={reportsDateTo} onChange={e => setReportsDateTo(e.target.value)} title="إلى تاريخ" />
+                        </div>
+                        {(reportsDateFrom || reportsDateTo) && (
+                          <button className="ap-date-range-clear" onClick={() => { setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
+                        )}
                       </div>
                       <SearchBox value={reportsSearch} onChange={setReportsSearch} placeholder="بحث في التقارير أو الـ ID..." />
                     </div>
@@ -2171,13 +2245,14 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div className="ap-form-group">
-                          <label className="ap-form-label">اسم المستخدم</label>
+                          <label className="ap-form-label">اسم المستخدم <span style={{ color: RED }}>*</span></label>
                           <input
-                            className="ap-form-input"
+                            className={`ap-form-input${profileErrors.userName ? ' error' : ''}`}
                             value={profileForm.userName}
-                            onChange={e => setProfileForm(f => ({ ...f, userName: e.target.value }))}
+                            onChange={e => { setProfileForm(f => ({ ...f, userName: e.target.value })); setProfileErrors(er => ({ ...er, userName: '' })); }}
                             placeholder="اسم المستخدم"
                           />
+                          {profileErrors.userName && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.userName}</div>}
                         </div>
                         <div className="ap-form-group">
                           <label className="ap-form-label">البريد الإلكتروني</label>
@@ -2186,20 +2261,22 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                         <div className="ap-form-group">
                           <label className="ap-form-label">رقم الهاتف</label>
                           <input
-                            className="ap-form-input"
+                            className={`ap-form-input${profileErrors.phone ? ' error' : ''}`}
                             value={profileForm.phone}
-                            onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))}
+                            onChange={e => { setProfileForm(f => ({ ...f, phone: e.target.value })); setProfileErrors(er => ({ ...er, phone: '' })); }}
                             placeholder="01xxxxxxxxx"
                           />
+                          {profileErrors.phone && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.phone}</div>}
                         </div>
                         <div className="ap-form-group">
                           <label className="ap-form-label">العنوان</label>
                           <input
-                            className="ap-form-input"
+                            className={`ap-form-input${profileErrors.address ? ' error' : ''}`}
                             value={profileForm.address}
-                            onChange={e => setProfileForm(f => ({ ...f, address: e.target.value }))}
+                            onChange={e => { setProfileForm(f => ({ ...f, address: e.target.value })); setProfileErrors(er => ({ ...er, address: '' })); }}
                             placeholder="المدينة أو المنطقة"
                           />
+                          {profileErrors.address && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.address}</div>}
                         </div>
                         <button
                           className="ap-action-btn approve"
@@ -2221,34 +2298,49 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div className="ap-form-group">
-                          <label className="ap-form-label">كلمة المرور الحالية</label>
-                          <input
-                            className="ap-form-input"
-                            type="password"
-                            value={passForm.oldPassword}
-                            onChange={e => setPassForm(f => ({ ...f, oldPassword: e.target.value }))}
-                            placeholder="••••••••"
-                          />
+                          <label className="ap-form-label">كلمة المرور الحالية <span style={{ color: RED }}>*</span></label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              className={`ap-form-input${passErrors.oldPassword ? ' error' : ''}`}
+                              type={showOldPass ? 'text' : 'password'}
+                              value={passForm.oldPassword}
+                              onChange={e => { setPassForm(f => ({ ...f, oldPassword: e.target.value })); setPassErrors(er => ({ ...er, oldPassword: '' })); }}
+                              placeholder="Enter your old password"
+                              style={{ paddingLeft: 36 }}
+                            />
+                            <button type="button" onClick={() => setShowOldPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showOldPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showOldPass ? '-off' : ''}`} /></button>
+                          </div>
+                          {passErrors.oldPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.oldPassword}</div>}
                         </div>
                         <div className="ap-form-group">
-                          <label className="ap-form-label">كلمة المرور الجديدة</label>
-                          <input
-                            className="ap-form-input"
-                            type="password"
-                            value={passForm.newPassword}
-                            onChange={e => setPassForm(f => ({ ...f, newPassword: e.target.value }))}
-                            placeholder="••••••••"
-                          />
+                          <label className="ap-form-label">كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              className={`ap-form-input${passErrors.newPassword ? ' error' : ''}`}
+                              type={showNewPass ? 'text' : 'password'}
+                              value={passForm.newPassword}
+                              onChange={e => { setPassForm(f => ({ ...f, newPassword: e.target.value })); setPassErrors(er => ({ ...er, newPassword: '' })); }}
+                              placeholder="Enter your new password"
+                              style={{ paddingLeft: 36 }}
+                            />
+                            <button type="button" onClick={() => setShowNewPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showNewPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showNewPass ? '-off' : ''}`} /></button>
+                          </div>
+                          {passErrors.newPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.newPassword}</div>}
                         </div>
                         <div className="ap-form-group">
-                          <label className="ap-form-label">تأكيد كلمة المرور الجديدة</label>
-                          <input
-                            className="ap-form-input"
-                            type="password"
-                            value={passForm.confirmPassword}
-                            onChange={e => setPassForm(f => ({ ...f, confirmPassword: e.target.value }))}
-                            placeholder="••••••••"
-                          />
+                          <label className="ap-form-label">تأكيد كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              className={`ap-form-input${passErrors.confirmPassword ? ' error' : ''}`}
+                              type={showConfirmPass ? 'text' : 'password'}
+                              value={passForm.confirmPassword}
+                              onChange={e => { setPassForm(f => ({ ...f, confirmPassword: e.target.value })); setPassErrors(er => ({ ...er, confirmPassword: '' })); }}
+                              placeholder="Enter your Confirm Password"
+                              style={{ paddingLeft: 36 }}
+                            />
+                            <button type="button" onClick={() => setShowConfirmPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showConfirmPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showConfirmPass ? '-off' : ''}`} /></button>
+                          </div>
+                          {passErrors.confirmPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.confirmPassword}</div>}
                         </div>
                         <button
                           className="ap-action-btn edit"
@@ -2345,7 +2437,7 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
         </div>
       </main>
 
-      <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} />
+      <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} onLogout={handleLogout} />
 
       <Toast msg={toast} />
       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />

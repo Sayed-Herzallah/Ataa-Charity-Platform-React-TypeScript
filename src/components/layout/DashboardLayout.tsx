@@ -1,15 +1,38 @@
-import React from 'react';
-import Footer from './Footer';
+import React, { useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { useAuth } from '../../contexts/AuthContext';
 
-// Simple layout for dashboard pages without the global Navbar.
-// Can be extended with dashboard‑specific UI elements if needed.
+/**
+ * DashboardLayout — يحمي صفحات الداشبورد من السوايب للخلف.
+ * لو المستخدم رجع بأصبعين أو زر الرجوع وكان داخل dashboard,
+ * يتم تسجيل الخروج ومسح التوكن بدل ما يشوف صفحات غير مصرح بها.
+ */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { logout } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    // نضيف state للـ history عشان نكتشف الرجوع
+    window.history.pushState({ dashboard: true }, '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      // لو رجع ومفيش state يعني خرج من الداشبورد
+      if (!e.state?.dashboard) {
+        logout();
+        setLocation('/');
+      } else {
+        // أعد push حتى الـ back button يشتغل صح
+        window.history.pushState({ dashboard: true }, '');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [logout, setLocation]);
+
   return (
-    <>
-      {/* Dashboard pages may have their own header or sidebar – add here if required */}
-      <main className="main-content">{children}</main>
-      {/* Footer is kept if desired; remove if dashboard should be full‑screen */}
-      {/* Footer omitted on dashboard pages */}
-    </>
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      {children}
+    </div>
   );
 }

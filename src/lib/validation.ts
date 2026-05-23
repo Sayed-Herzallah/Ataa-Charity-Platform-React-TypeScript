@@ -1,10 +1,13 @@
-// Validation regexes from backend spec
-export const nameRegex = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
-export const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
-export const phoneRegex = /^(002|\+2)?01[0125][0-9]{8}$/;
-export const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-export const licenseRegex = /^[A-Z0-9]{2,5}-[A-Z0-9]{3,10}-[0-9]{2,6}$/i;
-export const nationalIDRegex = /^\d{14}$/;
+// Validation regexes — synced with backend spec
+export const nameRegex       = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
+export const passwordRegex   = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
+export const phoneRegex      = /^(002|\+2)?01[0125][0-9]{8}$/;
+// Backend allows only .com / .net / .edu
+export const emailRegex      = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+\.(com|net|edu)$/;
+// Backend license format: 2-5 uppercase/digits, optional dash, 3-10, optional dash, 2-6 digits
+export const licenseRegex    = /^(?=.{6,20}$)[A-Z0-9]{2,5}[-]?[A-Z0-9]{3,10}[-]?[0-9]{2,6}$/;
+// Backend national ID: Egyptian format (14 digits with date/region validation)
+export const nationalIDRegex = /^(2\d{2}|30[0-9]|310)(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(0[1-9]|1[0-9]|2[0-9]|88)\d{5}$/;
 
 export function validateName(val: string): string {
   if (!val) return 'الاسم مطلوب';

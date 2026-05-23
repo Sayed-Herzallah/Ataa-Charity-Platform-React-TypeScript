@@ -1,6 +1,8 @@
 import React from 'react';
 import { useLocation } from 'wouter';
 import Navbar from './Navbar';
+import Footer from './Footer';
+import ScrollToTop from '../shared/ScrollToTop';
 
 // Paths where Navbar should be hidden (dashboard related pages)
 const NO_NAVBAR_PATHS: string[] = [
@@ -8,7 +10,6 @@ const NO_NAVBAR_PATHS: string[] = [
   '/user-dashboard',
   '/admin',
 ];
-import Footer from './Footer';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -37,6 +38,7 @@ export default function AppLayout({ children, showFooter }: AppLayoutProps) {
         {children}
       </main>
       {shouldShowFooter && <Footer />}
+      <ScrollToTop />
     </>
   );
 }

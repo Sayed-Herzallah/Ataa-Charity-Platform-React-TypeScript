@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { aiApi } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/css/AiChat.css';
+import '@tabler/icons-webfont/dist/tabler-icons.css';
 
 // ─── نفس Types بتاعة AIChat.tsx ─────────────────────────────────────────────
 
@@ -51,9 +52,12 @@ export default function AIChatEmbed() {
 
   const { user } = useAuth();
 
-  const userInitial = user?.userName?.[0]?.toUpperCase()
-                   || user?.name?.[0]?.toUpperCase()
-                   || 'أ';
+  const userInitial = (
+    user?.userName?.[0] ||
+    user?.name?.[0] ||
+    user?.email?.[0] ||
+    'أ'
+  ).toUpperCase();
 
   // ── Scroll ──────────────────────────────────────────────────────────────────
 
@@ -194,8 +198,6 @@ export default function AIChatEmbed() {
 
   return (
     <>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
-
       {/* wrapper مخصص للـ embed — بدون height:100dvh بتاعة ac-main */}
       <div className="ac-embed-root" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
 
@@ -204,7 +206,11 @@ export default function AIChatEmbed() {
           <div className="ac-topbar-left">
             <div className="ac-model-badge">
               <span className="ac-badge-dot" />
-              عطاء AI
+              مساعد عطاء AI
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ac-text3, #9ca3af)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
+              متصل
             </div>
           </div>
           <div className="ac-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -212,11 +218,14 @@ export default function AIChatEmbed() {
               type="button"
               onClick={clearChat}
               title="محادثة جديدة"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ac-text3, #9ca3af)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ac-text3, #9ca3af)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 8px', borderRadius: 8, transition: 'all 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--br-pale, rgba(16,163,127,0.1))')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
             >
               <i className="ti ti-edit" aria-hidden="true" style={{ fontSize: 16 }} />
+              <span style={{ fontSize: 11 }}>جديد</span>
             </button>
-            <div className="ac-user-av" title={user?.userName || 'المستخدم'}>{userInitial}</div>
+            <div className="ac-user-av" title={user?.userName || 'المستخدم'} style={{ background: 'var(--br, #10a37f)', color: '#fff', boxShadow: '0 2px 8px rgba(16,163,127,0.35)' }}>{userInitial}</div>
           </div>
         </div>
 
@@ -229,8 +238,8 @@ export default function AIChatEmbed() {
                 <div className="ac-welcome-logo">
                   <i className="ti ti-robot" aria-hidden="true" />
                 </div>
-                <h2>كيف يمكنني مساعدتك؟</h2>
-                <p>اسألني عن التبرع بالملابس أو أرسل صورة لأحللها فورًا بالذكاء الاصطناعي</p>
+                <h2>مرحباً، كيف أساعدك؟</h2>
+                <p>مساعدك الذكي لإدارة التبرعات. يمكنك سؤالي أو إرسال صورة لتحليلها فوراً بالذكاء الاصطناعي</p>
                 <div className="ac-cards">
                   {SUGGESTION_CARDS.map(c => (
                     <button key={c.title} className="ac-card" onClick={() => sendMessage(c.title)}>
@@ -239,6 +248,22 @@ export default function AIChatEmbed() {
                       <span className="ac-card-sub">{c.sub}</span>
                     </button>
                   ))}
+                </div>
+                <div style={{ marginTop: 24, display: 'flex', gap: 16, alignItems: 'center', color: 'var(--ac-text3, #9ca3af)', fontSize: 11.5 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="ti ti-photo" style={{ fontSize: 13 }} />
+                    تحليل الصور
+                  </span>
+                  <span>•</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="ti ti-brain" style={{ fontSize: 13 }} />
+                    ذكاء اصطناعي
+                  </span>
+                  <span>•</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="ti ti-clock" style={{ fontSize: 13 }} />
+                    24/7
+                  </span>
                 </div>
               </div>
             ) : (

@@ -5,6 +5,21 @@ import { usersApi, donorApi, notificationApi, charityApi, Charity, Donation, Not
 import { statusLabel, formatDate } from '../lib/utils';
 import RatingModal from '../features/rating/RatingModal';
 
+// ─── Validation Regexes ──────────────────────────────────────────────────────
+const nameRegex = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
+const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
+const phoneRegex = /^(002|\+2)?01[0125][0-9]{8}$/;
+
+interface ValidationErrors {
+  userName?: string;
+  phone?: string;
+  charityName?: string;
+  address?: string;
+  oldPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
+}
+
 type Tab = 'profile' | 'password' | 'donations' | 'notifications' | 'danger';
 
 export default function Settings() {
@@ -20,32 +35,29 @@ export default function Settings() {
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [ratingDonation, setRatingDonation] = useState<Donation | null>(null);
+  const [profileErrors, setProfileErrors] = useState<ValidationErrors>({});
+  const [passErrors, setPassErrors] = useState<ValidationErrors>({});
+  // Eye toggle state for password fields
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   useEffect(() => {
     if (user) {
       setProfileForm({ userName: user.userName || '', phone: user.phone || '', address: user.address || '' });
-      // if (user.roleType === 'charity') {
-      //   charityApi.getAll().then(d => {
-      //     const mine = d.charities?.find(c => c.email === user.email);
-      //     if (mine) {
-      //       setCharityProfile(mine);
-      //       setCharityForm({ charityName: mine.charityName || '', address: mine.address || '', description: mine.description || '' });
-      //     }
-      //   }).catch(() => {});
-      // }
       if (user.roleType === 'charity') {
-  request('/users/profile').then((d: any) => {
-    const c = d?.user || d?.finder || d?.data;
-    if (c) {
-      setCharityProfile(c as any);
-      setCharityForm({
-        charityName: c.charityName || c.userName || '',
-        address: c.address || '',
-        description: c.charityDescription || c.description || '',
-      });
-    }
-  }).catch(() => {});
-}
+        request('/users/profile').then((d: any) => {
+          const c = d?.user || d?.finder || d?.data;
+          if (c) {
+            setCharityProfile(c as any);
+            setCharityForm({
+              charityName: c.charityName || c.userName || '',
+              address: c.address || '',
+              description: c.charityDescription || c.description || '',
+            });
+          }
+        }).catch(() => {});
+      }
     }
   }, [user]);
 
@@ -65,8 +77,55 @@ export default function Settings() {
     setTimeout(() => setMsg(null), 3500);
   };
 
+  // ─── Profile Validation ──────────────────────────────────────────────────
+  const validateProfile = (): boolean => {
+    const errs: ValidationErrors = {};
+    if (!nameRegex.test(profileForm.userName)) {
+      errs.userName = 'الاسم: يبدأ بحرف، 3-30 حرف، بدون رموز خاصة';
+    }
+    if (profileForm.phone && !phoneRegex.test(profileForm.phone)) {
+      errs.phone = 'رقم غير صالح — أدخل رقماً مصرياً صحيحاً (مثال: 01012345678)';
+    }
+    if (profileForm.address && (profileForm.address.length < 5 || profileForm.address.length > 100)) {
+      errs.address = 'العنوان يجب أن يكون بين 5 و 100 حرف';
+    }
+    setProfileErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateCharityProfile = (): boolean => {
+    const errs: ValidationErrors = {};
+    if (!charityForm.charityName || charityForm.charityName.trim().length < 3) {
+      errs.charityName = 'اسم الجمعية يجب أن يكون 3 أحرف على الأقل';
+    }
+    if (profileForm.phone && !phoneRegex.test(profileForm.phone)) {
+      errs.phone = 'رقم غير صالح — أدخل رقماً مصرياً صحيحاً (مثال: 01012345678)';
+    }
+    if (charityForm.address && (charityForm.address.length < 5 || charityForm.address.length > 100)) {
+      errs.address = 'العنوان يجب أن يكون بين 5 و 100 حرف';
+    }
+    setProfileErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validatePassword = (): boolean => {
+    const errs: ValidationErrors = {};
+    if (!passForm.oldPassword) {
+      errs.oldPassword = 'كلمة المرور الحالية مطلوبة';
+    }
+    if (!passwordRegex.test(passForm.newPassword)) {
+      errs.newPassword = 'يجب أن تحتوي على: حرف كبير، حرف صغير، رقم، و8 أحرف على الأقل';
+    }
+    if (passForm.newPassword !== passForm.confirmPassword) {
+      errs.confirmPassword = 'كلمتا المرور غير متطابقتين';
+    }
+    setPassErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateProfile()) return;
     setSaving(true);
     try {
       await usersApi.updateProfile(profileForm);
@@ -82,11 +141,10 @@ export default function Settings() {
   const saveCharityProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!charityProfile) return;
+    if (!validateCharityProfile()) return;
     setSaving(true);
     try {
-      // Save charity-specific fields
       await charityApi.update(charityProfile._id, charityForm);
-      // FIX: also save phone via user profile endpoint since phone belongs to the user record
       if (profileForm.phone !== (user?.phone || '')) {
         await usersApi.updateProfile({ phone: profileForm.phone });
         await refreshUser();
@@ -101,10 +159,7 @@ export default function Settings() {
 
   const savePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passForm.newPassword !== passForm.confirmPassword) {
-      showMsg('error', 'كلمتا المرور غير متطابقتين');
-      return;
-    }
+    if (!validatePassword()) return;
     setSaving(true);
     try {
       await usersApi.changePassword(passForm);
@@ -120,7 +175,6 @@ export default function Settings() {
   const markNotifRead = async (id: string) => {
     try {
       await notificationApi.markRead(id);
-      // FIX: use status field, not isRead
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, status: 'read' as const } : n));
     } catch {}
   };
@@ -158,6 +212,23 @@ export default function Settings() {
   ];
 
   const roleLabel = user.roleType === 'charity' ? 'جمعية خيرية' : user.roleType === 'admin' ? 'مدير' : 'متبرع';
+
+  // Helper: field error display
+  const FieldError = ({ msg: errMsg }: { msg?: string }) =>
+    errMsg ? (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginTop: 5,
+        color: '#ef4444', fontSize: 12, fontWeight: 500,
+        background: 'rgba(239,68,68,0.07)', borderRadius: 6,
+        padding: '5px 10px', border: '1px solid rgba(239,68,68,0.18)',
+      }}>
+        <i className="fa-solid fa-circle-exclamation" style={{ fontSize: 11 }} />
+        {errMsg}
+      </div>
+    ) : null;
+
+  const inputErrStyle = (hasErr?: string): React.CSSProperties =>
+    hasErr ? { border: '1.5px solid #ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,0.10)' } : {};
 
   return (
     <div className="settings-wrapper">
@@ -218,8 +289,14 @@ export default function Settings() {
                 <form onSubmit={saveCharityProfile}>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>اسم الجمعية</label>
-                      <input value={charityForm.charityName} onChange={e => setCharityForm(f => ({ ...f, charityName: e.target.value }))} placeholder="اسم الجمعية" />
+                      <label>اسم الجمعية <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input
+                        value={charityForm.charityName}
+                        onChange={e => { setCharityForm(f => ({ ...f, charityName: e.target.value })); setProfileErrors(er => ({ ...er, charityName: '' })); }}
+                        placeholder="اسم الجمعية"
+                        style={inputErrStyle(profileErrors.charityName)}
+                      />
+                      <FieldError msg={profileErrors.charityName} />
                     </div>
                     <div className="form-group">
                       <label>البريد الإلكتروني</label>
@@ -227,7 +304,13 @@ export default function Settings() {
                     </div>
                     <div className="form-group">
                       <label>رقم الهاتف</label>
-                      <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="01xxxxxxxxx" />
+                      <input
+                        value={profileForm.phone}
+                        onChange={e => { setProfileForm(f => ({ ...f, phone: e.target.value })); setProfileErrors(er => ({ ...er, phone: '' })); }}
+                        placeholder="01xxxxxxxxx"
+                        style={inputErrStyle(profileErrors.phone)}
+                      />
+                      <FieldError msg={profileErrors.phone} />
                     </div>
                     <div className="form-group">
                       <label>نوع الحساب</label>
@@ -235,7 +318,13 @@ export default function Settings() {
                     </div>
                     <div className="form-group form-full">
                       <label>العنوان</label>
-                      <input value={charityForm.address} onChange={e => setCharityForm(f => ({ ...f, address: e.target.value }))} placeholder="مدينتك أو منطقتك" />
+                      <input
+                        value={charityForm.address}
+                        onChange={e => { setCharityForm(f => ({ ...f, address: e.target.value })); setProfileErrors(er => ({ ...er, address: '' })); }}
+                        placeholder="مدينتك أو منطقتك"
+                        style={inputErrStyle(profileErrors.address)}
+                      />
+                      <FieldError msg={profileErrors.address} />
                     </div>
                     <div className="form-group form-full">
                       <label>وصف الجمعية</label>
@@ -258,8 +347,14 @@ export default function Settings() {
                 <form onSubmit={saveProfile}>
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>الاسم</label>
-                      <input value={profileForm.userName} onChange={e => setProfileForm(f => ({ ...f, userName: e.target.value }))} placeholder="اسمك الكامل" />
+                      <label>الاسم <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input
+                        value={profileForm.userName}
+                        onChange={e => { setProfileForm(f => ({ ...f, userName: e.target.value })); setProfileErrors(er => ({ ...er, userName: '' })); }}
+                        placeholder="اسمك الكامل"
+                        style={inputErrStyle(profileErrors.userName)}
+                      />
+                      <FieldError msg={profileErrors.userName} />
                     </div>
                     <div className="form-group">
                       <label>البريد الإلكتروني</label>
@@ -267,7 +362,13 @@ export default function Settings() {
                     </div>
                     <div className="form-group">
                       <label>رقم الهاتف</label>
-                      <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="01xxxxxxxxx" />
+                      <input
+                        value={profileForm.phone}
+                        onChange={e => { setProfileForm(f => ({ ...f, phone: e.target.value })); setProfileErrors(er => ({ ...er, phone: '' })); }}
+                        placeholder="01xxxxxxxxx"
+                        style={inputErrStyle(profileErrors.phone)}
+                      />
+                      <FieldError msg={profileErrors.phone} />
                     </div>
                     <div className="form-group">
                       <label>نوع الحساب</label>
@@ -275,7 +376,13 @@ export default function Settings() {
                     </div>
                     <div className="form-group form-full">
                       <label>العنوان</label>
-                      <input value={profileForm.address} onChange={e => setProfileForm(f => ({ ...f, address: e.target.value }))} placeholder="مدينتك أو منطقتك" />
+                      <input
+                        value={profileForm.address}
+                        onChange={e => { setProfileForm(f => ({ ...f, address: e.target.value })); setProfileErrors(er => ({ ...er, address: '' })); }}
+                        placeholder="مدينتك أو منطقتك"
+                        style={inputErrStyle(profileErrors.address)}
+                      />
+                      <FieldError msg={profileErrors.address} />
                     </div>
                   </div>
                   <div style={{ marginTop: 20 }}>
@@ -297,16 +404,67 @@ export default function Settings() {
               <form onSubmit={savePassword}>
                 <div className="form-grid">
                   <div className="form-group form-full">
-                    <label>كلمة المرور الحالية</label>
-                    <input type="password" value={passForm.oldPassword} onChange={e => setPassForm(f => ({ ...f, oldPassword: e.target.value }))} placeholder="••••••••" required />
+                    <label>كلمة المرور الحالية <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showOldPass ? 'text' : 'password'}
+                        value={passForm.oldPassword}
+                        onChange={e => { setPassForm(f => ({ ...f, oldPassword: e.target.value })); setPassErrors(er => ({ ...er, oldPassword: '' })); }}
+                        placeholder="••••••••"
+                        style={{ ...inputErrStyle(passErrors.oldPassword), paddingLeft: 38 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOldPass(v => !v)}
+                        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--neutral-400)', fontSize: 14, padding: 4 }}
+                        title={showOldPass ? 'إخفاء' : 'إظهار'}
+                      >
+                        <i className={`fa-solid fa-eye${showOldPass ? '-slash' : ''}`} />
+                      </button>
+                    </div>
+                    <FieldError msg={passErrors.oldPassword} />
                   </div>
                   <div className="form-group">
-                    <label>كلمة المرور الجديدة</label>
-                    <input type="password" value={passForm.newPassword} onChange={e => setPassForm(f => ({ ...f, newPassword: e.target.value }))} placeholder="••••••••" required />
+                    <label>كلمة المرور الجديدة <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showNewPass ? 'text' : 'password'}
+                        value={passForm.newPassword}
+                        onChange={e => { setPassForm(f => ({ ...f, newPassword: e.target.value })); setPassErrors(er => ({ ...er, newPassword: '' })); }}
+                        placeholder="••••••••"
+                        style={{ ...inputErrStyle(passErrors.newPassword), paddingLeft: 38 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(v => !v)}
+                        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--neutral-400)', fontSize: 14, padding: 4 }}
+                        title={showNewPass ? 'إخفاء' : 'إظهار'}
+                      >
+                        <i className={`fa-solid fa-eye${showNewPass ? '-slash' : ''}`} />
+                      </button>
+                    </div>
+                    <FieldError msg={passErrors.newPassword} />
                   </div>
                   <div className="form-group">
-                    <label>تأكيد كلمة المرور الجديدة</label>
-                    <input type="password" value={passForm.confirmPassword} onChange={e => setPassForm(f => ({ ...f, confirmPassword: e.target.value }))} placeholder="••••••••" required />
+                    <label>تأكيد كلمة المرور الجديدة <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showConfirmPass ? 'text' : 'password'}
+                        value={passForm.confirmPassword}
+                        onChange={e => { setPassForm(f => ({ ...f, confirmPassword: e.target.value })); setPassErrors(er => ({ ...er, confirmPassword: '' })); }}
+                        placeholder="••••••••"
+                        style={{ ...inputErrStyle(passErrors.confirmPassword), paddingLeft: 38 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPass(v => !v)}
+                        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--neutral-400)', fontSize: 14, padding: 4 }}
+                        title={showConfirmPass ? 'إخفاء' : 'إظهار'}
+                      >
+                        <i className={`fa-solid fa-eye${showConfirmPass ? '-slash' : ''}`} />
+                      </button>
+                    </div>
+                    <FieldError msg={passErrors.confirmPassword} />
                   </div>
                 </div>
                 <div style={{ marginTop: 20 }}>
@@ -368,7 +526,6 @@ export default function Settings() {
             <div className="section-card">
               <div className="section-card-header">
                 <span className="section-card-title">🔔 الإشعارات</span>
-                {/* FIX: use status field, not isRead */}
                 <span style={{ fontSize: 13, color: 'var(--neutral-500)' }}>{notifications.filter(n => n.status === 'unread').length} غير مقروء</span>
               </div>
               {loadingData ? (
@@ -383,7 +540,6 @@ export default function Settings() {
                   {notifications.map(n => (
                     <div
                       key={n._id}
-                      // FIX: use status field, not isRead
                       className={`notif-item${n.status === 'unread' ? ' unread' : ''}`}
                       onClick={() => n.status === 'unread' && markNotifRead(n._id)}
                     >
@@ -401,12 +557,30 @@ export default function Settings() {
 
           {/* Danger Zone */}
           <div className={`settings-section${tab === 'danger' ? ' active' : ''}`}>
-            <div className="danger-card">
-              <h3>⚠️ حذف الحساب</h3>
-              <p>هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بياناتك وتبرعاتك بشكل نهائي.</p>
-              <button className="btn-danger" onClick={deleteAccount}>
-                🗑️ حذف حسابي نهائيًا
-              </button>
+            <div className="danger-zone-wrapper">
+              {/* تسجيل الخروج */}
+              <div className="danger-card danger-card--logout">
+                <div className="danger-card-icon">🚪</div>
+                <div className="danger-card-body">
+                  <h3>تسجيل الخروج</h3>
+                  <p>سيتم تسجيل خروجك من الحساب. يمكنك الدخول مجدداً في أي وقت.</p>
+                </div>
+                <button className="btn-danger btn-danger--soft" onClick={logout}>
+                  تسجيل الخروج
+                </button>
+              </div>
+
+              {/* حذف الحساب */}
+              <div className="danger-card danger-card--delete">
+                <div className="danger-card-icon">🗑️</div>
+                <div className="danger-card-body">
+                  <h3>⚠️ حذف الحساب نهائيًا</h3>
+                  <p>هذا الإجراء <strong>لا يمكن التراجع عنه</strong>. سيتم حذف جميع بياناتك وتبرعاتك بشكل نهائي ودائم.</p>
+                </div>
+                <button className="btn-danger" onClick={deleteAccount}>
+                  حذف حسابي نهائيًا
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ import VerifyEmailPage from './Auth/VerifyEmail';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type RoleType    = 'user' | 'charity' | 'admin';
+type RoleType    = 'user' | 'charity';
 type FieldState  = 'valid' | 'invalid' | 'reset';
 type ToastType   = 'error' | 'warn' | 'success';
 
@@ -134,7 +134,6 @@ function WelcomeScreen({ userName, roleType, onDone }: WelcomeScreenProps) {
   const roleLabel: Record<string, { label: string; icon: string; color: string }> = {
     user:    { label: 'متبرع',        icon: 'fa-heart',         color: '#22c55e' },
     charity: { label: 'جمعية خيرية',  icon: 'fa-building',      color: '#3ba8b4' },
-    admin:   { label: 'مسؤول النظام', icon: 'fa-shield-halved', color: '#f59e0b' },
   };
   const role = roleLabel[roleType] ?? roleLabel['user'];
   useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, [onDone]);
@@ -247,7 +246,6 @@ function StepProgress({ currentStep, totalSteps = 3 }: { currentStep: number; to
 const roleCards = [
   { value: 'user'    as RoleType, label: 'متبرع',        sublabel: 'Donor',   icon: 'fa-heart',            color: '#22c55e', gradient: 'linear-gradient(135deg,#22c55e,#16a34a)', features: ['تقديم تبرعات', 'متابعة التبرعات', 'الوصول للجمعيات'] },
   { value: 'charity' as RoleType, label: 'جمعية خيرية',  sublabel: 'Charity', icon: 'fa-building-columns', color: '#3ba8b4', gradient: 'linear-gradient(135deg,#267880,#3ba8b4)', features: ['إدارة التبرعات', 'لوحة تحكم', 'تحتاج موافقة إدارة'] },
-  { value: 'admin'   as RoleType, label: 'مسؤول النظام', sublabel: 'Admin',   icon: 'fa-shield-halved',    color: '#f59e0b', gradient: 'linear-gradient(135deg,#d97706,#f59e0b)', features: ['إدارة المنصة', 'الموافقة على الجمعيات', 'صلاحيات مطلقة'] },
 ];
 
 function RoleSelector({ selected, onSelect }: { selected: RoleType | ''; onSelect: (r: RoleType) => void }) {
@@ -471,9 +469,6 @@ function RegisterSection({ onToast, form, setForm, currentStep, setCurrentStep }
       if (!validate('charityName',   form.charityName.trim(), 'charityName'))                         { ok = false; errors.push(rules.charityName.msg); }
       if (!validate('licenseNumber', form.licenseNumber.trim().toUpperCase(), 'licenseNumber'))       { ok = false; errors.push(rules.licenseNumber.msg); }
     }
-    if (form.roleType === 'admin') {
-      if (!validate('nationalID', form.nationalID.trim(), 'nationalID'))                              { ok = false; errors.push(rules.nationalID.msg); }
-    }
     if (!ok) onToast(errors[0], 'error');
     return ok;
   };
@@ -503,9 +498,6 @@ function RegisterSection({ onToast, form, setForm, currentStep, setCurrentStep }
           ...(charityDesc ? { charityDescription: charityDesc } : {}),
         });
         setPendingVerify({ email: form.email.trim(), name: form.charityName.trim(), role: 'charity' });
-      } else if (form.roleType === 'admin') {
-        await authApi.register({ ...base, userName: form.userName.trim(), roleType: 'admin', nationalID: form.nationalID.trim() });
-        setPendingVerify({ email: form.email.trim(), name: form.userName.trim(), role: 'admin' });
       } else {
         await authApi.register({ ...base, userName: form.userName.trim(), roleType: 'user' });
         setPendingVerify({ email: form.email.trim(), name: form.userName.trim(), role: 'user' });
@@ -687,20 +679,6 @@ function RegisterSection({ onToast, form, setForm, currentStep, setCurrentStep }
                     />
                     <i className="fa-solid fa-align-left lp-field-icon" />
                   </div>
-                </div>
-              )}
-
-              {form.roleType === 'admin' && (
-                <div className="lp-conditional-field lp-show">
-                  <div className="lp-section-divider"><span>التحقق من الهوية</span></div>
-                  <InputGroup
-                    id="reg-nationalID" placeholder="الرقم القومي (14 رقم)"
-                    value={form.nationalID} onChange={setField('nationalID')}
-                    onBlur={() => validate('nationalID', form.nationalID.trim(), 'nationalID')}
-                    fieldIcon="fa-solid fa-fingerprint" fieldState={fieldStates['nationalID'] ?? null}
-                    maxLength={14} inputMode="numeric"
-                  />
-                  <FieldHint state={fieldStates['nationalID'] ?? null} validMsg={rules.nationalID.ok} invalidMsg={rules.nationalID.msg} />
                 </div>
               )}
 

@@ -14,8 +14,9 @@ export function RouteGuard() {
     locationRef.current = location;
   }, [location]);
 
+  // Track which user was redirected — only redirect ONCE per user session.
+  // This prevents back-gesture / 2-finger swipe from re-triggering redirect.
   const redirectedForRef = useRef<string | null>(null);
-  const lastLoginTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (isLoading) return;
@@ -27,11 +28,14 @@ export function RouteGuard() {
 
     const currentId = user._id || user.email;
 
+    // Already redirected this user in this session — never redirect again
     if (redirectedForRef.current === currentId) return;
 
+    // Mark as handled immediately to prevent double-fire
+    redirectedForRef.current = currentId;
+
+    // Only redirect if currently on root path
     if (ROOT_ONLY_REDIRECT.includes(locationRef.current)) {
-      redirectedForRef.current = currentId;
-      lastLoginTimeRef.current = Date.now();
       setLocation(getRedirectByRole(user.roleType));
     }
 

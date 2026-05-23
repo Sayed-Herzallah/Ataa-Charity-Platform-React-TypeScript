@@ -163,7 +163,7 @@
 /* ─── Role Selector ──────────────────────────────────────────────────────────── */
 .lp-role-selector   { width: 100%; }
 .lp-role-prompt     { font-size: 0.8em; color: var(--lp-neutral-500); margin: 0 0 10px; font-weight: 500; }
-.lp-role-cards      { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+.lp-role-cards      { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; max-width: 420px; margin: 0 auto; }
 
 .lp-role-card {
   position: relative;
