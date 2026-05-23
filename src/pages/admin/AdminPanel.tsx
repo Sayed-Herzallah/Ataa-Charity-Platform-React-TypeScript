@@ -566,6 +566,36 @@ function LoadMoreBtn({ loading, remaining, onClick }: {
   );
 }
 
+// ─── Countdown Component ───────────────────────────────────────────────────
+function Countdown({ targetTs, color }: { targetTs: number | null; color: string }) {
+  const [remaining, setRemaining] = useState('');
+  useEffect(() => {
+    if (!targetTs) { setRemaining(''); return; }
+    const update = () => {
+      const diff = targetTs - Date.now();
+      if (diff <= 0) { setRemaining('جاري التشغيل...'); return; }
+      const h = Math.floor(diff / 3_600_000);
+      const m = Math.floor((diff % 3_600_000) / 60_000);
+      const s = Math.floor((diff % 60_000) / 1_000);
+      setRemaining(
+        h > 0
+          ? `${h}س ${String(m).padStart(2,'0')}د ${String(s).padStart(2,'0')}ث`
+          : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      );
+    };
+    update();
+    const id = setInterval(update, 1_000);
+    return () => clearInterval(id);
+  }, [targetTs]);
+  if (!targetTs || !remaining) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color, fontFamily: "'IBM Plex Mono', monospace" }}>
+      <i className="ti ti-hourglass-high" style={{ fontSize: 13 }} />
+      {remaining}
+    </div>
+  );
+}
+
 function KpiCard({ icon, label, value, change, changeDir, color }: {
   icon: string; label: string; value: string | number;
   change?: string; changeDir?: 'up' | 'down' | 'neutral'; color: string;
@@ -736,9 +766,23 @@ export default function AdminPanel() {
   const [cronLog, setCronLog]         = useState<{ type: 'success' | 'error'; text: string; time: string }[]>([]);
   const [lastRun, setLastRun]         = useState<string | null>(null);
 
-  // ─── Scheduler State (datetime-based) ────────────────────────────────────────
+  // ─── Scheduler State (datetime-based, localStorage-persistent) ──────────────
+  const SCHED_LS_KEY = 'ap_scheduler_v1';
+
+  // Load persisted schedule targets from localStorage on init
+  const loadPersistedSchedules = (): Record<string, number | null> => {
+    try {
+      const raw = localStorage.getItem(SCHED_LS_KEY);
+      if (!raw) return { reminder: null, report: null };
+      return JSON.parse(raw);
+    } catch { return { reminder: null, report: null }; }
+  };
+
   const [schedulerTimers,  setSchedulerTimers]  = useState<Record<string, ReturnType<typeof setTimeout>>>({});
+  // nextRunTimes: human-readable label for display
   const [nextRunTimes,     setNextRunTimes]      = useState<Record<string, string | null>>({ reminder: null, report: null });
+  // nextRunTs: epoch ms — persisted to localStorage
+  const [nextRunTs,        setNextRunTs]         = useState<Record<string, number | null>>(() => loadPersistedSchedules());
 
   // Scheduled datetime inputs (date + time)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -750,10 +794,28 @@ export default function AdminPanel() {
     reminder: { date: todayStr, time: nowTimeStr, seconds: '00' },
     report:   { date: todayStr, time: nowTimeStr, seconds: '00' },
   });
-const showMsg = useCallback((type: 'success' | 'error', text: string) => {
-  setToast({ type, text });
-  setTimeout(() => setToast(null), 3500);
-}, []);
+
+  const showMsg = useCallback((type: 'success' | 'error', text: string) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  // Helper: format epoch ms to Arabic label
+  const formatScheduleLabel = (ts: number) =>
+    new Date(ts).toLocaleString('ar-EG', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    });
+
+  // Helper: persist to localStorage
+  const persistSchedule = useCallback((key: string, ts: number | null) => {
+    try {
+      const current = loadPersistedSchedules();
+      const updated = { ...current, [key]: ts };
+      localStorage.setItem(SCHED_LS_KEY, JSON.stringify(updated));
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Schedule at exact datetime ────────────────────────────────────────────
   const scheduleAt = useCallback((
@@ -766,7 +828,6 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
       if (prev[key]) clearTimeout(prev[key]);
       return { ...prev, [key]: undefined as any };
     });
-    setNextRunTimes(prev => ({ ...prev, [key]: null }));
 
     const delay = targetDate.getTime() - Date.now();
     if (delay <= 0) {
@@ -774,14 +835,18 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
       return;
     }
 
-    const label = targetDate.toLocaleString('ar-EG', {
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-    });
+    const ts = targetDate.getTime();
+    const label = formatScheduleLabel(ts);
+
+    // Persist timestamp to localStorage so it survives refresh
+    persistSchedule(key, ts);
+    setNextRunTs(prev => ({ ...prev, [key]: ts }));
     setNextRunTimes(prev => ({ ...prev, [key]: label }));
 
     const timer = setTimeout(async () => {
       await runFn();
+      persistSchedule(key, null);
+      setNextRunTs(p => ({ ...p, [key]: null }));
       setNextRunTimes(p => ({ ...p, [key]: null }));
       setSchedulerTimers(p => ({ ...p, [key]: undefined as any }));
     }, delay);
@@ -791,21 +856,65 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
     const keyLabel = key === 'reminder' ? 'تذكير التبرعات' : 'تقرير الأدمن';
     showMsg('success', `✓ تمت جدولة "${keyLabel}" في ${label}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showMsg]);
+  }, [showMsg, persistSchedule]);
 
   const cancelSchedule = useCallback((key: 'reminder' | 'report') => {
     setSchedulerTimers(prev => {
       if (prev[key]) clearTimeout(prev[key]);
       return { ...prev, [key]: undefined as any };
     });
+    persistSchedule(key, null);
+    setNextRunTs(prev => ({ ...prev, [key]: null }));
     setNextRunTimes(prev => ({ ...prev, [key]: null }));
-    showMsg('success', `تم إلغاء الجدولة`);
-  }, [showMsg]);
+    showMsg('success', 'تم إلغاء الجدولة');
+  }, [showMsg, persistSchedule]);
 
-  // Cleanup timers on unmount
+  // ─── On mount: restore any persisted schedules ──────────────────────────────
+  // runDonationReminder and runAdminReport are defined after this block,
+  // so we use refs to avoid circular dependency
+  const runReminderRef = useRef<() => Promise<void>>(async () => {});
+  const runReportRef   = useRef<() => Promise<void>>(async () => {});
+
   useEffect(() => {
+    const persisted = loadPersistedSchedules();
+    const keys: Array<'reminder' | 'report'> = ['reminder', 'report'];
+    keys.forEach(key => {
+      const ts = persisted[key];
+      if (!ts) return;
+      const delay = ts - Date.now();
+      if (delay <= 0) {
+        // Missed — clear it
+        persistSchedule(key, null);
+        setNextRunTs(p => ({ ...p, [key]: null }));
+        setNextRunTimes(p => ({ ...p, [key]: null }));
+        showMsg('error', `انتهت جدولة "${key === 'reminder' ? 'تذكير التبرعات' : 'تقرير الأدمن'}" — الوقت مضى أثناء عدم الاتصال`);
+        return;
+      }
+      // Restore label
+      const label = formatScheduleLabel(ts);
+      setNextRunTs(p => ({ ...p, [key]: ts }));
+      setNextRunTimes(p => ({ ...p, [key]: label }));
+
+      const runFn = key === 'reminder'
+        ? () => runReminderRef.current()
+        : () => runReportRef.current();
+
+      const timer = setTimeout(async () => {
+        await runFn();
+        persistSchedule(key, null);
+        setNextRunTs(p => ({ ...p, [key]: null }));
+        setNextRunTimes(p => ({ ...p, [key]: null }));
+        setSchedulerTimers(p => ({ ...p, [key]: undefined as any }));
+      }, delay);
+
+      setSchedulerTimers(prev => ({ ...prev, [key]: timer }));
+    });
+
     return () => {
-      Object.values(schedulerTimers).forEach(t => { if (t) clearTimeout(t); });
+      setSchedulerTimers(prev => {
+        Object.values(prev).forEach(t => { if (t) clearTimeout(t); });
+        return {};
+      });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1059,6 +1168,8 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
       showMsg('error', 'فشل تشغيل التذكير');
     } finally { setCronLoading(p => ({ ...p, reminder: false })); }
   };
+  // Wire ref so the restore-on-mount useEffect can call it
+  runReminderRef.current = runDonationReminder;
 
   const runAdminReport = async () => {
     setCronLoading(p => ({ ...p, report: true }));
@@ -1074,6 +1185,8 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
       showMsg('error', 'فشل إرسال التقرير');
     } finally { setCronLoading(p => ({ ...p, report: false })); }
   };
+  // Wire ref
+  runReportRef.current = runAdminReport;
 
   const handleLogout = () => {
     setConfirmOpts({
@@ -1671,7 +1784,7 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                     </div>
                   )}
 
-                  {hasMoreUsers && (
+                  {hasMoreUsers && !usersSearch && usersRoleFilter === 'all' && !usersDateFrom && !usersDateTo && (
                     <LoadMoreBtn loading={loadingMore === 'users'} remaining={Math.max(0, usersTotal - users.length)} onClick={loadMoreUsers} />
                   )}
                 </div>
@@ -1844,7 +1957,7 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                     </div>
                   )}
 
-                  {hasMoreCharities && (
+                  {hasMoreCharities && !charitiesSearch && charitiesFilter === 'all' && !charitiesDateFrom && !charitiesDateTo && (
                     <LoadMoreBtn loading={loadingMore === 'charities'} remaining={charitiesRemaining} onClick={loadMoreCharities} />
                   )}
                 </div>
@@ -1978,7 +2091,7 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                     </div>
                   )}
 
-                  {hasMoreReports && (
+                  {hasMoreReports && !reportsSearch && reportsSenderFilter === 'all' && !reportsDateFrom && !reportsDateTo && (
                     <LoadMoreBtn loading={loadingMore === 'reports'} remaining={Math.max(0, reportsTotal - reports.length)} onClick={loadMoreReports} />
                   )}
                 </div>
@@ -2058,6 +2171,7 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                                   <i className="ti ti-clock-play" style={{ color: TEAL2 }} />
                                   <span>موعد التشغيل: <strong style={{ color: TEAL2 }}>{nextRunTimes[key]}</strong></span>
                                 </div>
+                                <Countdown targetTs={nextRunTs[key] ?? null} color={TEAL2} />
                                 <button className="ap-sched-cancel-btn" onClick={() => cancelSchedule(key)}>
                                   <i className="ti ti-x" /> إلغاء الجدولة
                                 </button>
@@ -2155,6 +2269,7 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                                   <i className="ti ti-clock-play" style={{ color: '#3b82f6' }} />
                                   <span>موعد التشغيل: <strong style={{ color: '#3b82f6' }}>{nextRunTimes[key]}</strong></span>
                                 </div>
+                                <Countdown targetTs={nextRunTs[key] ?? null} color="#3b82f6" />
                                 <button className="ap-sched-cancel-btn" onClick={() => cancelSchedule(key)}>
                                   <i className="ti ti-x" /> إلغاء الجدولة
                                 </button>
@@ -2213,13 +2328,24 @@ const showMsg = useCallback((type: 'success' | 'error', text: string) => {
                     <div className="ap-cron-log">
                       <div className="ap-cron-log-header">
                         <SectionTitle icon="ti-list-details" color={TEAL2} title="سجل التنفيذ" badge={cronLog.length} />
-                        <button className="ap-cron-log-clear" onClick={() => setCronLog([])}><i className="ti ti-trash" />مسح</button>
+                        <button className="ap-cron-log-clear" onClick={() => setCronLog([])}><i className="ti ti-trash" />مسح الكل</button>
                       </div>
                       <div className="ap-cron-log-list">
                         {cronLog.map((log, i) => (
                           <div key={i} className={`ap-cron-log-item ${log.type}`}>
                             <span>{log.type === 'success' ? '✓' : '✗'} {log.text}</span>
-                            <span style={{ fontSize: 11, color: 'var(--t4)', flexShrink: 0 }}>{log.time}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                              <span style={{ fontSize: 11, color: 'var(--t4)' }}>{log.time}</span>
+                              <button
+                                onClick={() => setCronLog(p => p.filter((_, j) => j !== i))}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 12, padding: '2px 4px', borderRadius: 4, lineHeight: 1, transition: 'color 0.15s' }}
+                                onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
+                                onMouseLeave={e => (e.currentTarget.style.color = 'var(--t4)')}
+                                title="حذف هذا السجل"
+                              >
+                                <i className="ti ti-x" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
