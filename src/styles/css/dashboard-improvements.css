@@ -1,0 +1,362 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DASHBOARD IMPROVEMENTS — Modern SaaS Styling
+   Incremental UI/UX enhancements without modifying component structure
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ══ ENHANCED KPI CARDS — Premium hover effects ════════════════════════════ */
+
+/* Upgrade existing .ap-kpi-card with better animations */
+.ap-kpi-card {
+  transition: all 180ms cubic-bezier(0.34, 1.35, 0.64, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Improved hover state */
+.ap-kpi-card:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  border-color: rgba(14, 201, 127, 0.4) !important;
+  box-shadow:
+    0 0 1px rgba(14, 201, 127, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 0 32px rgba(14, 201, 127, 0.15) !important;
+}
+
+/* Animated gradient glow border on hover */
+.ap-kpi-card::before {
+  background: linear-gradient(
+    90deg,
+    var(--kpi-color, var(--teal)) 0%,
+    rgba(14, 201, 127, 0.6) 50%,
+    var(--kpi-color, var(--teal)) 100%
+  ) !important;
+  animation: kpiGlowPulse 2.5s ease-in-out infinite;
+  opacity: 0.6;
+  height: 3px !important;
+}
+
+.ap-kpi-card:hover::before {
+  animation: kpiGlowPulse 1.2s ease-in-out infinite;
+  opacity: 1;
+}
+
+@keyframes kpiGlowPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Icon container styling */
+.ap-kpi-icon-wrap {
+  position: relative;
+  transition: all 180ms ease;
+}
+
+.ap-kpi-card:hover .ap-kpi-icon-wrap {
+  transform: scale(1.1) rotate(4deg);
+  background: rgba(14, 201, 127, 0.2) !important;
+}
+
+/* Value styling — cleaner, sharper */
+.ap-kpi-value {
+  letter-spacing: -0.3px !important;
+  font-weight: 900 !important;
+}
+
+/* ══ IMPROVED SPACING & TYPOGRAPHY ══════════════════════════════════════════ */
+
+.ap-kpi-label {
+  font-size: 11px !important;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-weight: 600 !important;
+  color: var(--t4) !important;
+}
+
+.ap-kpi-change {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+}
+
+/* ══ CHART CARDS — Enhanced styling ═════════════════════════════════════════ */
+
+.ap-chart-card {
+  transition: all 200ms ease;
+  border: 1px solid var(--border) !important;
+}
+
+.ap-chart-card:hover {
+  border-color: var(--border2) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+.ap-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px;
+}
+
+.ap-chart-title i {
+  opacity: 0.85;
+  transition: opacity 200ms ease;
+}
+
+.ap-chart-card:hover .ap-chart-title i {
+  opacity: 1;
+}
+
+/* ══ SECTION HEADERS — Better hierarchy ═════════════════════════════════════ */
+
+.ap-section-header {
+  margin-bottom: 4px;
+}
+
+.ap-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+}
+
+.ap-section-title i {
+  opacity: 0.85;
+  transition: opacity 200ms ease;
+}
+
+.ap-section-title:hover i {
+  opacity: 1;
+}
+
+/* ══ BUTTONS — Upgraded interactions ════════════════════════════════════════ */
+
+.ap-btn-primary, .ap-btn-secondary, .ap-btn-danger {
+  transition: all 150ms cubic-bezier(0.34, 1.35, 0.64, 1);
+  font-weight: 700 !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.ap-btn-primary:hover, .ap-btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+.ap-btn-primary:active, .ap-btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* ══ CARDS & CONTAINERS — Better shadows & spacing ═══════════════════════════ */
+
+.ap-entity-card, .ap-table-wrap, .ap-empty-state {
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border-radius: var(--radius) !important;
+}
+
+.ap-entity-card:hover {
+  border-color: var(--border2) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ══ BADGES — Cleaner styling ═══════════════════════════════════════════════ */
+
+.ap-badge {
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ap-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ══ EMPTY STATE — Better visual treatment ═══════════════════════════════════ */
+
+.ap-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 40px 24px !important;
+}
+
+.ap-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+  animation: emptyBounce 2s ease-in-out infinite;
+}
+
+@keyframes emptyBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.ap-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1) !important;
+  margin-bottom: 8px;
+}
+
+/* ══ TABLE IMPROVEMENTS ══════════════════════════════════════════════════════ */
+
+.ap-table tr {
+  transition: background-color 150ms ease;
+}
+
+.ap-table tbody tr:hover td {
+  background: var(--surface3) !important;
+}
+
+.ap-table th {
+  background: var(--surface2) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px;
+}
+
+.ap-table td {
+  padding: 12px 14px !important;
+}
+
+/* ══ FORM ELEMENTS — Better consistency ══════════════════════════════════════ */
+
+.ap-form-input, .ap-form-select, .ap-form-textarea {
+  border: 1px solid var(--border) !important;
+  transition: all 150ms ease;
+  background: var(--surface) !important;
+}
+
+.ap-form-input:focus, .ap-form-select:focus, .ap-form-textarea:focus {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px rgba(14, 201, 127, 0.1) !important;
+  background: var(--surface2) !important;
+}
+
+/* ══ RESPONSIVE IMPROVEMENTS ════════════════════════════════════════════════ */
+
+@media (max-width: 1200px) {
+  .ap-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ap-charts-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .ap-kpi-card {
+    padding: 14px 12px 11px !important;
+  }
+
+  .ap-kpi-value {
+    font-size: 22px !important;
+  }
+
+  .ap-kpi-icon-wrap {
+    width: 32px !important;
+    height: 32px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .ap-kpi-label {
+    font-size: 10px !important;
+  }
+
+  .ap-section-title {
+    font-size: 13px !important;
+  }
+
+  .ap-chart-card {
+    padding: 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ap-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .ap-section-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ap-table {
+    font-size: 12px !important;
+  }
+
+  .ap-table th, .ap-table td {
+    padding: 8px 10px !important;
+  }
+}
+
+/* ══ ANIMATIONS & TRANSITIONS — Smooth, not heavy ════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ LOADING & SKELETON STATES ═══════════════════════════════════════════════ */
+
+.ap-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skel-base) 0%,
+    var(--skel-shine) 50%,
+    var(--skel-base) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 2s infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ══ FOCUS STATES — Better accessibility ════════════════════════════════════ */
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--teal) !important;
+  outline-offset: 2px !important;
+}
+
+/* ══ ICON CONSISTENCY ═══════════════════════════════════════════════════════ */
+
+i[class*="ti-"] {
+  transition: all 150ms ease;
+}
+
+/* ══ TEXT SELECTION ═════════════════════════════════════════════════════════ */
+
+::selection {
+  background: var(--teal);
+  color: #fff;
+}
+
+::-webkit-selection {
+  background: var(--teal);
+  color: #fff;
+}
