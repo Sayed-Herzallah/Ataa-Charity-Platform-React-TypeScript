@@ -1156,6 +1156,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+<<<<<<< HEAD
 
 /* === Scroll-to-Top Button === */
 .ap-scroll-top-btn {
@@ -1186,3 +1187,5 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .ap-scroll-top-btn:active {
   transform: translateY(0) scale(0.95);
 }
+=======
+>>>>>>> 5a4e449cb15e66f06f383a72c23cfa6d9af06f21
