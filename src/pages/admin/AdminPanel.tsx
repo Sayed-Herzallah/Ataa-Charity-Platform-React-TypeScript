@@ -551,6 +551,171 @@ function SearchBox({ value, onChange, placeholder }: {
   );
 }
 
+// ─── Filter Dialog (Sheet) ─────────────────────────────────────────────────
+// يظهر لما تضغط على زرار "تصفية" — نفس فكرة داشبورد الجمعية
+
+interface FilterDialogConfig {
+  search: string;
+  onSearchChange: (v: string) => void;
+  searchPlaceholder?: string;
+  statusTabs?: { value: string; label: string; badge?: number }[];
+  activeStatus?: string;
+  onStatusChange?: (v: string) => void;
+  sortDir: 'newest' | 'oldest';
+  onSortChange: (v: 'newest' | 'oldest') => void;
+  dateFrom: string;
+  dateTo: string;
+  onDateFromChange: (v: string) => void;
+  onDateToChange: (v: string) => void;
+  onReset: () => void;
+  hasFilters: boolean;
+}
+
+function FilterDialog({
+  open, onClose, cfg,
+}: {
+  open: boolean;
+  onClose: () => void;
+  cfg: FilterDialogConfig;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, onClose]);
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div style={{ position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'flex-end',justifyContent:'center',background:'rgba(0,0,0,0.45)',backdropFilter:'blur(2px)' }}>
+      <div
+        ref={ref}
+        style={{
+          width:'100%',maxWidth:520,background:'var(--surface)',borderRadius:'18px 18px 0 0',
+          padding:'0 0 24px',boxShadow:'0 -8px 40px rgba(0,0,0,0.35)',
+          animation:'ap-sheet-up 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+        }}
+      >
+        {/* Handle */}
+        <div style={{display:'flex',justifyContent:'center',paddingTop:12,marginBottom:4}}>
+          <div style={{width:40,height:4,borderRadius:99,background:'var(--border)'}}/>
+        </div>
+        {/* Header */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 20px 16px'}}>
+          <span style={{fontWeight:800,fontSize:16,color:'var(--t1)',display:'flex',alignItems:'center',gap:8}}>
+            <i className="ti ti-adjustments-horizontal" style={{color:TEAL2}}/>
+            خيارات التصفية
+          </span>
+          <div style={{display:'flex',gap:8}}>
+            {cfg.hasFilters && (
+              <button
+                onClick={() => { cfg.onReset(); onClose(); }}
+                style={{fontSize:12,fontWeight:700,color:AMBER,background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:8,padding:'5px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:5}}
+              >
+                <i className="ti ti-filter-x"/>مسح الكل
+              </button>
+            )}
+            <button onClick={onClose} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--t3)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <i className="ti ti-x"/>
+            </button>
+          </div>
+        </div>
+        <div style={{padding:'0 20px',display:'flex',flexDirection:'column',gap:16}}>
+          {/* Search */}
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>البحث</div>
+            <SearchBox value={cfg.search} onChange={cfg.onSearchChange} placeholder={cfg.searchPlaceholder}/>
+          </div>
+          {/* Status tabs */}
+          {cfg.statusTabs && cfg.onStatusChange && (
+            <div>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>الحالة</div>
+              <div className="ap-filter-tabs" style={{flexWrap:'wrap',gap:6}}>
+                {cfg.statusTabs.map(t => (
+                  <button
+                    key={t.value}
+                    className={`ap-filter-tab${cfg.activeStatus === t.value ? ' active' : ''}`}
+                    onClick={() => cfg.onStatusChange!(t.value)}
+                    style={{flex:'1 1 auto'}}
+                  >
+                    {t.label}
+                    {t.badge !== undefined && t.badge > 0 && (
+                      <span className="ap-filter-badge">{t.badge}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Sort */}
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>الترتيب</div>
+            <div className="ap-filter-tabs">
+              <button className={`ap-filter-tab${cfg.sortDir==='newest'?' active':''}`} onClick={() => cfg.onSortChange('newest')} style={{flex:1}}>
+                <i className="ti ti-sort-descending"/> الأحدث
+              </button>
+              <button className={`ap-filter-tab${cfg.sortDir==='oldest'?' active':''}`} onClick={() => cfg.onSortChange('oldest')} style={{flex:1}}>
+                <i className="ti ti-sort-ascending"/> الأقدم
+              </button>
+            </div>
+          </div>
+          {/* Date range */}
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>نطاق التاريخ</div>
+            <div className="ap-date-range-wrap" style={{gap:8}}>
+              <div className="ap-date-field" style={{flex:1}}>
+                <span className="ap-date-label">من</span>
+                <input type="date" value={cfg.dateFrom} onChange={e => cfg.onDateFromChange(e.target.value)}/>
+              </div>
+              <div className="ap-date-field" style={{flex:1}}>
+                <span className="ap-date-label">إلى</span>
+                <input type="date" value={cfg.dateTo} min={cfg.dateFrom||undefined} onChange={e => cfg.onDateToChange(e.target.value)}/>
+              </div>
+              {(cfg.dateFrom || cfg.dateTo) && (
+                <button className="ap-date-range-clear" onClick={() => { cfg.onDateFromChange(''); cfg.onDateToChange(''); }}><i className="ti ti-x"/></button>
+              )}
+            </div>
+          </div>
+          {/* Apply */}
+          <button
+            onClick={onClose}
+            style={{background:TEAL2,color:'#fff',border:'none',borderRadius:11,padding:'11px',fontWeight:700,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:7}}
+          >
+            <i className="ti ti-check"/> تطبيق التصفية
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FilterTriggerBar({
+  onOpen, hasFilters, activeCount,
+}: {
+  onOpen: () => void;
+  hasFilters: boolean;
+  activeCount: number;
+}) {
+  return (
+    <button
+      onClick={onOpen}
+      className={`ap-filter-trigger-btn${hasFilters ? ' has-filters' : ''}`}
+      title="خيارات التصفية"
+    >
+      <i className="ti ti-adjustments-horizontal"/>
+      تصفية
+      {activeCount > 0 && <span className="ap-filter-active-count">{activeCount}</span>}
+    </button>
+  );
+}
+
 function LoadMoreBtn({ loading, remaining, onClick }: {
   loading: boolean; remaining: number; onClick: () => void;
 }) {
@@ -953,28 +1118,45 @@ export default function AdminPanel() {
     setReportsPage(1);
 
     try {
-      const [uRes, cRes, rRes] = await Promise.allSettled([
-        fetchPage<User>('/users', 1, 25),
-        fetchPage<Charity>('/charity/charities', 1, 25),
-        fetchPage<Report>('/report/allReports', 1, 25),
+      // ── Fetch page data (first 10 items) + accurate totals via limit=1 ──
+      const [uRes, cRes, rRes, uTotalRes, cTotalRes, rTotalRes] = await Promise.allSettled([
+        fetchPage<User>('/users', 1, 10),
+        fetchPage<Charity>('/charity/charities', 1, 10),
+        fetchPage<Report>('/report/allReports', 1, 10),
+        fetchPage<User>('/users', 1, 1),               // for accurate total only
+        fetchPage<Charity>('/charity/charities', 1, 1), // for accurate total only
+        fetchPage<Report>('/report/allReports', 1, 1),  // for accurate total only
       ]);
 
       if (uRes.status === 'fulfilled') {
         setUsers(uRes.value.data ?? []);
-        setUsersTotal(uRes.value.total ?? 0);
+        // Prefer total from the limit=1 call (more reliable) then fallback
+        const accurateTotal = uTotalRes.status === 'fulfilled' ? uTotalRes.value.total : null;
+        setUsersTotal(accurateTotal || uRes.value.total || 0);
         setHasMoreUsers(uRes.value.hasMore ?? false);
       }
       if (cRes.status === 'fulfilled') {
         setCharities(cRes.value.data ?? []);
-        setCharitiesTotal(cRes.value.total ?? 0);
+        const accurateTotal = cTotalRes.status === 'fulfilled' ? cTotalRes.value.total : null;
+        const finalTotal = accurateTotal || cRes.value.total || 0;
+        setCharitiesTotal(finalTotal);
         setHasMoreCharities(cRes.value.hasMore ?? false);
         setCharitiesRemaining(
-          Math.max(0, (cRes.value.total ?? 0) - (cRes.value.data?.length ?? 0))
+          Math.max(0, finalTotal - (cRes.value.data?.length ?? 0))
         );
       }
       if (rRes.status === 'fulfilled') {
-        setReports(rRes.value.data ?? []);
-        setReportsTotal(rRes.value.total ?? 0);
+        const reportsData = rRes.value.data ?? [];
+        // ── Normalise senderType: if missing, infer from presence of charityName/userName ──
+        const normalised = reportsData.map(r => ({
+          ...r,
+          senderType: r.senderType
+            ?? ((r as any).role)
+            ?? (r.charityName && !r.userName ? 'charity' : r.userName ? 'user' : undefined),
+        }));
+        setReports(normalised);
+        const accurateTotal = rTotalRes.status === 'fulfilled' ? rTotalRes.value.total : null;
+        setReportsTotal(accurateTotal || rRes.value.total || 0);
         setHasMoreReports(rRes.value.hasMore ?? false);
       }
 
@@ -995,34 +1177,36 @@ export default function AdminPanel() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ── Scroll-to-top inside admin content ──
+  // ── Scroll-to-top: listen to contentRef + window fallback ──
   useEffect(() => {
     const el = contentRef.current;
-    const onScroll = () => {
-      const scrolled = (el?.scrollTop ?? 0) > 300 || window.scrollY > 300 || document.documentElement.scrollTop > 300;
+    const check = () => {
+      const scrolled =
+        (el ? el.scrollTop : 0) > 300 ||
+        window.scrollY > 300 ||
+        document.documentElement.scrollTop > 300;
       setShowScrollTop(scrolled);
     };
-    el?.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true });
+    el?.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('scroll', check, { passive: true });
     return () => {
-      el?.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scroll', onScroll);
+      el?.removeEventListener('scroll', check);
+      window.removeEventListener('scroll', check);
     };
   }, []);
 
-  // Reset scroll when tab changes
+  // ── Reset scroll + hide button when tab changes ──
   useEffect(() => {
+    setShowScrollTop(false);
     contentRef.current?.scrollTo({ top: 0 });
     window.scrollTo({ top: 0 });
-    document.documentElement.scrollTo({ top: 0 });
-    setShowScrollTop(false);
   }, [tab]);
 
   const loadMoreUsers = async () => {
     const next = usersPage + 1;
     setLoadingMore('users');
     try {
-      const res = await fetchPage<User>('/users', next, 25);
+      const res = await fetchPage<User>('/users', next, 10);
       if (!res.data?.length) { setHasMoreUsers(false); return; }
       setUsers(prev => {
         const ids = new Set(prev.map(u => u._id));
@@ -1037,7 +1221,7 @@ export default function AdminPanel() {
     const next = charitiesPage + 1;
     setLoadingMore('charities');
     try {
-      const res = await fetchPage<Charity>('/charity/charities', next, 25);
+      const res = await fetchPage<Charity>('/charity/charities', next, 10);
       if (!res.data?.length) { setHasMoreCharities(false); return; }
       setCharities(prev => {
         const ids = new Set(prev.map(c => c._id));
@@ -1089,11 +1273,17 @@ export default function AdminPanel() {
     const next = reportsPage + 1;
     setLoadingMore('reports');
     try {
-      const res = await fetchPage<Report>('/report/allReports', next, 25);
+      const res = await fetchPage<Report>('/report/allReports', next, 10);
       if (!res.data?.length) { setHasMoreReports(false); return; }
+      const normalised = res.data.map(r => ({
+        ...r,
+        senderType: r.senderType
+          ?? ((r as any).role)
+          ?? (r.charityName && !r.userName ? 'charity' : r.userName ? 'user' : undefined),
+      }));
       setReports(prev => {
         const ids = new Set(prev.map(r => r._id));
-        return [...prev, ...res.data.filter(r => !ids.has(r._id))];
+        return [...prev, ...normalised.filter(r => !ids.has(r._id))];
       });
       setReportsPage(next);
       setHasMoreReports(res.hasMore ?? false);
@@ -1225,11 +1415,15 @@ export default function AdminPanel() {
   const [profileForm, setProfileForm] = useState({ userName: '', phone: '', address: '' });
   const [passForm, setPassForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [adminSettingsTab, setAdminSettingsTab] = useState<'account' | 'profile' | 'password' | 'danger'>('account');
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [passErrors, setPassErrors] = useState<Record<string, string>>({});
   const [showOldPass, setShowOldPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteBtnLoading, setDeleteBtnLoading] = useState(false);
 
   // ─── Admin Panel Validation Regexes ───────────────────────────────────────
   const AP_nameRegex = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
@@ -1263,6 +1457,24 @@ export default function AdminPanel() {
     } catch (err: unknown) {
       showMsg('error', err instanceof Error ? err.message : 'حدث خطأ');
     } finally { setSettingsSaving(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== user?.userName) return;
+    setDeleteBtnLoading(true);
+    try {
+      await usersApi.deleteAccount();
+      showMsg('success', 'تم حذف الحساب بنجاح، سيتم توجيهك الآن');
+      setTimeout(() => {
+        logout?.();
+        navigate('/login');
+      }, 1500);
+    } catch (err: unknown) {
+      showMsg('error', err instanceof Error ? err.message : 'فشل حذف الحساب');
+    } finally {
+      setDeleteBtnLoading(false);
+      setShowDeleteModal(false);
+    }
   };
 
   const savePassword = async () => {
@@ -1373,6 +1585,7 @@ export default function AdminPanel() {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
 
+    // Use all loaded records — these are real timestamps from the server
     const usersByMonth = Array(12).fill(0);
     users.forEach(u => {
       if (u.createdAt) {
@@ -1384,10 +1597,30 @@ export default function AdminPanel() {
 
     const charitiesByMonth = Array(12).fill(0);
     charities.forEach(c => {
-      if (c.createdAt) {
-        const d = new Date(c.createdAt);
+      const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
+      if (raw) {
+        const d = new Date(raw);
         if (d.getFullYear() === currentYear)
           charitiesByMonth[d.getMonth()]++;
+      } else {
+        // fallback: extract from ObjectId
+        try {
+          const hex = c._id?.substring(0, 8);
+          if (hex) {
+            const d = new Date(parseInt(hex, 16) * 1000);
+            if (d.getFullYear() === currentYear)
+              charitiesByMonth[d.getMonth()]++;
+          }
+        } catch { /* ignore */ }
+      }
+    });
+
+    const reportsByMonth = Array(12).fill(0);
+    reports.forEach(r => {
+      if (r.createdAt) {
+        const d = new Date(r.createdAt);
+        if (d.getFullYear() === currentYear)
+          reportsByMonth[d.getMonth()]++;
       }
     });
 
@@ -1395,8 +1628,9 @@ export default function AdminPanel() {
       name: MONTHS_AR[i],
       users: usersByMonth[i],
       charities: charitiesByMonth[i],
+      reports: reportsByMonth[i],
     }));
-  }, [users, charities]);
+  }, [users, charities, reports]);
 
   // ─── لوجيك حساب نسبة النمو الفعلي ديناميكياً للشهر الحالى ────────────────
   const dynamicTrend = useMemo(() => {
@@ -1405,25 +1639,35 @@ export default function AdminPanel() {
 
     const currentMonthCount = 
       users.filter(u => u.createdAt && new Date(u.createdAt).getMonth() === currentMonth && new Date(u.createdAt).getFullYear() === currentYear).length +
-      charities.filter(c => c.createdAt && new Date(c.createdAt).getMonth() === currentMonth && new Date(c.createdAt).getFullYear() === currentYear).length;
+      charities.filter(c => {
+        const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
+        if (!raw) return false;
+        const d = new Date(raw);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }).length;
 
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
     const lastMonthCount = 
       users.filter(u => u.createdAt && new Date(u.createdAt).getMonth() === lastMonth && new Date(u.createdAt).getFullYear() === lastMonthYear).length +
-      charities.filter(c => c.createdAt && new Date(c.createdAt).getMonth() === lastMonth && new Date(c.createdAt).getFullYear() === lastMonthYear).length;
+      charities.filter(c => {
+        const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
+        if (!raw) return false;
+        const d = new Date(raw);
+        return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+      }).length;
 
     let percentage = 0;
     if (lastMonthCount === 0) {
-      percentage = currentMonthCount * 100;
+      percentage = currentMonthCount > 0 ? 100 : 0;
     } else {
-      percentage = parseFloat(((currentMonthCount / lastMonthCount) * 100).toFixed(1));
+      percentage = parseFloat((((currentMonthCount - lastMonthCount) / lastMonthCount) * 100).toFixed(1));
     }
 
     const isUp = currentMonthCount >= lastMonthCount;
     return {
-      label: `${isUp ? '+' : '-'}${percentage.toLocaleString('en-US')}%`,
+      label: `${isUp ? '+' : ''}${percentage.toLocaleString('en-US')}%`,
       isUp
     };
   }, [users, charities]);
@@ -1435,14 +1679,24 @@ export default function AdminPanel() {
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    const curr = charities.filter(c => c.createdAt && new Date(c.createdAt).getMonth() === currentMonth && new Date(c.createdAt).getFullYear() === currentYear).length;
-    const prev = charities.filter(c => c.createdAt && new Date(c.createdAt).getMonth() === lastMonth && new Date(c.createdAt).getFullYear() === lastMonthYear).length;
+    const getTs = (c: Charity) => {
+      const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
+      if (raw) return new Date(raw);
+      try {
+        const hex = c._id?.substring(0, 8);
+        if (hex) return new Date(parseInt(hex, 16) * 1000);
+      } catch { /* ignore */ }
+      return null;
+    };
+
+    const curr = charities.filter(c => { const d = getTs(c); return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear; }).length;
+    const prev = charities.filter(c => { const d = getTs(c); return d && d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear; }).length;
 
     let pct = 0;
-    if (prev === 0) pct = curr * 100;
-    else pct = parseFloat(((curr / prev) * 100).toFixed(1));
+    if (prev === 0) pct = curr > 0 ? 100 : 0;
+    else pct = parseFloat((((curr - prev) / prev) * 100).toFixed(1));
     const isUp = curr >= prev;
-    return { label: `${isUp ? '+' : '-'}${pct.toLocaleString('en-US')}%`, isUp };
+    return { label: `${isUp ? '+' : ''}${pct.toLocaleString('en-US')}%`, isUp };
   }, [charities]);
 
   const approvalPieData = [
@@ -1504,6 +1758,22 @@ export default function AdminPanel() {
           </header>
         )}
 
+        {/* ── زر العودة للأعلى — fixed خارج ap-content ── */}
+        {showScrollTop && tab !== 'ai-chat' && (
+          <button
+            className="ap-scroll-top-btn"
+            onClick={() => {
+              contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            aria-label="العودة للأعلى"
+            title="العودة للأعلى"
+          >
+            <i className="ti ti-arrow-up" />
+          </button>
+        )}
+
         <div ref={contentRef} className={`ap-content${tab === 'ai-chat' ? ' ap-content--ai' : ''}`}>
           {error && !loading && <ErrorBanner msg={error} onRetry={loadData} />}
 
@@ -1513,9 +1783,9 @@ export default function AdminPanel() {
               {tab === 'overview' && (
                 <div className="ap-tab-pane">
                   <div className="ap-kpi-grid">
-                    <KpiCard icon="ti-users" label="إجمالي المستخدمين" value={(usersTotal || users.length).toLocaleString('en-US')} change={dynamicTrend.label + ' هذا الشهر'} changeDir={dynamicTrend.isUp ? 'up' : 'down'} color={TEAL2} />
-                    <KpiCard icon="ti-building-community" label="الجمعيات المسجلة" value={(charitiesTotal || charities.length).toLocaleString('en-US')} change={charityTrend.label + ' هذا الشهر'} changeDir={charityTrend.isUp ? 'up' : 'down'} color="#3b82f6" />
-                    <KpiCard icon="ti-alert-circle" label="التقارير الواردة" value={(reportsTotal || reports.length).toLocaleString('en-US')} change={pendingCount > 0 ? `${pendingCount} معلق` : 'لا يوجد معلق'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={AMBER} />
+                    <KpiCard icon="ti-users" label="إجمالي المستخدمين" value={(usersTotal).toLocaleString('en-US')} change={dynamicTrend.label + ' هذا الشهر'} changeDir={dynamicTrend.isUp ? 'up' : 'down'} color={TEAL2} />
+                    <KpiCard icon="ti-building-community" label="الجمعيات المسجلة" value={(charitiesTotal).toLocaleString('en-US')} change={charityTrend.label + ' هذا الشهر'} changeDir={charityTrend.isUp ? 'up' : 'down'} color="#3b82f6" />
+                    <KpiCard icon="ti-alert-circle" label="التقارير الواردة" value={(reportsTotal).toLocaleString('en-US')} change={pendingCount > 0 ? `${pendingCount} معلق` : 'لا يوجد معلق'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={AMBER} />
                     <KpiCard icon="ti-clock-pause" label="جمعيات معلقة" value={pendingCount.toLocaleString('en-US')} change={pendingCount > 0 ? 'تحتاج مراجعة' : 'الكل جاهز'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={RED} />
                   </div>
 
@@ -1525,7 +1795,7 @@ export default function AdminPanel() {
   <div className="ap-pro-chart-header">
     <div className="ap-pro-chart-meta">
       <div className="ap-pro-chart-value">
-        {(users.length + charities.length).toLocaleString('en-US')}
+        {(usersTotal + charitiesTotal).toLocaleString('en-US')}
       </div>
       <div className="ap-pro-chart-label">
         <i className="ti ti-trending-up" style={{color:TEAL2,marginLeft:4}}/>
@@ -1554,20 +1824,20 @@ export default function AdminPanel() {
     </div>
   </div>
 
-  {/* Mini stats — match chart (loaded data) */}
+  {/* Mini stats — show totals */}
   <div className="ap-chart-stats-row">
     <div className="ap-chart-stat-mini">
-      <div className="ap-chart-stat-mini-val" style={{color:TEAL2}}>{users.length.toLocaleString('en-US')}</div>
+      <div className="ap-chart-stat-mini-val" style={{color:TEAL2}}>{usersTotal.toLocaleString('en-US')}</div>
       <div className="ap-chart-stat-mini-lbl">مستخدمون</div>
       <div className={`ap-chart-stat-mini-badge ${dynamicTrend.isUp?'up':'down'}`}>{dynamicTrend.label}</div>
     </div>
     <div className="ap-chart-stat-mini">
-      <div className="ap-chart-stat-mini-val" style={{color:'#3b82f6'}}>{charities.length.toLocaleString('en-US')}</div>
+      <div className="ap-chart-stat-mini-val" style={{color:'#3b82f6'}}>{charitiesTotal.toLocaleString('en-US')}</div>
       <div className="ap-chart-stat-mini-lbl">جمعيات</div>
       <div className={`ap-chart-stat-mini-badge ${charityTrend.isUp?'up':'down'}`}>{charityTrend.label}</div>
     </div>
     <div className="ap-chart-stat-mini">
-      <div className="ap-chart-stat-mini-val" style={{color:AMBER}}>{reports.length.toLocaleString('en-US')}</div>
+      <div className="ap-chart-stat-mini-val" style={{color:AMBER}}>{reportsTotal.toLocaleString('en-US')}</div>
       <div className="ap-chart-stat-mini-lbl">تقارير</div>
       {pendingCount>0&&<div className="ap-chart-stat-mini-badge down">{pendingCount} معلق</div>}
     </div>
@@ -1587,6 +1857,12 @@ export default function AdminPanel() {
       </div>
       الجمعيات
     </div>
+    <div className="ap-pro-legend-item">
+      <div className="ap-pro-legend-line" style={{background:AMBER}}>
+        <div className="ap-pro-legend-dot" style={{background:AMBER}}/>
+      </div>
+      التقارير
+    </div>
   </div>
 
   {/* Chart — type="linear" = أسهم مائلة diagonal */}
@@ -1601,6 +1877,10 @@ export default function AdminPanel() {
           <stop offset="0%"   stopColor="#4f8ef7" stopOpacity={0.26}/>
           <stop offset="100%" stopColor="#4f8ef7" stopOpacity={0.02}/>
         </linearGradient>
+        <linearGradient id="gradR2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={AMBER}   stopOpacity={0.22}/>
+          <stop offset="100%" stopColor={AMBER}   stopOpacity={0.02}/>
+        </linearGradient>
       </defs>
       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
       <XAxis dataKey="name" tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false}/>
@@ -1608,6 +1888,7 @@ export default function AdminPanel() {
       <Tooltip content={<ChartTooltip/>}/>
       <Area type="monotone" dataKey="users"     name="المستخدمون" stroke={TEAL2}    strokeWidth={2.5} fill="url(#gradU2)" dot={{fill:TEAL2,strokeWidth:0,r:3}}    activeDot={{r:5,fill:TEAL2,stroke:'var(--surface)',strokeWidth:2}}/>
       <Area type="monotone" dataKey="charities" name="الجمعيات"   stroke="#4f8ef7" strokeWidth={2.5} fill="url(#gradC2)" dot={{fill:'#4f8ef7',strokeWidth:0,r:3}} activeDot={{r:5,fill:'#4f8ef7',stroke:'var(--surface)',strokeWidth:2}}/>
+      <Area type="monotone" dataKey="reports"   name="التقارير"   stroke={AMBER}   strokeWidth={2.5} fill="url(#gradR2)" dot={{fill:AMBER,strokeWidth:0,r:3}}    activeDot={{r:5,fill:AMBER,stroke:'var(--surface)',strokeWidth:2}}/>
     </AreaChart>
   </ResponsiveContainer>
 </div>
@@ -1620,11 +1901,11 @@ export default function AdminPanel() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                           {[...charities]
-                            .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+                            .sort((a, b) => getCharityTimestamp(b) - getCharityTimestamp(a))
                             .slice(0, 5)
                             .map((c, i) => {
-                              const d = c.createdAt ? new Date(c.createdAt) : null;
-                              const dateStr = d ? d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+                              const ts = getCharityTimestamp(c);
+                              const dateStr = ts ? new Date(ts).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
                               const approvalColors: Record<string, string> = { approved: TEAL2, pending: AMBER, rejected: RED };
                               const color = approvalColors[c.approvalStatus] ?? 'var(--t4)';
                               return (
@@ -1656,6 +1937,60 @@ export default function AdminPanel() {
                       </div>
                     )}
                   </div>
+
+                  {/* ── Recent Reports Row ── */}
+                  {reports.length > 0 && (
+                    <div className="ap-chart-card">
+                      <div className="ap-chart-header">
+                        <span className="ap-chart-title">
+                          <i className="ti ti-alert-circle" style={{ color: AMBER }} />
+                          آخر التقارير الواردة
+                        </span>
+                        <button
+                          style={{ fontSize: 11, color: TEAL2, background: 'var(--teal-dim)', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontWeight: 700, fontFamily: 'Tajawal, sans-serif' }}
+                          onClick={() => setTab('reports')}
+                        >
+                          عرض الكل <i className="ti ti-arrow-left" style={{ fontSize: 11 }} />
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                        {[...reports]
+                          .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+                          .slice(0, 5)
+                          .map((r, i) => {
+                            const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
+                            const senderName = r.userName || r.charityName || '—';
+                            const senderColor = isCharity ? '#3b82f6' : TEAL2;
+                            const senderBg = isCharity ? 'rgba(59,130,246,0.12)' : 'rgba(0,212,154,0.12)';
+                            const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }) : '—';
+                            return (
+                              <div
+                                key={r._id}
+                                onClick={() => setReportModal(r)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+                                  borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
+                                  background: i % 2 === 0 ? 'var(--surface2)' : 'transparent',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <div style={{ width: 28, height: 28, borderRadius: 7, background: senderBg, color: senderColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
+                                  <i className={`ti ${isCharity ? 'ti-building-community' : 'ti-user'}`} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{senderName}</div>
+                                  <div style={{ fontSize: 10.5, color: 'var(--t4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{r.description}</div>
+                                </div>
+                                <span style={{ fontSize: 10.5, color: 'var(--t4)', flexShrink: 0, fontFamily: 'IBM Plex Mono, monospace' }}>{dateStr}</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--t4)', padding: '0 2px' }}>
+                        إجمالي التقارير: <strong style={{ color: 'var(--t2)' }}>{reportsTotal || reports.length}</strong>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               )}
@@ -1693,6 +2028,11 @@ export default function AdminPanel() {
                         )}
                       </div>
                       <SearchBox value={usersSearch} onChange={setUsersSearch} placeholder="بحث بالاسم أو البريد أو الـ ID..." />
+                      {(usersSearch || usersRoleFilter !== 'all' || usersDateFrom || usersDateTo) && (
+                        <button className="ap-filter-reset-btn" onClick={() => { setUsersSearch(''); setUsersRoleFilter('all'); setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح كل التصفية">
+                          <i className="ti ti-filter-x" /> مسح
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1841,6 +2181,11 @@ export default function AdminPanel() {
                         )}
                       </div>
                       <SearchBox value={charitiesSearch} onChange={setCharitiesSearch} placeholder="بحث بالاسم أو البريد أو الـ ID..." />
+                      {(charitiesSearch || charitiesFilter !== 'all' || charitiesDateFrom || charitiesDateTo) && (
+                        <button className="ap-filter-reset-btn" onClick={() => { setCharitiesSearch(''); setCharitiesFilter('all'); setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح كل التصفية">
+                          <i className="ti ti-filter-x" /> مسح التصفية
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -2007,6 +2352,11 @@ export default function AdminPanel() {
                         )}
                       </div>
                       <SearchBox value={reportsSearch} onChange={setReportsSearch} placeholder="بحث في التقارير أو الـ ID..." />
+                      {(reportsSearch || reportsSenderFilter !== 'all' || reportsDateFrom || reportsDateTo) && (
+                        <button className="ap-filter-reset-btn" onClick={() => { setReportsSearch(''); setReportsSenderFilter('all'); setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح كل التصفية">
+                          <i className="ti ti-filter-x" /> مسح التصفية
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -2364,8 +2714,116 @@ export default function AdminPanel() {
                     <SectionTitle icon="ti-settings" color={TEAL2} title="الإعدادات" />
                   </div>
 
-                  <div className="ap-settings-grid">
-                    <div className="ap-settings-card">
+                  {/* Mobile tabs */}
+                  <div className="cd-settings-mobile-tabs">
+                    {([
+                      { id:'account',  icon:'ti-id',           label:'الحساب',       color:'#3b82f6' },
+                      { id:'profile',  icon:'ti-user-circle',  label:'الملف الشخصي', color:TEAL2     },
+                      { id:'password', icon:'ti-shield-lock',  label:'كلمة المرور',  color:RED       },
+                      { id:'danger',   icon:'ti-alert-triangle',label:'الخطر',       color:RED       },
+                    ] as const).map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => setAdminSettingsTab(item.id)}
+                        className={`cd-settings-mobile-tab${adminSettingsTab===item.id?' active':''}`}
+                        style={{
+                          borderBottom: adminSettingsTab===item.id ? `2px solid ${item.color}` : '2px solid transparent',
+                          color: adminSettingsTab===item.id ? item.color : 'var(--t3)',
+                        }}
+                      >
+                        <i className={`ti ${item.icon}`}/>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{display:'flex',gap:20,alignItems:'flex-start'}}>
+
+                    {/* Desktop sidebar */}
+                    <div className="cd-settings-sidebar">
+                      {([
+                        { id:'account',  icon:'ti-id',           label:'بيانات الحساب',  color:'#3b82f6' },
+                        { id:'profile',  icon:'ti-user-circle',  label:'الملف الشخصي',   color:TEAL2     },
+                        { id:'password', icon:'ti-shield-lock',  label:'كلمة المرور',     color:RED       },
+                        { id:'danger',   icon:'ti-alert-triangle',label:'منطقة الخطر',   color:RED       },
+                      ] as const).map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setAdminSettingsTab(item.id)}
+                          style={{
+                            width:'100%',display:'flex',alignItems:'center',gap:9,padding:'10px 12px',
+                            borderRadius:8,border:'none',cursor:'pointer',textAlign:'right' as const,
+                            background: adminSettingsTab===item.id ? `${item.color}14` : 'transparent',
+                            color: adminSettingsTab===item.id ? item.color : 'var(--t2)',
+                            fontFamily:'Tajawal',fontSize:13,fontWeight: adminSettingsTab===item.id ? 700 : 500,
+                            transition:'all 0.18s',marginBottom:2,
+                            borderRight: adminSettingsTab===item.id ? `3px solid ${item.color}` : '3px solid transparent',
+                          }}
+                        >
+                          <i className={`ti ${item.icon}`} style={{fontSize:15,color:item.color,flexShrink:0}}/>
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Content area */}
+                    <div style={{flex:1,minWidth:0}}>
+
+                  {adminSettingsTab === 'account' && <div className="ap-settings-card">
+                      <div className="ap-settings-card-title">
+                        <div className="ap-settings-icon" style={{ background: 'rgba(59,130,246,0.14)', color: '#3b82f6' }}>
+                          <i className="ti ti-id" />
+                        </div>
+                        بيانات الحساب والمعرّف
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div className="ap-form-group">
+                          <label className="ap-form-label">البريد الإلكتروني الأساسي</label>
+                          <input className="ap-form-input" value={user?.email ?? ''} disabled style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)' }} />
+                        </div>
+                        <div className="ap-form-group">
+                          <label className="ap-form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            الرقم التعريفي الفريد (ID)
+                            <span style={{ fontSize: 10.5, color: RED, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <i className="ti ti-lock" /> محمي ومقفل
+                            </span>
+                          </label>
+                          <div
+                            className="ap-secure-id-block"
+                            style={{
+                              padding: '12px 14px',
+                              background: 'rgba(244,63,94,0.03)',
+                              border: `1.5px dashed ${RED}`,
+                              borderRadius: 'var(--radius-sm)',
+                              color: 'var(--t2)',
+                              fontFamily: 'monospace',
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              userSelect: 'none',
+                              pointerEvents: 'none',
+                              WebkitUserSelect: 'none',
+                              msUserSelect: 'none',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <i className="ti ti-secure" style={{ color: RED, fontSize: 16 }} />
+                              <span>{user?._id ?? '—'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="ap-form-group">
+                          <label className="ap-form-label">تاريخ الإنشاء والتسجيل بالمنصة</label>
+                          <div className="ap-form-input" style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)', display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px' }}>
+                            <i className="ti ti-calendar" style={{ fontSize: 14 }} />
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                          </div>
+                        </div>
+                      </div>
+                  </div>}
+
+                  {adminSettingsTab === 'profile' && <div className="ap-settings-card">
                       <div className="ap-settings-card-title">
                         <div className="ap-settings-icon" style={{ background: 'rgba(16,185,129,0.14)', color: TEAL2 }}>
                           <i className="ti ti-user-circle" />
@@ -2382,10 +2840,6 @@ export default function AdminPanel() {
                             placeholder="اسم المستخدم"
                           />
                           {profileErrors.userName && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.userName}</div>}
-                        </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">البريد الإلكتروني</label>
-                          <input className="ap-form-input" value={user?.email ?? ''} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
                         </div>
                         <div className="ap-form-group">
                           <label className="ap-form-label">رقم الهاتف</label>
@@ -2409,16 +2863,16 @@ export default function AdminPanel() {
                         </div>
                         <button
                           className="ap-action-btn approve"
-                          style={{ alignSelf: 'flex-start', padding: '8px 18px' }}
+                          style={{ alignSelf: 'flex-start', padding: '8px 18px', marginTop: 'auto' }}
                           disabled={settingsSaving}
                           onClick={saveProfile}
                         >
                           {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-check" /> حفظ التغييرات</>}
                         </button>
                       </div>
-                    </div>
+                  </div>}
 
-                    <div className="ap-settings-card">
+                  {adminSettingsTab === 'password' && <div className="ap-settings-card">
                       <div className="ap-settings-card-title">
                         <div className="ap-settings-icon" style={{ background: 'rgba(244,63,94,0.14)', color: RED }}>
                           <i className="ti ti-shield-lock" />
@@ -2480,22 +2934,43 @@ export default function AdminPanel() {
                           {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-key" /> تغيير كلمة المرور</>}
                         </button>
                       </div>
+                  </div>}
+
+                  {adminSettingsTab === 'danger' && <div className="ap-settings-card" style={{ borderColor:'rgba(244,63,94,0.22)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, color: RED, marginBottom: 4, fontSize: 14 }}>منطقة الخطر والعمليات الحساسة</div>
+                        <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>تسجيل الخروج من الجلسة الحالية للمسؤول، أو تفعيل حذف الحساب نهائيًا من المنصة.</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="ap-action-btn edit" style={{ padding: '9px 18px', flexShrink: 0, background: 'var(--surface)', border: '1px solid var(--border)' }} onClick={handleLogout}>
+                          <i className="ti ti-logout" /> تسجيل الخروج
+                        </button>
+                        <button
+                          className="ap-action-btn delete"
+                          style={{ padding: '9px 18px', flexShrink: 0, background: RED, color: '#fff' }}
+                          onClick={() => {
+                            setDeleteConfirmText('');
+                            setShowDeleteModal(true);
+                          }}
+                        >
+                          <i className="ti ti-user-off" /> حذف الحساب نهائياً
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 'var(--radius)', padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginTop: 24 }}>                
-                    <div>
-                      <div style={{ fontWeight: 800, color: RED, marginBottom: 4, fontSize: 14 }}>منطقة الخطر</div>
-                      <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>تسجيل الخروج من جميع الجلسات أو حذف الحساب نهائيًا.</div>
-                    </div>
-                    <button className="ap-action-btn reject" style={{ padding: '9px 18px', flexShrink: 0 }} onClick={handleLogout}>
-                      <i className="ti ti-logout" /> تسجيل الخروج
-                    </button>
-                  </div>
+                  </div>}
+
+                    </div>{/* end content area */}
+                  </div>{/* end settings layout */}
                 </div>
               )}
 
               {/* ══ AI CHAT ══════════════════════════════════════════════════ */}
-              {tab === 'ai-chat' && <AIChatEmbed />}
+              {tab === 'ai-chat' && (
+                <div className="ap-ai-chat-container">
+                  <AIChatEmbed />
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2507,6 +2982,55 @@ export default function AdminPanel() {
       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />
       <RejectModal target={rejectTarget} loading={rejectLoading} onClose={() => setRejectTarget(null)} onConfirm={handleReject} />
       <EditCharityModal target={editCharityTarget} loading={actionLoading} setLoading={setActionLoading} onClose={() => setEditCharityTarget(null)} onSaved={(id, form) => setCharities(prev => prev.map(c => c._id === id ? { ...c, ...form } : c))} showMsg={showMsg} />
+
+      {/* Account Deletion Verification Modal */}
+      {showDeleteModal && (
+        <div className="ap-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="ap-modal" onClick={e => e.stopPropagation()}>
+            <div className="ap-modal-inner">
+              <div className="ap-secure-modal-icon" style={{ background: RED + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', margin: '0 auto 16px' }}>
+                <i className="ti ti-user-off" style={{ color: RED, fontSize: 28 }} />
+              </div>
+              <h3 className="ap-modal-title" style={{ color: RED, textAlign: 'center', fontSize: '18px', fontWeight: 800, marginBottom: '10px' }}>تأكيد حذف الحساب نهائياً!</h3>
+              <p className="ap-modal-msg" style={{ lineHeight: 1.7, fontSize: 13.5, color: 'var(--t3)', textAlign: 'center', marginBottom: '20px' }}>
+                تحذير: هذا الإجراء شديد الحساسية ولا يمكن التراجع عنه مطلقاً. سيتم حذف جميع بيانات ملفك الشخصي ومفاتيح الـ API وتفضيلاتك من المنصة نهائياً.
+              </p>
+              
+              <div className="ap-form-group" style={{ marginBottom: 20, textAlign: 'right' }}>
+                <label className="ap-form-label" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 8, textAlign: 'center' }}>
+                  لتأكيد الحذف، يرجى كتابة اسم المستخدم الخاص بك <strong style={{ color: RED }}>"{user?.userName}"</strong> أدناه:
+                </label>
+                <input
+                  className="ap-form-input"
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  placeholder="اكتب اسم المستخدم هنا"
+                  style={{ border: `1px solid ${deleteConfirmText === user?.userName ? TEAL2 : RED}`, color: 'var(--t1)', fontWeight: 700, textAlign: 'center' }}
+                />
+              </div>
+
+              <div className="ap-modal-actions" style={{ justifyContent: 'center', gap: '10px' }}>
+                <button
+                  className="ap-modal-cancel"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleteBtnLoading}
+                  style={{ minWidth: '120px' }}
+                >
+                  إلغاء وتراجع
+                </button>
+                <button
+                  className="ap-modal-confirm"
+                  disabled={deleteBtnLoading || deleteConfirmText !== user?.userName}
+                  style={{ background: RED, color: '#fff', opacity: deleteConfirmText === user?.userName ? 1 : 0.4, minWidth: '160px' }}
+                  onClick={handleDeleteAccount}
+                >
+                  {deleteBtnLoading ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحذف...</> : 'نعم، احذف حسابي نهائياً'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User Detail Modal */}
       {userDetailModal && (() => {
@@ -2676,21 +3200,6 @@ export default function AdminPanel() {
           </div>
         );
       })()}
-      {showScrollTop && tab !== 'ai-chat' && (
-        <button
-          className="ap-scroll-top-btn"
-          onClick={() => {
-            contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          aria-label="العودة للأعلى"
-          title="العودة للأعلى"
-          style={{ position: 'fixed', bottom: 28, left: 28, zIndex: 9999 }}
-        >
-          <i className="ti ti-arrow-up" />
-        </button>
-      )}
     </div>
   );
 }

@@ -95,36 +95,64 @@ export async function fetchPage<T extends { _id?: string }>(
 ): Promise<{ data: T[]; total: number; hasMore: boolean }> {
   try {
     const sep = basePath.includes('?') ? '&' : '?';
-    const res = await request<any>(
+    const raw = await request<any>(
       `${basePath}${sep}page=${page}&limit=${limit}`
     );
 
+    // ── Unwrap unified API wrapper: { success, message, data } ────────────
+    // The backend always returns { success: bool, message: string, data: ... }
+    // Unwrap one level so findArray/findTotal work on the actual payload.
+    const res = (raw && typeof raw === 'object' && 'success' in raw && 'data' in raw)
+      ? raw.data
+      : raw;
+
     function findArray(obj: any, depth = 0): T[] | null {
-      if (depth > 4) return null;
+      if (depth > 5) return null;
       if (Array.isArray(obj)) return obj as T[];
       if (!obj || typeof obj !== 'object') return null;
-      const priorityKeys = ['Data','data','users','charities','reports','items','list','results','records'];
+      // Extended priority keys — covers common backend naming conventions
+      const priorityKeys = [
+        'Data','data','users','charities','reports','allReports',
+        'items','list','results','records','docs','documents',
+        'Users','Charities','Reports','Items','Results',
+        'payload','body','content','entries','rows',
+      ];
       for (const key of priorityKeys) {
         if (Array.isArray(obj[key])) return obj[key] as T[];
       }
+      // Fallback: any array-valued key (sorted by length desc to prefer longer arrays)
+      const arrKeys = Object.keys(obj).filter(k => Array.isArray(obj[k]));
+      if (arrKeys.length > 0) {
+        arrKeys.sort((a, b) => obj[b].length - obj[a].length);
+        return obj[arrKeys[0]] as T[];
+      }
+      // Recurse into object values
       for (const key of Object.keys(obj)) {
-        const found = findArray(obj[key], depth + 1);
-        if (found && found.length > 0) return found;
+        if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+          const found = findArray(obj[key], depth + 1);
+          if (found && found.length > 0) return found;
+        }
       }
       return null;
     }
 
     function findTotal(obj: any, depth = 0): number {
-      if (depth > 4) return 0;
+      if (depth > 5) return 0;
       if (!obj || typeof obj !== 'object') return 0;
-      const totalKeys = ['Total_Items','totalItems','totalCount','total','count','Total','total_count','TotalItems'];
+      const totalKeys = [
+        'Total_Items','totalItems','totalCount','total','count','Total',
+        'total_count','TotalItems','totalRecords','total_records',
+        'Count','countTotal','allCount','pageCount','itemCount',
+      ];
       for (const key of totalKeys) {
         if (typeof obj[key] === 'number' && obj[key] > 0) return obj[key];
       }
       for (const key of Object.keys(obj)) {
         if (Array.isArray(obj[key])) continue;
-        const found = findTotal(obj[key], depth + 1);
-        if (found > 0) return found;
+        if (typeof obj[key] === 'object') {
+          const found = findTotal(obj[key], depth + 1);
+          if (found > 0) return found;
+        }
       }
       return 0;
     }
@@ -135,7 +163,14 @@ export async function fetchPage<T extends { _id?: string }>(
     const hasMore = total > rawData.length ? loadedSoFar < total : rawData.length === limit;
 
     if (import.meta.env?.DEV) {
-      console.log(`[fetchPage] ${basePath} → found ${rawData.length} items, total=${total}, hasMore=${hasMore}`);
+      console.log(`[fetchPage] ${basePath} page=${page}`, {
+        rawResponse: raw,
+        unwrappedResponse: res,
+        foundArray: rawData.length,
+        total,
+        hasMore,
+        responseKeys: res && typeof res === 'object' ? Object.keys(res) : [],
+      });
     }
 
     return { data: rawData, total: total || rawData.length, hasMore };

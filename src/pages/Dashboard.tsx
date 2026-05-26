@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'wouter';
 import {
   AreaChart, Area,
+  BarChart, Bar,
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid,
 } from 'recharts';
@@ -62,6 +63,25 @@ const fmt12 = (val?: string | null): string => {
 
 const RED = '#ef4444';
 const TEAL2 = '#0ec97f';
+
+/* ── Isolated clock component — never re-renders the parent ── */
+const LiveAutoClock = memo(function LiveAutoClock() {
+  const [clock, setClock] = useState(() =>
+    new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+  );
+  useEffect(() => {
+    const id = setInterval(() =>
+      setClock(new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })),
+    1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="ap-auto-live-clock">
+      <span className="ap-live-dot-lg" />
+      {clock}
+    </div>
+  );
+});
 
 interface ConfirmState {
   title: string;
@@ -237,7 +257,7 @@ function NotificationBell({ notifications, unreadCount, onMarkRead, onMarkAllRea
                     {groups[gk].map(n => (
                       <div
                         key={n._id}
-                        className={`cd-notif-item${n.status === 'unread' ? ' unread' : ''}`}
+                        className={`cd-notif-item${n.status === 'unread' ? ' unread' : ' cd-notif-item--read'}`}
                         onClick={() => n.status === 'unread' && onMarkRead(n._id)}
                         style={{ transition: 'all 0.25s ease' }}
                       >
@@ -306,13 +326,6 @@ function Sidebar({ activeTab, onTabChange, userName, pendingCount, collapsed, on
           <i className={`ti ${collapsed ? 'ti-layout-sidebar-right-expand' : 'ti-layout-sidebar-right-collapse'}`} />
         </button>
       </div>
-      {!collapsed && (
-        <div className="ap-live-pill">
-          <span className="ap-live-dot" />
-          <span>مباشر</span>
-          <span className="ap-live-time">{sidebarClock}</span>
-        </div>
-      )}
       <nav className="ap-sidebar-nav">
         {NAV.map(item => (
           <button
@@ -588,7 +601,7 @@ function DonationDetailPanel({ donation: d, onBack, onAction, actionLoading }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* ── Top Header Banner ── */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
           <button className="ap-icon-btn" onClick={onBack} title="رجوع" style={{ width: 38, height: 38, flexShrink: 0 }}>
             <i className="ti ti-arrow-right" />
@@ -610,9 +623,6 @@ function DonationDetailPanel({ donation: d, onBack, onAction, actionLoading }: {
             </div>
           </div>
         </div>
-        <button className="ap-modal-cancel" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={onBack}>
-          <i className="ti ti-arrow-right" /> رجوع للقائمة
-        </button>
       </div>
 
       {/* ── Timeline ── */}
@@ -724,7 +734,7 @@ function DonationDetailPanel({ donation: d, onBack, onAction, actionLoading }: {
 
       {/* ── Zoom overlay ── */}
       {zoomOpen && images.length > 0 && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }} onClick={() => setZoomOpen(false)}>
+        <div className="cd-zoom-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', backdropFilter: 'blur(2px)' }} onClick={() => setZoomOpen(false)}>
           <button style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36, borderRadius: 9, background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setZoomOpen(false)}>
             <i className="ti ti-x" />
           </button>
@@ -755,8 +765,8 @@ function DonationDetailPanel({ donation: d, onBack, onAction, actionLoading }: {
 
       {/* ── Actions ── */}
       {d.status === 'pending' && (
-        <div style={{ background: 'var(--surface)', border: '1px solid rgba(14,201,127,0.2)', borderRadius: 'var(--radius)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 180 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid rgba(14,201,127,0.2)', borderRadius: 'var(--radius)', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>
               <i className="ti ti-clipboard-list" />
             </div>
@@ -765,12 +775,12 @@ function DonationDetailPanel({ donation: d, onBack, onAction, actionLoading }: {
               <div style={{ fontSize: 11.5, color: 'var(--t4)' }}>سيتم إشعار المتبرع تلقائياً بقرارك</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-            <button className="ap-action-btn approve" style={{ justifyContent: 'center', padding: '11px 24px', minWidth: 130 }} disabled={busy} onClick={() => onAction(d._id, 'accepted')}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="ap-action-btn approve" style={{ justifyContent: 'center', padding: '11px 24px', flex: 1, minWidth: 120 }} disabled={busy} onClick={() => onAction(d._id, 'accepted')}>
               {isAcc ? <i className="ti ti-loader-2 ti-spin" /> : <i className="ti ti-check" />}
               {isAcc ? 'جاري القبول…' : 'قبول التبرع'}
             </button>
-            <button className="ap-action-btn reject" style={{ justifyContent: 'center', padding: '11px 24px', minWidth: 130 }} disabled={busy} onClick={() => onAction(d._id, 'rejected')}>
+            <button className="ap-action-btn reject" style={{ justifyContent: 'center', padding: '11px 24px', flex: 1, minWidth: 120 }} disabled={busy} onClick={() => onAction(d._id, 'rejected')}>
               {isRej ? <i className="ti ti-loader-2 ti-spin" /> : <i className="ti ti-x" />}
               {isRej ? 'جاري الرفض…' : 'رفض التبرع'}
             </button>
@@ -778,11 +788,6 @@ function DonationDetailPanel({ donation: d, onBack, onAction, actionLoading }: {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-        <button className="ap-modal-cancel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px' }} onClick={onBack}>
-          <i className="ti ti-arrow-right" /> العودة للقائمة
-        </button>
-      </div>
     </div>
   );
 }
@@ -899,17 +904,7 @@ export default function CharityDashboard() {
   const contentRef = useRef<HTMLDivElement>(null);
   // ── View More / Expandable KPI State ──
   const [expandedKpi, setExpandedKpi] = useState<string | null>(null);
-  // ── Automation Live Clock ──
-  const [autoClock, setAutoClock] = useState(() =>
-    new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-  );
-  useEffect(() => {
-    if (tab !== 'automation') return;
-    const id = setInterval(() =>
-      setAutoClock(new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })),
-    1000);
-    return () => clearInterval(id);
-  }, [tab]);
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'password' | 'license' | 'danger'>('profile');
 
   // ── Notifications State ──
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -937,10 +932,17 @@ export default function CharityDashboard() {
   const handleMarkAllRead = useCallback(async () => {
     const unread = notifications.filter(n => n.status === 'unread');
     if (unread.length === 0) return;
+    // optimistic update first
+    setNotifications(prev => prev.map(n => ({ ...n, status: 'read' as const })));
     try {
-      await Promise.allSettled(unread.map(n => notificationApi.markRead(n._id)));
-      setNotifications(prev => prev.map(n => ({ ...n, status: 'read' as const })));
-    } catch { /* ignore */ }
+      // Use the batch endpoint (PATCH /notification/read-all)
+      await notificationApi.markAllRead();
+    } catch {
+      // fallback: fire individual calls silently
+      try {
+        await Promise.allSettled(unread.map(n => notificationApi.markRead(n._id)));
+      } catch { /* ignore */ }
+    }
   }, [notifications]);
 
   const handleDeleteNotif = useCallback(async (id: string) => {
@@ -983,6 +985,7 @@ export default function CharityDashboard() {
     window.scrollTo({ top: 0 });
     document.documentElement.scrollTo({ top: 0 });
     setShowScrollTop(false);
+    setSearchQ('');
   }, [tab]);
 
   // ── Restoring Scheduler State on Mount ──
@@ -1242,6 +1245,21 @@ export default function CharityDashboard() {
   const totalPages = Math.max(1, Math.ceil(filteredDonations.length / ITEMS_PER_PAGE));
   // Reset to page 1 when filters change
   useEffect(() => { setCurrentPage(1); }, [statusFilter, searchQ, sortOrder, dateFrom, dateTo]);
+
+  // ── Filtered pending requests (search on requests tab) ──
+  const filteredPendingReqs = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return pendingReqs;
+    return pendingReqs.filter(d => {
+      const donor = parseDonor(d.donorId);
+      return (
+        d.type.toLowerCase().includes(q) ||
+        donor.name.toLowerCase().includes(q) ||
+        d._id.toLowerCase().includes(q) ||
+        (typeof d.donorId === 'string' ? d.donorId : (d.donorId as any)?._id || '').toLowerCase().includes(q)
+      );
+    });
+  }, [pendingReqs, searchQ]);
   
   const charityName = charityProfileData?.charityName || user?.userName || 'الجمعية';
   const pendingCount = pendingReqs.length;
@@ -1296,9 +1314,7 @@ export default function CharityDashboard() {
               onDelete={handleDeleteNotif}
               loading={notifLoading}
             />
-            <button className="ap-header-icon-btn" title="إبلاغ" onClick={() => setShowReport(true)} style={{borderColor:'rgba(240,67,112,0.3)',color:'var(--red)'}}><i className="ti ti-alert-triangle"/></button>
             <button className="ap-header-icon-btn ap-theme-btn" onClick={() => setIsDark(v => !v)} title={isDark?'وضع نهاري':'وضع ليلي'}><i className={`ti ${isDark?'ti-sun':'ti-moon'}`}/></button>
-            <button className="ap-header-icon-btn" onClick={fetchAll} title="تحديث"><i className="ti ti-refresh"/></button>
             <div className="ap-header-user" onClick={() => setTab('settings')} title="الإعدادات">
               <div className="ap-header-avatar">{charityName?.[0]?.toUpperCase()}</div>
               <span className="ap-header-username-text">{charityName}</span>
@@ -1381,7 +1397,7 @@ export default function CharityDashboard() {
                       <div className="ap-pro-chart-label"><i className="ti ti-trending-up" style={{color:'#0ec97f',marginLeft:4}}/>التبرعات الشهرية</div>
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span className={`ap-chart-trend ${timelineData.length > 1 && timelineData[timelineData.length-1]?.count >= timelineData[timelineData.length-2]?.count ? 'up' : 'down'}`}>
+                      <span className={`ap-chart-trend ${(() => { const curMonth = new Date().getMonth(); const cur = timelineData[curMonth]?.count ?? 0; const prev = timelineData[curMonth > 0 ? curMonth - 1 : 0]?.count ?? 0; return cur >= prev ? 'up' : 'down'; })()}`}>
                         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                           <path d="M1 11 L5 4 L8 7 L12 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
@@ -1428,24 +1444,19 @@ export default function CharityDashboard() {
                   </div>
                   {stackedData.length > 0
                     ? <ResponsiveContainer width="100%" height={260}>
-                        <AreaChart data={stackedData} margin={{top:8,right:8,left:-24,bottom:0}}>
-                          <defs>
-                            <linearGradient id="gdPending" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3}/><stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/></linearGradient>
-                            <linearGradient id="gdAccepted" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0ec97f" stopOpacity={0.3}/><stop offset="100%" stopColor="#0ec97f" stopOpacity={0}/></linearGradient>
-                            <linearGradient id="gdRejected" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f04370" stopOpacity={0.3}/><stop offset="100%" stopColor="#f04370" stopOpacity={0}/></linearGradient>
-                          </defs>
+                        <BarChart data={stackedData} margin={{top:8,right:8,left:-24,bottom:0}} barCategoryGap="30%">
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)"/>
                           <XAxis dataKey="name" tick={{fill:'var(--t2)',fontSize:11,fontFamily:'Tajawal'}} axisLine={false} tickLine={false}/>
-                          <YAxis tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false}/>
+                          <YAxis tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
                           <Tooltip
                             contentStyle={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,color:'var(--t1)',fontFamily:'Tajawal',fontSize:12,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}
-                            formatter={(val: number, name: string) => [`${val.toLocaleString('ar-EG')} تبرع`, name]}
+                            formatter={(val: number, name: string) => [`${val.toLocaleString('en-US')} تبرع`, name]}
                           />
                           <Legend wrapperStyle={{fontSize:11,fontFamily:'Tajawal',paddingTop:8}} formatter={(v) => <span style={{color:'var(--t2)'}}>{v}</span>}/>
-                          <Area type="monotone" dataKey="pending"  name="معلق"  stroke="#f59e0b" fill="url(#gdPending)"  strokeWidth={2} dot={{r:3,fill:'#f59e0b'}} />
-                          <Area type="monotone" dataKey="accepted" name="مقبول" stroke="#0ec97f" fill="url(#gdAccepted)" strokeWidth={2} dot={{r:3,fill:'#0ec97f'}} />
-                          <Area type="monotone" dataKey="rejected" name="مرفوض" stroke="#f04370" fill="url(#gdRejected)" strokeWidth={2} dot={{r:3,fill:'#f04370'}} />
-                        </AreaChart>
+                          <Bar dataKey="pending"  name="معلق"  fill="#f59e0b" radius={[4,4,0,0]} maxBarSize={32}/>
+                          <Bar dataKey="accepted" name="مقبول" fill="#0ec97f" radius={[4,4,0,0]} maxBarSize={32}/>
+                          <Bar dataKey="rejected" name="مرفوض" fill="#f04370" radius={[4,4,0,0]} maxBarSize={32}/>
+                        </BarChart>
                       </ResponsiveContainer>
                     : <div className="ap-empty-state"><div className="ap-empty-icon"><i className="ti ti-inbox"/></div><div className="ap-empty-title">لا توجد بيانات</div></div>
                   }
@@ -1471,7 +1482,7 @@ export default function CharityDashboard() {
                             formatter={(val: number, name: string) => {
                               const total = pieData.reduce((s,d) => s+d.value, 0);
                               const pct = total > 0 ? Math.round((val/total)*100) : 0;
-                              return [`${val.toLocaleString('ar-EG')} تبرع (${pct}%)`, name];
+                              return [`${val.toLocaleString('en-US')} تبرع (${pct}%)`, name];
                             }}
                           />
                         </PieChart>
@@ -1525,7 +1536,7 @@ export default function CharityDashboard() {
                 <div className="ap-section-title">
                   <i className={`ti ${tab==='donations'?'ti-clipboard-list':'ti-clock-exclamation'}`} style={{color:'var(--teal)'}}/>
                   {tab==='donations'?'كل التبرعات':'الطلبات المعلقة'}
-                  <span className="ap-count-badge" style={{background:'var(--teal)'}}>{tab==='donations'?filteredDonations.length:pendingCount}</span>
+                  <span className="ap-count-badge" style={{background:'var(--teal)'}}>{tab==='donations'?filteredDonations.length:filteredPendingReqs.length}</span>
                 </div>
                 <div className="ap-view-switcher">
                   <button className={`ap-view-btn${donView==='table'?' active':''}`} onClick={() => setDonView('table')} title="جدول"><i className="ti ti-list"/></button>
@@ -1615,34 +1626,88 @@ export default function CharityDashboard() {
                         مسح التصفية
                       </button>
                     )}
-                    <button className="ap-header-icon-btn ap-refresh-btn" onClick={fetchAll} title="تحديث البيانات"><i className="ti ti-refresh"/></button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {(tab==='requests'?pendingReqs:filteredDonations).length === 0
+            {(tab==='requests'?filteredPendingReqs:filteredDonations).length === 0
               ? <div className="ap-empty-state"><div className="ap-empty-icon"><i className="ti ti-inbox"/></div><div className="ap-empty-title">لا توجد بيانات مطابقة</div><div className="ap-empty-desc">جرّب تغيير الفلتر أو البحث</div></div>
               : donView === 'cards'
                 ? <div className="ap-card-grid">
-                    {(tab==='requests'?pendingReqs:paginatedDonations).map(d => {
+                    {(tab==='requests'?filteredPendingReqs:paginatedDonations).map(d => {
                       const sc = STATUS_CFG[d.status]; const donor = parseDonor(d.donorId); const img = d.imageUrl?.[0]?.secure_url; const busy = actionLoading === `${d._id}-accepted` || actionLoading === `${d._id}-rejected`;
                       return (
-                        <div key={d._id} className="ap-entity-card" onClick={() => setSelectedDonation(d)} style={{cursor:'pointer'}}>
+                        <div key={d._id} className="ap-entity-card cd-donation-card" onClick={() => setSelectedDonation(d)} style={{cursor:'pointer'}}>
+                          {/* Card Header: image + type + status */}
                           <div className="ap-entity-card-header">
-                            {img ? <img src={img} style={{width:40,height:40,borderRadius:10,objectFit:'cover'}} alt=""/> : <div className="ap-entity-avatar charity"><i className="ti ti-photo"/></div>}
+                            {img
+                              ? <img src={img} style={{width:44,height:44,borderRadius:10,objectFit:'cover',flexShrink:0,border:'1px solid var(--border)'}} alt=""/>
+                              : <div className="ap-entity-avatar charity" style={{width:44,height:44,flexShrink:0}}><i className="ti ti-gift"/></div>
+                            }
                             <div style={{flex:1,minWidth:0}}>
                               <div className="ap-entity-name">{d.type}</div>
-                              <div className="ap-entity-email">{d.condition || 'بدون شرط'}</div>
+                              <div className="ap-entity-email">{donor.name !== '—' ? donor.name : <span style={{color:'var(--t4)',fontStyle:'italic'}}>غير معروف</span>}</div>
                             </div>
-                            <span className="ap-badge" style={{background:sc.bg,color:sc.color}}><span className="ap-badge-dot" style={{background:sc.dot}}/>{sc.label}</span>
+                            <span className="ap-badge" style={{background:sc.bg,color:sc.color,flexShrink:0}}><span className="ap-badge-dot" style={{background:sc.dot}}/>{sc.label}</span>
                           </div>
-                          <div style={{display:'flex',gap:6,marginBottom:8,fontSize:11,color:'var(--t3)'}}><i className="ti ti-package"/>{d.quantity||0} قطعة{d.size && <><i className="ti ti-ruler" style={{marginLeft:6}}/>{d.size}</>}</div>
-                          <div className="ap-entity-date"><i className="ti ti-calendar"/>{fmt12(d.createdAt)} | {donor.name}</div>
+
+                          {/* Middle section grows to fill card */}
+                          <div style={{flex:1,display:'flex',flexDirection:'column',gap:0}}>
+                            {/* Details row */}
+                            {(d.quantity != null || d.size || d.condition) && (
+                              <div style={{display:'flex',gap:10,flexWrap:'wrap',margin:'8px 0 4px',fontSize:11.5,color:'var(--t3)'}}>
+                                {d.quantity != null && (
+                                  <span style={{display:'flex',alignItems:'center',gap:4}}>
+                                    <i className="ti ti-package" style={{color:'var(--teal)',fontSize:12}}/>{d.quantity} قطعة
+                                  </span>
+                                )}
+                                {d.size && (
+                                  <span style={{display:'flex',alignItems:'center',gap:4}}>
+                                    <i className="ti ti-ruler" style={{color:'var(--teal)',fontSize:12}}/>{d.size}
+                                  </span>
+                                )}
+                                {d.condition && (
+                                  <span style={{display:'flex',alignItems:'center',gap:4}}>
+                                    <i className="ti ti-star" style={{color:'#f59e0b',fontSize:12}}/>{d.condition}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Address */}
+                            {(donor.address !== '—' || (d as any).address) && (
+                              <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,color:'var(--t3)',marginBottom:4}}>
+                                <i className="ti ti-map-pin" style={{color:'#3b82f6',fontSize:12,flexShrink:0}}/>
+                                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                  {donor.address !== '—' ? donor.address : (d as any).address}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Phone */}
+                            {donor.phone !== '—' && (
+                              <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,color:'var(--t3)',marginBottom:4}}>
+                                <i className="ti ti-phone" style={{color:'var(--teal)',fontSize:12,flexShrink:0}}/>
+                                <span>{donor.phone}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Date + Actions always at bottom */}
+                          <div className="ap-entity-date" style={{marginTop:'auto',marginBottom:10}}>
+                            <i className="ti ti-calendar"/>{fmt12(d.createdAt)}
+                          </div>
+
+                          {/* Actions */}
                           <div className="ap-entity-actions" onClick={e => e.stopPropagation()}>
                             {tab==='requests' && <>
-                              <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>{actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-check"/>قبول</>}</button>
-                              <button className="ap-action-btn reject"  disabled={busy} onClick={() => handleAction(d._id,'rejected')}>{actionLoading===`${d._id}-rejected`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-x"/>رفض</>}</button>
+                              <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>
+                                {actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-check"/>قبول</>}
+                              </button>
+                              <button className="ap-action-btn reject" disabled={busy} onClick={() => handleAction(d._id,'rejected')}>
+                                {actionLoading===`${d._id}-rejected`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-x"/>رفض</>}
+                              </button>
                             </>}
                             <button className="ap-card-eye-btn" onClick={() => setSelectedDonation(d)}><i className="ti ti-eye"/>تفاصيل</button>
                           </div>
@@ -1652,15 +1717,17 @@ export default function CharityDashboard() {
                   </div>
                 : <div className="ap-table-wrap">
                     <table className="ap-table">
-                      <thead><tr><th>النوع</th><th>المتبرع</th><th>الكمية</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+                      <thead><tr><th>النوع</th><th>المتبرع</th><th>الكمية / المقاس</th><th>العنوان</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
                       <tbody>
-                        {(tab==='requests'?pendingReqs:paginatedDonations).map(d => {
+                        {(tab==='requests'?filteredPendingReqs:paginatedDonations).map(d => {
                           const sc = STATUS_CFG[d.status]; const donor = parseDonor(d.donorId); const busy = actionLoading === `${d._id}-accepted` || actionLoading === `${d._id}-rejected`;
+                          const donorAddress = donor.address !== '—' ? donor.address : (d as any).address || '—';
                           return (
                             <tr key={d._id} onClick={() => setSelectedDonation(d)} className="ap-table-row-clickable">
                               <td style={{fontWeight:600,color:'var(--t1)'}}>{d.type}</td>
-                              <td><div style={{display:'flex',alignItems:'center',gap:8}}><div className="ap-table-avatar">{donor.initial}</div><span>{donor.name}</span></div></td>
-                              <td>{d.quantity ? `${d.quantity} قطعة` : '—'}</td>
+                              <td><div style={{display:'flex',alignItems:'center',gap:8}}><div className="ap-table-avatar">{donor.initial}</div><div><div style={{fontWeight:600,color:'var(--t1)',fontSize:13}}>{donor.name}</div>{donor.phone !== '—' && <div style={{fontSize:11,color:'var(--t4)'}}>{donor.phone}</div>}</div></div></td>
+                              <td style={{color:'var(--t2)',fontSize:12}}>{d.quantity ? `${d.quantity} قطعة` : '—'}{d.size ? <span style={{marginRight:6,color:'var(--t4)'}}>{d.size}</span> : ''}</td>
+                              <td style={{color:'var(--t3)',fontSize:12,maxWidth:140}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{donorAddress}</div></td>
                               <td><span className="ap-badge" style={{background:sc.bg,color:sc.color}}><span className="ap-badge-dot" style={{background:sc.dot}}/>{sc.label}</span></td>
                               <td style={{color:'var(--t3)',fontSize:12}}>{fmt12(d.createdAt)}</td>
                               <td onClick={e => e.stopPropagation()}>
@@ -1739,9 +1806,8 @@ export default function CharityDashboard() {
                 <h3>التشغيل التلقائي</h3>
                 <p>يمكنك تشغيل المهام يدويًا أو جدولتها في تاريخ وساعة محددة.</p>
               </div>
-              <div className="ap-auto-live-clock">
-                <span className="ap-live-dot-lg" />
-                {autoClock}
+              <div className="ap-auto-live-clock-wrap">
+                <LiveAutoClock />
               </div>
             </div>
 
@@ -1882,10 +1948,66 @@ export default function CharityDashboard() {
             <div className="ap-section-header" style={{marginBottom:20}}>
               <div className="ap-section-title"><i className="ti ti-settings" style={{color:'var(--teal)'}}/>الإعدادات</div>
             </div>
-            <div className="ap-settings-grid">
+
+            {/* ── Settings Layout: Sidebar (desktop) / Tabs (mobile) ── */}
+
+            {/* Mobile: horizontal scrollable tabs */}
+            <div className="cd-settings-mobile-tabs">
+              {([
+                { id:'profile',  icon:'ti-building-community', label: user?.roleType==='charity'?'الجمعية':'الملف', color:'#0ec97f' },
+                { id:'password', icon:'ti-shield-lock',         label:'كلمة المرور', color:'#f04370' },
+                { id:'license',  icon:'ti-shield-check',        label:'التوثيق',     color:'#3b82f6' },
+                { id:'danger',   icon:'ti-alert-triangle',      label:'الخطر',       color:'#ef4444' },
+              ] as const).map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setSettingsTab(item.id)}
+                  className={`cd-settings-mobile-tab${settingsTab===item.id?' active':''}`}
+                  style={{
+                    borderBottom: settingsTab===item.id ? `2px solid ${item.color}` : '2px solid transparent',
+                    color: settingsTab===item.id ? item.color : 'var(--t3)',
+                  } as React.CSSProperties}
+                >
+                  <i className={`ti ${item.icon}`}/>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div style={{display:'flex',gap:20,alignItems:'flex-start'}}>
+
+              {/* Desktop: Sidebar Nav */}
+              <div className="cd-settings-sidebar">
+                {([
+                  { id:'profile',  icon:'ti-building-community', label: user?.roleType==='charity'?'بيانات الجمعية':'الملف الشخصي', color:'#0ec97f' },
+                  { id:'password', icon:'ti-shield-lock',         label:'كلمة المرور',      color:'#f04370' },
+                  { id:'license',  icon:'ti-shield-check',        label:'الترخيص والتوثيق', color:'#3b82f6' },
+                  { id:'danger',   icon:'ti-alert-triangle',      label:'منطقة الخطر',      color:'#ef4444' },
+                ] as const).map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setSettingsTab(item.id)}
+                    style={{
+                      width:'100%',display:'flex',alignItems:'center',gap:9,padding:'10px 12px',
+                      borderRadius:8,border:'none',cursor:'pointer',textAlign:'right' as const,
+                      background: settingsTab===item.id ? `${item.color}14` : 'transparent',
+                      color: settingsTab===item.id ? item.color : 'var(--t2)',
+                      fontFamily:'Tajawal',fontSize:13,fontWeight: settingsTab===item.id ? 700 : 500,
+                      transition:'all 0.18s',marginBottom:2,
+                      borderRight: settingsTab===item.id ? `3px solid ${item.color}` : '3px solid transparent',
+                    }}
+                  >
+                    <i className={`ti ${item.icon}`} style={{fontSize:15,color:item.color,flexShrink:0}}/>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Settings Content Area */}
+              <div style={{flex:1,minWidth:0}}>
 
               {/* ── Profile / Charity card ── */}
-              <div className="ap-settings-card">
+              {settingsTab === 'profile' && <div className="ap-settings-card">
                 <div className="ap-settings-card-title">
                   <div className="ap-settings-icon" style={{background:'rgba(14,201,127,0.14)',color:'#0ec97f'}}>
                     <i className={`ti ${user?.roleType === 'charity' ? 'ti-building-community' : 'ti-user-circle'}`}/>
@@ -1911,7 +2033,6 @@ export default function CharityDashboard() {
                 <div style={{display:'flex',flexDirection:'column',gap:12}}>
                   {user?.roleType === 'charity' ? (
                     <>
-                      {/* charity: اسم الجمعية فقط — بدون حقل المفوّض */}
                       <div className="ap-form-group">
                         <label className="ap-form-label">اسم الجمعية <span style={{color:'#ef4444'}}>*</span></label>
                         <input
@@ -1963,10 +2084,10 @@ export default function CharityDashboard() {
                     {settingsSaving ? <><i className="ti ti-loader-2 ti-spin"/>جاري الحفظ...</> : <><i className="ti ti-check"/>حفظ التغييرات</>}
                   </button>
                 </div>
-              </div>
+              </div>}
 
               {/* ── Password card ── */}
-              <div className="ap-settings-card">
+              {settingsTab === 'password' && <div className="ap-settings-card">
                 <div className="ap-settings-card-title">
                   <div className="ap-settings-icon" style={{background:'rgba(240,67,112,0.14)',color:'#f04370'}}><i className="ti ti-shield-lock"/></div>
                   تغيير كلمة المرور
@@ -2010,10 +2131,10 @@ export default function CharityDashboard() {
                     {settingsSaving ? <><i className="ti ti-loader-2 ti-spin"/>جاري الحفظ...</> : <><i className="ti ti-key"/>تغيير كلمة المرور</>}
                   </button>
                 </div>
-              </div>
+              </div>}
 
               {/* ── License & Verification card ── */}
-              <div className="ap-settings-card">
+              {settingsTab === 'license' && <div className="ap-settings-card">
                 <div className="ap-settings-card-title">
                   <div className="ap-settings-icon" style={{background:'rgba(59,130,246,0.14)',color:'#3b82f6'}}><i className="ti ti-shield-check"/></div>
                   بيانات الترخيص والتوثيق
@@ -2049,10 +2170,10 @@ export default function CharityDashboard() {
                     <input className="ap-form-input" value={(user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' }) : '—'} disabled style={{opacity:0.65,cursor:'not-allowed',background:'var(--surface2)'}}/>
                   </div>
                 </div>
-              </div>
+              </div>}
 
               {/* ── Danger Zone card ── */}
-              <div className="ap-settings-card" style={{borderColor:'rgba(239,68,68,0.22)'}}>
+              {settingsTab === 'danger' && <div className="ap-settings-card" style={{borderColor:'rgba(239,68,68,0.22)'}}>
                 <div className="ap-settings-card-title" style={{color:'#ef4444'}}>
                   <div className="ap-settings-icon" style={{background:'rgba(239,68,68,0.12)',color:'#ef4444'}}><i className="ti ti-alert-triangle"/></div>
                   منطقة الخطر
@@ -2097,9 +2218,10 @@ export default function CharityDashboard() {
                   </div>
 
                 </div>
-              </div>
+              </div>}
 
-            </div>
+              </div>{/* end content area */}
+            </div>{/* end settings layout */}
           </div>}
 
           {/* ═══ CHAT TAB ═══ */}
@@ -2116,23 +2238,14 @@ export default function CharityDashboard() {
       {toast && <div className={`ap-toast ${toast.type}`}><i className={`ti ${toast.type==='success'?'ti-circle-check':'ti-alert-circle'}`} />{toast.text}</div>}
       {showScrollTop && tab !== 'chat' && (
         <button
+          className="ap-scroll-top-btn"
           onClick={() => {
             contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
             window.scrollTo({ top: 0, behavior: 'smooth' });
             document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           aria-label="العودة للأعلى"
-          style={{
-            position: 'fixed', bottom: 28, left: 28, zIndex: 9999,
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--teal) 0%, #00a87a 100%)',
-            color: '#fff', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, boxShadow: '0 4px 20px rgba(0,212,154,0.4)',
-            transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.08)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 28px rgba(0,212,154,0.5)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(0,212,154,0.4)'; }}
+          title="العودة للأعلى"
         >
           <i className="ti ti-arrow-up" />
         </button>

@@ -105,12 +105,12 @@ const STYLES = `
   position: relative;
 }
 
-/* connector line between steps */
+/* connector line between steps — RTL-safe */
 .dd-step:not(:last-child)::after {
   content: '';
   position: absolute;
   top: 18px;
-  left: calc(-50% + 0px);
+  inset-inline-start: 50%;
   width: 100%;
   height: 2px;
   background: var(--dd-line-color, var(--border));
@@ -295,7 +295,7 @@ function HorizontalTimeline({ status, createdAt }: { status: string; createdAt: 
       id: 'review',
       label: 'قيد المراجعة',
       icon: 'ti-eye',
-      sub: 'جارٍ الفحص',
+      sub: status === 'pending' ? 'جارٍ الفحص' : 'تمت المراجعة',
       active: true,
       color: '#0ec97f',
     },
@@ -418,7 +418,7 @@ function ImageGallery({ images }: { images: string[] }) {
 
           {/* counter */}
           {images.length > 1 && (
-            <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, backdropFilter: 'blur(6px)' }}>
+            <div dir="ltr" style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, backdropFilter: 'blur(6px)' }}>
               {active + 1} / {images.length}
             </div>
           )}
@@ -497,7 +497,7 @@ function ImageGallery({ images }: { images: string[] }) {
               </div>
 
               {/* Image counter */}
-              <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', color: '#fff', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
+              <div dir="ltr" style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', color: '#fff', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
                 {active + 1} / {images.length}
               </div>
             </>
@@ -564,7 +564,7 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
       <InjectStyles />
 
       {/* ══ Top Banner ══ */}
-      <div style={{ ...cardPadded, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderRadius: 'var(--radius-lg)', padding: '16px 20px' }}>
+      <div style={{ ...cardPadded, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderRadius: 'var(--radius-lg)', padding: '16px 20px' }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
           <button className="ap-icon-btn" onClick={onBack} title="رجوع" style={{ width: 38, height: 38, flexShrink: 0 }}>
             <i className="ti ti-arrow-right" />
@@ -588,9 +588,6 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
             </div>
           </div>
         </div>
-        <button className="ap-modal-cancel" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={onBack}>
-          <i className="ti ti-arrow-right" /> رجوع للقائمة
-        </button>
       </div>
 
       {/* ══ Timeline ══ */}
@@ -729,18 +726,18 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
           </div>
         </div>
       ) : donation.status !== 'pending' ? (
-        <div style={{ ...card, padding: '20px 22px' }}>
+        <div style={{ ...card, padding: '16px 20px' }}>
           <div className="dd-section-title">
             <i className="ti ti-clipboard-check" style={{ color: sc.color, fontSize: 14 }} />
             حالة الطلب
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', background: sc.bg, border: `1px solid ${sc.color}33`, borderRadius: 12 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 13, background: `${sc.color}20`, color: sc.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, boxShadow: `0 0 0 5px ${sc.glow}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: sc.bg, border: `1px solid ${sc.color}33`, borderRadius: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: `${sc.color}20`, color: sc.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0, boxShadow: `0 0 0 4px ${sc.glow}` }}>
               <i className={`ti ${sc.icon}`} />
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)' }}>{sc.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--t4)', marginTop: 3 }}>تم اتخاذ القرار — لا يمكن التعديل</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)' }}>{sc.label}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 2 }}>تم اتخاذ القرار — لا يمكن التعديل</div>
             </div>
           </div>
         </div>
