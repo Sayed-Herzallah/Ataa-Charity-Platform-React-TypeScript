@@ -720,10 +720,10 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const {pendingVerify} = useAuth();
 
-  const initialMode = (): 'login' | 'signup' => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('mode') === 'signup' ? 'signup' : 'login';
-  };
+const initialMode = (): 'login' | 'signup' => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mode') === 'signup' ? 'login' : 'signup';
+};
 
   const [mode, setMode]         = useState<'login' | 'signup'>(initialMode);
   const [showForgot, setShowForgot] = useState(false);
@@ -801,12 +801,12 @@ export default function AuthPage() {
           <div className="lp-panel-content lp-panel-login-mode">
             <h1>مرحباً بعودتك!</h1>
             <p>ليس لديك حساب بعد؟<br />انضم إلينا اليوم لبدء رحلة العطاء.</p>
-            <button className="lp-ghost-btn" onClick={() => handleSetMode('signup')}>إنشاء حساب</button>
+            <button className="lp-ghost-btn" onClick={() => handleSetMode('signup')}>تسجيل الدخول</button>
           </div>
           <div className="lp-panel-content lp-panel-register-mode">
             <h1>أهلاً بك في عطاء!</h1>
             <p>لديك حساب بالفعل؟<br />سجل دخولك للمتابعة.</p>
-            <button className="lp-ghost-btn" onClick={() => handleSetMode('login')}>تسجيل الدخول</button>
+            <button className="lp-ghost-btn" onClick={() => handleSetMode('login')}> إنشاء الحساب</button>
           </div>
         </div>
 

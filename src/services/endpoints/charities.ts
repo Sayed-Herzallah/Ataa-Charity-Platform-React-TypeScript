@@ -6,13 +6,13 @@ import type { Charity } from '../types';
 export const charityApi = {
   /** GET /charity/charities */
   getAll: () =>
-    request<{ success: boolean; charities: Charity[] }>('/charity/charities'),
+    request<{ success: boolean; charities: Charity[]; result?: any }>('/charity/charities'),
 
   /** GET /charity/:id */
   getById: (id: string) =>
     request<{ success: boolean; charity: Charity }>(`/charity/${id}`),
 
-  /** PATCH /charity/:id — Admin only */
+  /** PATCH /charity/:id — Charity owner or Admin */
   update: (
     id: string,
     body: Partial<{ charityName: string; address: string; description: string }>
@@ -20,7 +20,7 @@ export const charityApi = {
     request(`/charity/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
-    }, false, true),
+    }),
 
   /** DELETE /charity/:id — Admin only */
   delete: (id: string) =>
@@ -36,7 +36,4 @@ export const charityApi = {
       method: 'PATCH',
       body: JSON.stringify({ reason }),
     }, false, true),
-
-  // NOTE: Charity creation is NOT a separate endpoint.
-  // To create a charity, use: authApi.register({ ...data, roleType: 'charity' })
 };

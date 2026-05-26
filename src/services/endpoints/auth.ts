@@ -67,6 +67,18 @@ export const authApi = {
       body: JSON.stringify(body),
     }),
 
+  forgotPassword: (body: { email: string }) =>
+    request('/auth/forgetPassword', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  resendVerification: (body: { email: string }) =>
+    request('/auth/resendVerification', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   resetPassword: (body: {
     email: string;
     code: string;

@@ -954,9 +954,9 @@ export default function AdminPanel() {
 
     try {
       const [uRes, cRes, rRes] = await Promise.allSettled([
-        fetchPage<User>('/users', 1, 10),
-        fetchPage<Charity>('/charity/charities', 1, 10),
-        fetchPage<Report>('/report/allReports', 1, 10),
+        fetchPage<User>('/users', 1, 25),
+        fetchPage<Charity>('/charity/charities', 1, 25),
+        fetchPage<Report>('/report/allReports', 1, 25),
       ]);
 
       if (uRes.status === 'fulfilled') {
@@ -998,17 +998,31 @@ export default function AdminPanel() {
   // ── Scroll-to-top inside admin content ──
   useEffect(() => {
     const el = contentRef.current;
-    if (!el) return;
-    const onScroll = () => setShowScrollTop(el.scrollTop > 300);
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
+    const onScroll = () => {
+      const scrolled = (el?.scrollTop ?? 0) > 300 || window.scrollY > 300 || document.documentElement.scrollTop > 300;
+      setShowScrollTop(scrolled);
+    };
+    el?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
+
+  // Reset scroll when tab changes
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+    document.documentElement.scrollTo({ top: 0 });
+    setShowScrollTop(false);
+  }, [tab]);
 
   const loadMoreUsers = async () => {
     const next = usersPage + 1;
     setLoadingMore('users');
     try {
-      const res = await fetchPage<User>('/users', next, 10);
+      const res = await fetchPage<User>('/users', next, 25);
       if (!res.data?.length) { setHasMoreUsers(false); return; }
       setUsers(prev => {
         const ids = new Set(prev.map(u => u._id));
@@ -1023,7 +1037,7 @@ export default function AdminPanel() {
     const next = charitiesPage + 1;
     setLoadingMore('charities');
     try {
-      const res = await fetchPage<Charity>('/charity/charities', next, 10);
+      const res = await fetchPage<Charity>('/charity/charities', next, 25);
       if (!res.data?.length) { setHasMoreCharities(false); return; }
       setCharities(prev => {
         const ids = new Set(prev.map(c => c._id));
@@ -1075,7 +1089,7 @@ export default function AdminPanel() {
     const next = reportsPage + 1;
     setLoadingMore('reports');
     try {
-      const res = await fetchPage<Report>('/report/allReports', next, 10);
+      const res = await fetchPage<Report>('/report/allReports', next, 25);
       if (!res.data?.length) { setHasMoreReports(false); return; }
       setReports(prev => {
         const ids = new Set(prev.map(r => r._id));
@@ -1491,17 +1505,6 @@ export default function AdminPanel() {
         )}
 
         <div ref={contentRef} className={`ap-content${tab === 'ai-chat' ? ' ap-content--ai' : ''}`}>
-          {/* زر العودة للأعلى داخل لوحة الأدمن */}
-          {showScrollTop && tab !== 'ai-chat' && (
-            <button
-              className="ap-scroll-top-btn"
-              onClick={() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-              aria-label="العودة للأعلى"
-              title="العودة للأعلى"
-            >
-              <i className="ti ti-arrow-up" />
-            </button>
-          )}
           {error && !loading && <ErrorBanner msg={error} onRetry={loadData} />}
 
           {loading ? <PageSkeleton /> : (
@@ -2478,69 +2481,8 @@ export default function AdminPanel() {
                         </button>
                       </div>
                     </div>
-
-                    <div className="ap-settings-card">
-                      <div className="ap-settings-card-title">
-                        <div className="ap-settings-icon" style={{ background: 'rgba(59,130,246,0.14)', color: '#3b82f6' }}>
-                          <i className="ti ti-bell" />
-                        </div>
-                        الإشعارات
-                      </div>
-                      {[
-                        { label: 'إشعارات البريد الإلكتروني', sub: 'تلقي التنبيهات عبر البريد', default: true  },
-                        { label: 'تقارير جديدة',              sub: 'إشعار فوري عند ورود تقرير',  default: true  },
-                        { label: 'طلبات الانضمام',            sub: 'جمعيات تنتظر الموافقة',       default: false },
-                      ].map((item, i) => (
-                        <div key={i} className="ap-settings-row">
-                          <div>
-                            <div className="ap-settings-row-label">{item.label}</div>
-                            <div className="ap-settings-row-sub">{item.sub}</div>
-                          </div>
-                          <label className="ap-toggle">
-                            <input type="checkbox" defaultChecked={item.default} />
-                            <span className="ap-toggle-slider" />
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="ap-settings-card">
-                      <div className="ap-settings-card-title">
-                        <div className="ap-settings-icon" style={{ background: 'rgba(245,158,11,0.14)', color: AMBER }}>
-                          <i className="ti ti-server" />
-                        </div>
-                        النظام
-                      </div>
-                      
-                      <div className="ap-settings-row">
-                        <div>
-                          <div className="ap-settings-row-label">الوضع الليلي (Dark Mode)</div>
-                          <div className="ap-settings-row-sub">تبديل مظهر لوحة التحكم بالكامل</div>
-                        </div>
-                        <label className="ap-toggle">
-                          <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
-                          <span className="ap-toggle-slider" />
-                        </label>
-                      </div>
-
-                      {[
-                        { label: 'وضع المطور',      sub: 'عرض السجلات التقنية',    default: false },
-                        { label: 'ذاكرة التخزين', sub: 'حفظ الجلسة تلقائياً',    default: true  },
-                      ].map((item, i) => (
-                        <div key={i} className="ap-settings-row">
-                          <div>
-                            <div className="ap-settings-row-label">{item.label}</div>
-                            <div className="ap-settings-row-sub">{item.sub}</div>
-                          </div>
-                          <label className="ap-toggle">
-                            <input type="checkbox" defaultChecked={item.default} />
-                            <span className="ap-toggle-slider" />
-                          </label>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                  <div style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 'var(--radius)', padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>                
+                  <div style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 'var(--radius)', padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginTop: 24 }}>                
                     <div>
                       <div style={{ fontWeight: 800, color: RED, marginBottom: 4, fontSize: 14 }}>منطقة الخطر</div>
                       <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>تسجيل الخروج من جميع الجلسات أو حذف الحساب نهائيًا.</div>
@@ -2553,11 +2495,7 @@ export default function AdminPanel() {
               )}
 
               {/* ══ AI CHAT ══════════════════════════════════════════════════ */}
-              {tab === 'ai-chat' && (
-                <div className="ap-ai-chat-container">
-                  <AIChatEmbed />
-                </div>
-              )}
+              {tab === 'ai-chat' && <AIChatEmbed />}
             </>
           )}
         </div>
@@ -2738,6 +2676,21 @@ export default function AdminPanel() {
           </div>
         );
       })()}
+      {showScrollTop && tab !== 'ai-chat' && (
+        <button
+          className="ap-scroll-top-btn"
+          onClick={() => {
+            contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          aria-label="العودة للأعلى"
+          title="العودة للأعلى"
+          style={{ position: 'fixed', bottom: 28, left: 28, zIndex: 9999 }}
+        >
+          <i className="ti ti-arrow-up" />
+        </button>
+      )}
     </div>
   );
 }

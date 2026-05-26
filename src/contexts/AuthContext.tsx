@@ -8,6 +8,8 @@ interface AuthContextType {
   login: (accessToken: string, refreshToken?: string, userData?: any) => Promise<any>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  pendingVerify: { email: string; name: string; role: 'user' | 'charity' | 'admin' } | null;
+  setPendingVerify: (pending: { email: string; name: string; role: 'user' | 'charity' | 'admin' } | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,11 +19,14 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: () => {},
   refreshUser: async () => {},
+  pendingVerify: null,
+  setPendingVerify: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingVerify, setPendingVerify] = useState<{ email: string; name: string; role: 'user' | 'charity' | 'admin' } | null>(null);
 
   // ✅ دالة واحدة فقط لاستخراج الـ user من أي format يرجعه الـ Backend
   const decodeJwtPayload = useCallback((token: string): any => {
@@ -174,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isLoggedIn: !!user, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, isLoggedIn: !!user, login, logout, refreshUser, pendingVerify, setPendingVerify }}>
       {children}
     </AuthContext.Provider>
   );

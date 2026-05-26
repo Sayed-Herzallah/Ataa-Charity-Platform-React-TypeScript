@@ -9,12 +9,14 @@ import RatingModal from '../features/rating/RatingModal';
 const nameRegex = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
 const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
 const phoneRegex = /^(002|\+2)?01[0125][0-9]{8}$/;
+const licenseRegex = /^(?=.{6,20}$)[A-Z0-9]{2,5}[-]?[A-Z0-9]{3,10}[-]?[0-9]{2,6}$/;
 
 interface ValidationErrors {
   userName?: string;
   phone?: string;
   charityName?: string;
   address?: string;
+  description?: string;
   oldPassword?: string;
   newPassword?: string;
   confirmPassword?: string;
@@ -47,14 +49,15 @@ export default function Settings() {
       setProfileForm({ userName: user.userName || '', phone: user.phone || '', address: user.address || '' });
       if (user.roleType === 'charity') {
         request('/users/profile').then((d: any) => {
-          const c = d?.user || d?.finder || d?.data;
+          const c = d?.finder || d?.user || d?.data;
           if (c) {
             setCharityProfile(c as any);
             setCharityForm({
-              charityName: c.charityName || c.userName || '',
+              charityName: c.charityName || '',
               address: c.address || '',
-              description: c.charityDescription || c.description || '',
+              description: c.description || '',
             });
+            setProfileForm(f => ({ ...f, phone: c.phone || user.phone || '' }));
           }
         }).catch(() => {});
       }
@@ -68,7 +71,7 @@ export default function Settings() {
     }
     if (tab === 'notifications') {
       setLoadingData(true);
-      notificationApi.getAll().then(d => setNotifications(d.notifications || [])).catch(() => {}).finally(() => setLoadingData(false));
+      notificationApi.getAll().then((d: any) => setNotifications(d.notifications || d.data?.Data || d.data || [])).catch(() => {}).finally(() => setLoadingData(false));
     }
   }, [tab]);
 
@@ -95,14 +98,19 @@ export default function Settings() {
 
   const validateCharityProfile = (): boolean => {
     const errs: ValidationErrors = {};
-    if (!charityForm.charityName || charityForm.charityName.trim().length < 3) {
-      errs.charityName = 'اسم الجمعية يجب أن يكون 3 أحرف على الأقل';
+    if (!charityForm.charityName || charityForm.charityName.trim().length < 3 || charityForm.charityName.trim().length > 30) {
+      errs.charityName = 'اسم الجمعية يجب أن يكون بين 3 و 30 حرفاً';
     }
-    if (profileForm.phone && !phoneRegex.test(profileForm.phone)) {
+    if (!profileForm.phone) {
+      errs.phone = 'رقم الهاتف مطلوب';
+    } else if (!phoneRegex.test(profileForm.phone)) {
       errs.phone = 'رقم غير صالح — أدخل رقماً مصرياً صحيحاً (مثال: 01012345678)';
     }
-    if (charityForm.address && (charityForm.address.length < 5 || charityForm.address.length > 100)) {
+    if (!charityForm.address || charityForm.address.trim().length < 5 || charityForm.address.trim().length > 100) {
       errs.address = 'العنوان يجب أن يكون بين 5 و 100 حرف';
+    }
+    if (charityForm.description && (charityForm.description.trim().length < 10 || charityForm.description.trim().length > 500)) {
+      errs.description = 'الوصف يجب أن يكون بين 10 و 500 حرف';
     }
     setProfileErrors(errs);
     return Object.keys(errs).length === 0;
@@ -316,6 +324,27 @@ export default function Settings() {
                       <label>نوع الحساب</label>
                       <input value="جمعية خيرية" disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed' }} />
                     </div>
+                    <div className="form-group">
+                      <label>رقم الترخيص</label>
+                      <input value={user.licenseNumber || 'غير متوفر'} disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed', opacity: 0.8 }} />
+                    </div>
+                    <div className="form-group">
+                      <label>حالة التوثيق والتوظيف</label>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        background: user.verify ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                        color: user.verify ? '#10b981' : '#ef4444',
+                        padding: '10px 14px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700,
+                        border: `1.5px solid ${user.verify ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: user.verify ? '#10b981' : '#ef4444' }} />
+                        {user.verify ? 'موثق رسميًا ✓' : 'تحت المراجعة والتوثيق'}
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>تاريخ التسجيل</label>
+                      <input value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'} disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed', opacity: 0.8 }} />
+                    </div>
                     <div className="form-group form-full">
                       <label>العنوان</label>
                       <input
@@ -330,11 +359,13 @@ export default function Settings() {
                       <label>وصف الجمعية</label>
                       <textarea
                         value={charityForm.description}
-                        onChange={e => setCharityForm(f => ({ ...f, description: e.target.value }))}
-                        placeholder="أدخل وصفاً موجزاً عن الجمعية وأهدافها"
+                        onChange={e => { setCharityForm(f => ({ ...f, description: e.target.value })); setProfileErrors(er => ({ ...er, description: '' })); }}
+                        placeholder="أدخل وصفاً موجزاً عن الجمعية وأهدافها (10-500 حرف)"
                         rows={4}
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1.5px solid var(--neutral-200)', fontSize: 14, resize: 'vertical', fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text-primary)' }}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)', border: `1.5px solid ${profileErrors.description ? '#ef4444' : 'var(--neutral-200)'}`, fontSize: 14, resize: 'vertical', fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text-primary)' }}
                       />
+                      <div style={{ fontSize: 11, color: 'var(--neutral-400)', textAlign: 'left', marginTop: 3 }}>{charityForm.description.length} / 500</div>
+                      <FieldError msg={profileErrors.description} />
                     </div>
                   </div>
                   <div style={{ marginTop: 20 }}>
@@ -373,6 +404,34 @@ export default function Settings() {
                     <div className="form-group">
                       <label>نوع الحساب</label>
                       <input value={roleLabel} disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed' }} />
+                    </div>
+                    <div className="form-group">
+                      <label>معرّف الحساب (ID)</label>
+                      <input value={user._id || '—'} disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed', opacity: 0.8, fontFamily: 'monospace', fontSize: 12 }} />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        الرقم القومي
+                        <span style={{ fontSize: 10, background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '2px 7px', borderRadius: 5, fontWeight: 700 }}>سري</span>
+                      </label>
+                      <input value={(user as any).nationalID || 'غير مسجّل'} disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed', opacity: 0.8, fontFamily: 'monospace', letterSpacing: 2 }} />
+                    </div>
+                    <div className="form-group">
+                      <label>توثيق البريد الإلكتروني</label>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        background: user.verify ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                        color: user.verify ? '#10b981' : '#ef4444',
+                        padding: '10px 14px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700,
+                        border: `1.5px solid ${user.verify ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: user.verify ? '#10b981' : '#ef4444' }} />
+                        {user.verify ? 'البريد موثق ✓' : 'البريد غير موثق'}
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>تاريخ الانضمام</label>
+                      <input value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'} disabled style={{ background: 'var(--neutral-100)', cursor: 'not-allowed', opacity: 0.8 }} />
                     </div>
                     <div className="form-group form-full">
                       <label>العنوان</label>
@@ -424,7 +483,7 @@ export default function Settings() {
                     </div>
                     <FieldError msg={passErrors.oldPassword} />
                   </div>
-                  <div className="form-group">
+                  <div className="form-group form-full">
                     <label>كلمة المرور الجديدة <span style={{ color: '#ef4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
                       <input
@@ -445,7 +504,7 @@ export default function Settings() {
                     </div>
                     <FieldError msg={passErrors.newPassword} />
                   </div>
-                  <div className="form-group">
+                  <div className="form-group form-full">
                     <label>تأكيد كلمة المرور الجديدة <span style={{ color: '#ef4444' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
                       <input
@@ -526,7 +585,23 @@ export default function Settings() {
             <div className="section-card">
               <div className="section-card-header">
                 <span className="section-card-title">🔔 الإشعارات</span>
-                <span style={{ fontSize: 13, color: 'var(--neutral-500)' }}>{notifications.filter(n => n.status === 'unread').length} غير مقروء</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {notifications.filter(n => n.status === 'unread').length > 0 && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0ec97f', background: 'rgba(14,201,127,0.1)', padding: '3px 9px', borderRadius: 6, border: '1px solid rgba(14,201,127,0.2)' }}>
+                      {notifications.filter(n => n.status === 'unread').length} غير مقروء
+                    </span>
+                  )}
+                  {notifications.filter(n => n.status === 'unread').length > 0 && (
+                    <button
+                      style={{ fontSize: 12, color: 'var(--neutral-500)', background: 'none', border: '1px solid var(--neutral-200)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}
+                      onClick={async () => {
+                        const unread = notifications.filter(n => n.status === 'unread');
+                        await Promise.allSettled(unread.map(n => notificationApi.markRead(n._id)));
+                        setNotifications(prev => prev.map(n => ({ ...n, status: 'read' as const })));
+                      }}
+                    >✓ تحديد الكل كمقروء</button>
+                  )}
+                </div>
               </div>
               {loadingData ? (
                 <div className="spinner"><div className="spinner-ring" /></div>
@@ -541,13 +616,22 @@ export default function Settings() {
                     <div
                       key={n._id}
                       className={`notif-item${n.status === 'unread' ? ' unread' : ''}`}
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, justifyContent: 'space-between' }}
                       onClick={() => n.status === 'unread' && markNotifRead(n._id)}
                     >
-                      <div className={`notif-dot${n.status === 'read' ? ' read' : ''}`} />
-                      <div className="notif-text">
-                        <h4>{n.message}</h4>
-                        <span className="notif-time">{new Date(n.createdAt).toLocaleString('ar-EG')}</span>
+                      <div className={`notif-dot${n.status === 'read' ? ' read' : ''}`} style={{ marginTop: 6, flexShrink: 0 }} />
+                      <div className="notif-text" style={{ flex: 1 }}>
+                        {(n as any).title && <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 2 }}>{(n as any).title}</div>}
+                        <h4 style={{ margin: 0, fontSize: 13 }}>{(n as any).content || n.message || '—'}</h4>
+                        <span className="notif-time">{new Date(n.createdAt).toLocaleString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                       </div>
+                      <button
+                        title="حذف"
+                        onClick={e => { e.stopPropagation(); notificationApi.delete(n._id).then(() => setNotifications(prev => prev.filter(x => x._id !== n._id))).catch(() => {}); }}
+                        style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 7, border: '1px solid var(--neutral-200)', background: 'none', cursor: 'pointer', color: 'var(--neutral-400)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}
+                      >
+                        <i className="fa-solid fa-xmark" />
+                      </button>
                     </div>
                   ))}
                 </div>

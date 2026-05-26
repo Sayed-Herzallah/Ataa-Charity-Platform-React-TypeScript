@@ -941,7 +941,7 @@ export default function AIChat() {
                   </div>
                 )}
 
-                <div className="ac-input-row">
+                <div className="ac-input-textarea-row">
                   <textarea
                     ref={textRef}
                     className="ac-textarea"
@@ -953,25 +953,40 @@ export default function AIChat() {
                     onKeyDown={handleKeyDown}
                   />
                   <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileChange} />
-                  <button
-                    type="button"
-                    className="ac-icon-btn ac-img-btn"
-                    title={`إرفاق صور (${pendingImages.length}/${MAX_IMAGES})`}
-                    aria-label="إرفاق صور"
-                    disabled={loading || pendingImages.length >= MAX_IMAGES}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <i className="ti ti-photo-up" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="ac-icon-btn ac-send-btn"
-                    disabled={!canSend}
-                    onClick={handleSubmit}
-                    aria-label="إرسال"
-                  >
-                    <i className="ti ti-send-2" aria-hidden="true" />
-                  </button>
+                </div>
+
+                <div className="ac-input-actions-row">
+                  <div className="ac-input-actions-right">
+                    <button
+                      type="button"
+                      className="ac-icon-btn ac-img-btn"
+                      title={`إرفاق صور (${pendingImages.length}/${MAX_IMAGES})`}
+                      aria-label="إرفاق صور"
+                      disabled={loading || pendingImages.length >= MAX_IMAGES}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      <i className="ti ti-photo-up" aria-hidden="true" />
+                    </button>
+                  </div>
+
+                  <div className="ac-input-actions-center">
+                    <div className="ac-input-model-badge">
+                      <span className="ac-input-badge-dot" />
+                      عطاء AI
+                    </div>
+                  </div>
+
+                  <div className="ac-input-actions-left">
+                    <button
+                      type="button"
+                      className="ac-icon-btn ac-send-btn"
+                      disabled={!canSend}
+                      onClick={handleSubmit}
+                      aria-label="إرسال"
+                    >
+                      <i className="ti ti-send-2" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
 
               </div>
