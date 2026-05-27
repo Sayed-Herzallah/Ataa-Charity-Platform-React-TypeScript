@@ -137,15 +137,15 @@ export default function Home() {
       <div className="stats-bar" data-reveal="up">
         <div className="stats-inner" data-stagger>
           <div className="stat-item">
-            <span className="stat-num"><span className="stat-plus">+</span>10,000</span>
+            <span className="stat-num"><span className="stat-plus">+</span><span data-target="10000">10,000</span></span>
             <p className="stat-label">قطعة ملابس وُزّعت على المحتاجين</p>
           </div>
           <div className="stat-item">
-            <span className="stat-num"><span className="stat-plus">+</span>50</span>
+            <span className="stat-num"><span className="stat-plus">+</span><span data-target="50">50</span></span>
             <p className="stat-label">جمعية خيرية شريكة</p>
           </div>
           <div className="stat-item">
-            <span className="stat-num"><span className="stat-plus">+</span>1,200</span>
+            <span className="stat-num"><span className="stat-plus">+</span><span data-target="1200">1,200</span></span>
             <p className="stat-label">متبرع فعال على المنصة</p>
           </div>
         </div>

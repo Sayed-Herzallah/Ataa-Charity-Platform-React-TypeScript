@@ -1900,3 +1900,14 @@ body.ap-light-theme .ac-card:hover .ac-card-ico {
   height: 100% !important;
   max-height: 100% !important;
 }
+/* ══ Dark Mode Scrollbar — AI Chat ══════════════════════════════ */
+.ac-messages::-webkit-scrollbar { width: 5px; }
+.ac-messages::-webkit-scrollbar-track { background: transparent; }
+.ac-messages::-webkit-scrollbar-thumb {
+  background: rgba(100,125,160,0.3);
+  border-radius: 6px;
+}
+.ac-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(100,125,160,0.58);
+}
+.ac-messages { scrollbar-width: thin; scrollbar-color: rgba(100,125,160,0.3) transparent; }

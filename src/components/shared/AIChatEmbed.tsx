@@ -61,17 +61,42 @@ export default function AIChatEmbed() {
 
   // ── Scroll ──────────────────────────────────────────────────────────────────
 
-  const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => {
-      msgsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    });
+  const userScrolledUp = useRef(false);
+
+  // مباشر على container بدل scrollIntoView عشان أسرع
+  const scrollToBottom = useCallback((force = false) => {
+    if (!force && userScrolledUp.current) return;
+    const container = msgsRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
-
+  // detect لو المستخدم سكرول لفوق يدوياً
   useEffect(() => {
-    if (!loading && messages.length > 0) scrollToBottom();
-  }, [loading, scrollToBottom, messages]);
+    const container = msgsRef.current;
+    if (!container) return;
+    const handle = () => {
+      const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      userScrolledUp.current = distFromBottom > 120;
+    };
+    container.addEventListener('scroll', handle, { passive: true });
+    return () => container.removeEventListener('scroll', handle);
+  }, []);
+
+  // رسالة جديدة — reset ولو bot أرسل
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last?.role === 'bot') userScrolledUp.current = false;
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // أثناء loading: scroll تلقائي كل 80ms عشان الـ typing indicator يتابع
+  useEffect(() => {
+    if (!loading) { scrollToBottom(true); return; }
+    userScrolledUp.current = false;
+    const id = setInterval(() => scrollToBottom(true), 80);
+    return () => clearInterval(id);
+  }, [loading, scrollToBottom]);
 
   useEffect(() => {
     setShowQuickReplies(messages.some(m => m.role === 'bot') && !loading);
@@ -114,6 +139,37 @@ export default function AIChatEmbed() {
       }
 
       setMessages(prev => [...prev, { role: 'bot', text: reply }]);
+
+      // ── Streaming simulation: reveal text word-by-word ──
+      // نعرض الرد بشكل تدريجي عشان يحس بالـ live typing
+      const words = reply.split(' ');
+      if (words.length > 4) {
+        setLoading(false);
+        // أضف رسالة bot فارغة وابدأ تملّها
+        setMessages(prev => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: '' };
+          return msgs;
+        });
+        let built = '';
+        let i = 0;
+        const step = () => {
+          if (i >= words.length) return;
+          built += (i === 0 ? '' : ' ') + words[i];
+          i++;
+          setMessages(prev => {
+            const msgs = [...prev];
+            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: built };
+            return msgs;
+          });
+          scrollToBottom(true);
+          // سرعة متغيرة حسب طول الكلمة
+          const delay = words[i - 1].length > 6 ? 55 : 35;
+          setTimeout(step, delay);
+        };
+        step();
+        return; // setLoading(false) اتعمل فوق
+      }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
       setMessages(prev => [...prev, { role: 'bot', text: `⚠️ ${errMsg}` }]);

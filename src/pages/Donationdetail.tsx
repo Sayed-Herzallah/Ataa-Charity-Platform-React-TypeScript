@@ -8,6 +8,8 @@ interface DonorInfo {
   phone?: string;
   address?: string;
   email?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface DonationImage {
@@ -69,13 +71,17 @@ function getImages(donation: Donation): string[] {
 
 function parseDonor(donorId: DonorInfo | string | null | undefined) {
   if (!donorId) return null;
-  if (typeof donorId === 'string') return { _id: donorId, name: `#${donorId.slice(-4)}`, phone: null, address: null, email: null };
+  if (typeof donorId === 'string') return { _id: donorId, userName: null, name: null, phone: null, address: null, email: null, createdAt: null, updatedAt: null };
+  const emailPrefix = donorId.email ? donorId.email.split('@')[0] : null;
   return {
     _id: donorId._id,
-    name: donorId.userName || donorId.name || null,
+    userName: donorId.userName || emailPrefix || null,
+    name: donorId.name || null,
     phone: donorId.phone || null,
     address: donorId.address || null,
     email: donorId.email || null,
+    createdAt: donorId.createdAt || null,
+    updatedAt: donorId.updatedAt || null,
   };
 }
 
@@ -152,55 +158,56 @@ const STYLES = `
 
 /* ── Zoom nav buttons ── */
 .dd-zoom-nav {
-  position: absolute;
+  position: fixed;
   top: 50%;
   transform: translateY(-50%);
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.18);
-  border: 2px solid rgba(255,255,255,0.35);
+  background: rgba(30,30,30,0.92);
+  border: 2px solid rgba(255,255,255,0.5);
   color: #fff;
   font-size: 22px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  transition: background 0.18s, transform 0.18s, border-color 0.18s;
-  backdrop-filter: blur(8px);
+  z-index: 100000;
+  transition: background 0.18s, transform 0.18s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
 }
 .dd-zoom-nav:hover {
-  background: rgba(255,255,255,0.32);
-  border-color: rgba(255,255,255,0.6);
+  background: rgba(14,201,127,0.85);
+  border-color: #0ec97f;
   transform: translateY(-50%) scale(1.1);
 }
 .dd-zoom-nav:active { transform: translateY(-50%) scale(0.96); }
-.dd-zoom-nav.prev { right: 20px; }
-.dd-zoom-nav.next { left:  20px; }
+.dd-zoom-nav.prev { right: 24px; }
+.dd-zoom-nav.next { left:  24px; }
 
 /* ── Thumb nav on image card ── */
 .dd-nav-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px; height: 32px;
-  border-radius: 9px;
-  background: rgba(0,0,0,0.52);
-  border: 1.5px solid rgba(255,255,255,0.15);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.62);
+  border: 2px solid rgba(255,255,255,0.35);
   color: #fff;
-  font-size: 15px;
+  font-size: 17px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 3;
+  z-index: 10;
   transition: background 0.15s, transform 0.15s;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
-.dd-nav-btn:hover { background: rgba(0,0,0,0.75); transform: translateY(-50%) scale(1.08); }
-.dd-nav-btn.prev { right: 8px; }
-.dd-nav-btn.next { left:  8px; }
+.dd-nav-btn:hover { background: rgba(0,0,0,0.85); transform: translateY(-50%) scale(1.1); }
+.dd-nav-btn.prev { right: 10px; }
+.dd-nav-btn.next { left:  10px; }
 
 /* ── Info row ── */
 .dd-info-row {
@@ -333,12 +340,12 @@ function HorizontalTimeline({ status, createdAt }: { status: string; createdAt: 
               <div
                 className="dd-step-circle"
                 style={{
-                  background: step.active ? `${step.color}1a` : 'var(--surface2)',
-                  border: `2px solid ${step.active ? step.color : 'var(--border)'}`,
+                  background: step.active ? (step.color + '1a') : 'var(--surface2)',
+                  border: '2px solid ' + (step.active ? step.color : 'var(--border)'),
                   color: step.active ? step.color : 'var(--t4)',
                   boxShadow: step.active && i === steps.findIndex(s => s.id === 'decision')
-                    ? `0 0 0 5px ${step.color}15`
-                    : step.active ? `0 0 0 4px ${step.color}10` : 'none',
+                    ? ('0 0 0 5px ' + step.color + '15')
+                    : step.active ? ('0 0 0 4px ' + step.color + '10') : 'none',
                 }}
               >
                 <i className={`ti ${step.icon}`} />
@@ -402,8 +409,9 @@ function ImageGallery({ images }: { images: string[] }) {
           الصور {images.length > 1 && <span style={{ color: 'var(--teal)', fontWeight: 900 }}>({images.length})</span>}
         </div>
 
-        {/* Main image */}
-        <div style={{ position: 'relative', cursor: 'zoom-in', background: 'var(--surface2)', overflow: 'hidden' }} onClick={() => setZoomed(true)}>
+        {/* Main image wrapper — relative container for buttons */}
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', cursor: 'zoom-in', background: 'var(--surface2)', overflow: 'hidden' }} onClick={() => setZoomed(true)}>
           <img
             src={images[active]}
             alt="صورة التبرع"
@@ -422,18 +430,15 @@ function ImageGallery({ images }: { images: string[] }) {
               {active + 1} / {images.length}
             </div>
           )}
+          </div>
 
-          {/* prev / next on card */}
-          {images.length > 1 && (
-            <>
-              <button className="dd-nav-btn prev" onClick={e => { e.stopPropagation(); prev(); }} aria-label="السابق">
-                <i className="ti ti-chevron-right" />
-              </button>
-              <button className="dd-nav-btn next" onClick={e => { e.stopPropagation(); next(); }} aria-label="التالي">
-                <i className="ti ti-chevron-left" />
-              </button>
-            </>
-          )}
+          {/* prev / next — دايماً ظاهرين */}
+          <button className="dd-nav-btn prev" onClick={e => { e.stopPropagation(); prev(); }} aria-label="السابق">
+            <i className="ti ti-chevron-right" />
+          </button>
+          <button className="dd-nav-btn next" onClick={e => { e.stopPropagation(); next(); }} aria-label="التالي">
+            <i className="ti ti-chevron-left" />
+          </button>
         </div>
 
         {/* Thumbnails */}
@@ -457,50 +462,46 @@ function ImageGallery({ images }: { images: string[] }) {
             <i className="ti ti-x" />
           </button>
 
-          {/* Image */}
-          <img
-            key={images[active]}
-            src={images[active]}
-            alt="صورة مكبرة"
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '82vw', maxHeight: '82vh', borderRadius: 14, objectFit: 'contain', cursor: 'default', animation: 'ddFadeIn 0.22s ease', userSelect: 'none' }}
-          />
-
-          {/* Nav arrows — كبيرة وواضحة */}
-          {images.length > 1 && (
-            <>
-              <button
-                className="dd-zoom-nav prev"
-                onClick={e => { e.stopPropagation(); prev(); }}
-                aria-label="السابق"
-              >
+          {/* Image + nav buttons في row واحد */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, zIndex: 1 }} onClick={e => e.stopPropagation()}>
+            {images.length > 1 && (
+              <button className="dd-zoom-nav" onClick={e => { e.stopPropagation(); prev(); }} aria-label="السابق" style={{ position: 'static', transform: 'none', flexShrink: 0 }}>
                 <i className="ti ti-chevron-right" />
               </button>
-              <button
-                className="dd-zoom-nav next"
-                onClick={e => { e.stopPropagation(); next(); }}
-                aria-label="التالي"
-              >
+            )}
+            <img
+              key={images[active]}
+              src={images[active]}
+              alt="صورة مكبرة"
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '70vw', maxHeight: '80vh', borderRadius: 14, objectFit: 'contain', cursor: 'default', animation: 'ddFadeIn 0.22s ease', userSelect: 'none' }}
+            />
+            {images.length > 1 && (
+              <button className="dd-zoom-nav" onClick={e => { e.stopPropagation(); next(); }} aria-label="التالي" style={{ position: 'static', transform: 'none', flexShrink: 0 }}>
                 <i className="ti ti-chevron-left" />
               </button>
+            )}
+          </div>
 
-              {/* Dots */}
-              <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 11 }}>
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={e => { e.stopPropagation(); setActive(i); }}
-                    aria-label={`صورة ${i + 1}`}
-                    style={{ width: i === active ? 28 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.22s ease', background: i === active ? '#fff' : 'rgba(255,255,255,0.38)' }}
-                  />
-                ))}
-              </div>
+          {/* Dots */}
+          {images.length > 1 && (
+            <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 11 }}>
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={e => { e.stopPropagation(); setActive(i); }}
+                  aria-label={`صورة ${i + 1}`}
+                  style={{ width: i === active ? 28 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.22s ease', background: i === active ? '#fff' : 'rgba(255,255,255,0.38)' }}
+                />
+              ))}
+            </div>
+          )}
 
-              {/* Image counter */}
-              <div dir="ltr" style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', color: '#fff', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
-                {active + 1} / {images.length}
-              </div>
-            </>
+          {/* Image counter */}
+          {images.length > 1 && (
+            <div dir="ltr" style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', color: '#fff', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
+              {active + 1} / {images.length}
+            </div>
           )}
         </div>
       )}
@@ -516,7 +517,7 @@ function InfoRow({ icon, label, value, mono = false, badge, accent }: {
   if (value == null && !badge) return null;
   return (
     <div className="dd-info-row">
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: accent ? `${accent}18` : 'var(--teal-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: accent ? (accent + '18') : 'var(--teal-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <i className={`ti ${icon}`} style={{ color: accent || 'var(--teal)', fontSize: 13 }} />
       </div>
       <span style={{ fontSize: 12, color: 'var(--t3)', minWidth: 88, flexShrink: 0 }}>{label}</span>
@@ -551,7 +552,6 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
     background: 'var(--surface)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
-    overflow: 'hidden',
   };
 
   const cardPadded: React.CSSProperties = {
@@ -663,10 +663,13 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
               {/* Avatar hero */}
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)' }}>
                 <div className="ap-table-avatar" style={{ width: 46, height: 46, fontSize: 19, borderRadius: 12, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1.5px solid rgba(59,130,246,0.25)' }}>
-                  {donor.name ? donor.name.trim()[0]?.toUpperCase() : 'م'}
+                  {(donor.userName || donor.name || donor.email || donor._id).trim()[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 800, color: 'var(--t1)', fontSize: 15 }}>{donor.name || 'مستخدم غير معروف'}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--t4)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <i className="ti ti-at" style={{ fontSize: 11 }} /> اسم المستخدم
+                  </div>
+                  <div style={{ fontWeight: 800, color: 'var(--t1)', fontSize: 15 }}>{donor.userName || donor.email?.split('@')[0] || `#${donor._id.slice(-4)}`}</div>
                   {donor.address && (
                     <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <i className="ti ti-map-pin" style={{ color: '#3b82f6', fontSize: 12 }} />{donor.address}
@@ -675,10 +678,16 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
                 </div>
               </div>
 
-              <InfoRow icon="ti-phone"       label="الهاتف"        value={donor.phone}   accent="#3b82f6" />
-              <InfoRow icon="ti-map-pin"     label="العنوان"       value={donor.address} accent="#3b82f6" />
-              <InfoRow icon="ti-mail"        label="البريد"        value={donor.email}   accent="#3b82f6" />
-              <InfoRow icon="ti-fingerprint" label="معرف المتبرع" value={donor._id}      accent="#3b82f6" mono />
+              <InfoRow icon="ti-user-circle"   label="اسم المستخدم"       value={donor.userName}   accent="#3b82f6" />
+              <InfoRow icon="ti-id-badge"       label="اسم المتبرع"        value={donor.name}       accent="#3b82f6" />
+              <InfoRow icon="ti-phone"         label="الهاتف"             value={donor.phone}      accent="#3b82f6" />
+              <InfoRow icon="ti-map-pin"        label="العنوان"            value={donor.address}    accent="#3b82f6" />
+              <InfoRow icon="ti-mail"           label="البريد الإلكتروني"  value={donor.email}      accent="#3b82f6" />
+              <InfoRow icon="ti-calendar-plus"  label="تاريخ التسجيل"     value={formatDate(donor.createdAt)}  accent="#3b82f6" />
+              {donor.updatedAt && donor.updatedAt !== donor.createdAt && (
+                <InfoRow icon="ti-calendar-event" label="آخر تحديث للحساب" value={formatDate(donor.updatedAt)} accent="#3b82f6" />
+              )}
+              <InfoRow icon="ti-fingerprint"   label="معرف المتبرع"      value={donor._id}        accent="#3b82f6" mono />
             </>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '32px 0', color: 'var(--t4)' }}>
@@ -731,8 +740,8 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
             <i className="ti ti-clipboard-check" style={{ color: sc.color, fontSize: 14 }} />
             حالة الطلب
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: sc.bg, border: `1px solid ${sc.color}33`, borderRadius: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: `${sc.color}20`, color: sc.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0, boxShadow: `0 0 0 4px ${sc.glow}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: sc.bg, border: '1px solid ' + sc.color + '33', borderRadius: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: sc.color + '20', color: sc.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0, boxShadow: '0 0 0 4px ' + sc.glow }}>
               <i className={`ti ${sc.icon}`} />
             </div>
             <div>

@@ -575,21 +575,47 @@ export default function AIChat() {
     catch { /* quota exceeded */ }
   }, [messages]);
 
-  const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => {
-      msgsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    });
+  // ── الـ scroll container الحقيقي هو .ac-msgs ──
+  const userScrolledUp = useRef(false);
+
+  // دالة scroll مباشرة على الـ container بدون scrollIntoView البطيء
+  const scrollToBottom = useCallback((force = false) => {
+    if (!force && userScrolledUp.current) return;
+    const container = msgsRef.current;
+    if (!container) return;
+    // instant بدل smooth عشان يتابع live typing
+    container.scrollTop = container.scrollHeight;
   }, []);
 
+  // detect لو المستخدم سكرول لفوق يدوياً — نوقف auto scroll
   useEffect(() => {
+    const container = msgsRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      userScrolledUp.current = distFromBottom > 100;
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // رسالة جديدة وصلت
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role === 'bot') userScrolledUp.current = false;
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // أثناء loading: scroll كل 80ms عشان typing indicator يتابع
   useEffect(() => {
-    if (!loading && messages.length > 0) {
-      scrollToBottom();
+    if (!loading) {
+      scrollToBottom(true);
+      return;
     }
-  }, [loading, scrollToBottom, messages]);
+    userScrolledUp.current = false;
+    const interval = setInterval(() => scrollToBottom(true), 80);
+    return () => clearInterval(interval);
+  }, [loading, scrollToBottom]);
 
   useEffect(() => {
     setShowQuickReplies(messages.some(m => m.role === 'bot') && !loading);
@@ -638,6 +664,33 @@ export default function AIChat() {
       }
 
       setMessages(prev => [...prev, { role: 'bot', text: reply, timestamp: Date.now() }]);
+
+      // ── Streaming simulation ──
+      const words = reply.split(' ');
+      if (words.length > 4) {
+        setLoading(false);
+        setMessages(prev => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: '' };
+          return msgs;
+        });
+        let built = '';
+        let i = 0;
+        const step = () => {
+          if (i >= words.length) return;
+          built += (i === 0 ? '' : ' ') + words[i];
+          i++;
+          setMessages(prev => {
+            const msgs = [...prev];
+            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: built };
+            return msgs;
+          });
+          scrollToBottom(true);
+          setTimeout(step, words[i - 1].length > 6 ? 55 : 35);
+        };
+        step();
+        return;
+      }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
       console.error('Chat error:', errMsg, error);

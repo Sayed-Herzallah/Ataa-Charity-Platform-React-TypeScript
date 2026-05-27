@@ -24,10 +24,12 @@ export interface Charity {
   phone?: string;
   address: string;
   description?: string;
-  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvalStatus: 'pending' | 'approved' | 'rejected'; // normalized من status
+  status?: 'pending' | 'approved' | 'rejected';        // الاسم الحقيقي في API
   licenseNumber?: string;
   rejectionReason?: string;
   createdAt?: string;
+  updatedAt?: string;
   userId?: string;
 }
 
@@ -59,22 +61,22 @@ export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 export const APPROVAL_CFG = {
   pending:  { label: 'معلق',   bg: 'rgba(245,158,11,0.14)',  color: '#f59e0b', dot: '#f59e0b' },
-  approved: { label: 'مقبول',  bg: 'rgba(16,185,129,0.14)',  color: '#10b981', dot: '#10b981' },
+  approved: { label: 'مقبول',  bg: 'rgba(79,70,229,0.14)',   color: '#4f46e5', dot: '#4f46e5' },
   rejected: { label: 'مرفوض', bg: 'rgba(244,63,94,0.14)',   color: '#f43f5e', dot: '#f43f5e' },
 } as const;
 
 export const ROLE_CFG = {
   admin:   { label: 'أدمن',  bg: 'rgba(167,139,250,0.14)', color: '#a78bfa', icon: '🛡️' },
   charity: { label: 'جمعية', bg: 'rgba(59,130,246,0.14)',  color: '#3b82f6', icon: '🏛️' },
-  user:    { label: 'متبرع', bg: 'rgba(16,185,129,0.14)',  color: '#10b981', icon: '👤' },
+  user:    { label: 'متبرع', bg: 'rgba(79,70,229,0.14)',   color: '#4f46e5', icon: '👤' },
 } as const;
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
-export const TEAL   = '#0F6E56';
-export const TEAL2  = '#1D9E75';
+export const TEAL   = '#3730a3';
+export const TEAL2  = '#4f46e5';
 export const AMBER  = '#f59e0b';
-export const GREEN  = '#10b981';
+export const GREEN  = '#4f46e5';
 export const RED    = '#f43f5e';
 export const BORDER = '#e5e7eb';
 
@@ -95,64 +97,51 @@ export async function fetchPage<T extends { _id?: string }>(
 ): Promise<{ data: T[]; total: number; hasMore: boolean }> {
   try {
     const sep = basePath.includes('?') ? '&' : '?';
-    const raw = await request<any>(
+    const res = await request<any>(
       `${basePath}${sep}page=${page}&limit=${limit}`
     );
 
-    // ── Unwrap unified API wrapper: { success, message, data } ────────────
-    // The backend always returns { success: bool, message: string, data: ... }
-    // Unwrap one level so findArray/findTotal work on the actual payload.
-    const res = (raw && typeof raw === 'object' && 'success' in raw && 'data' in raw)
-      ? raw.data
-      : raw;
-
     function findArray(obj: any, depth = 0): T[] | null {
-      if (depth > 5) return null;
+      if (depth > 4) return null;
       if (Array.isArray(obj)) return obj as T[];
       if (!obj || typeof obj !== 'object') return null;
-      // Extended priority keys — covers common backend naming conventions
-      const priorityKeys = [
-        'Data','data','users','charities','reports','allReports',
-        'items','list','results','records','docs','documents',
-        'Users','Charities','Reports','Items','Results',
-        'payload','body','content','entries','rows',
-      ];
+      const priorityKeys = ['Data','data','users','charities','reports','allReports','items','list','results','records'];
       for (const key of priorityKeys) {
         if (Array.isArray(obj[key])) return obj[key] as T[];
-      }
-      // Fallback: any array-valued key (sorted by length desc to prefer longer arrays)
-      const arrKeys = Object.keys(obj).filter(k => Array.isArray(obj[k]));
-      if (arrKeys.length > 0) {
-        arrKeys.sort((a, b) => obj[b].length - obj[a].length);
-        return obj[arrKeys[0]] as T[];
-      }
-      // Recurse into object values
-      for (const key of Object.keys(obj)) {
-        if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-          const found = findArray(obj[key], depth + 1);
-          if (found && found.length > 0) return found;
+        // handle nested: e.g. response.data.Data
+        if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+          for (const innerKey of priorityKeys) {
+            if (Array.isArray(obj[key][innerKey])) return obj[key][innerKey] as T[];
+          }
         }
+      }
+      for (const key of Object.keys(obj)) {
+        const found = findArray(obj[key], depth + 1);
+        if (found && found.length > 0) return found;
       }
       return null;
     }
 
     function findTotal(obj: any, depth = 0): number {
-      if (depth > 5) return 0;
+      if (depth > 4) return 0;
       if (!obj || typeof obj !== 'object') return 0;
-      const totalKeys = [
-        'Total_Items','totalItems','totalCount','total','count','Total',
-        'total_count','TotalItems','totalRecords','total_records',
-        'Count','countTotal','allCount','pageCount','itemCount',
-      ];
+      const totalKeys = ['Total_Items','totalItems','totalCount','total','count','Total','total_count','TotalItems'];
       for (const key of totalKeys) {
         if (typeof obj[key] === 'number' && obj[key] > 0) return obj[key];
       }
+      // handle nested: e.g. response.data.Total_Items
+      const nestedKeys = ['data', 'Data'];
+      for (const nk of nestedKeys) {
+        if (obj[nk] && typeof obj[nk] === 'object') {
+          for (const key of totalKeys) {
+            if (typeof obj[nk][key] === 'number' && obj[nk][key] > 0) return obj[nk][key];
+          }
+        }
+      }
       for (const key of Object.keys(obj)) {
         if (Array.isArray(obj[key])) continue;
-        if (typeof obj[key] === 'object') {
-          const found = findTotal(obj[key], depth + 1);
-          if (found > 0) return found;
-        }
+        const found = findTotal(obj[key], depth + 1);
+        if (found > 0) return found;
       }
       return 0;
     }
@@ -163,14 +152,7 @@ export async function fetchPage<T extends { _id?: string }>(
     const hasMore = total > rawData.length ? loadedSoFar < total : rawData.length === limit;
 
     if (import.meta.env?.DEV) {
-      console.log(`[fetchPage] ${basePath} page=${page}`, {
-        rawResponse: raw,
-        unwrappedResponse: res,
-        foundArray: rawData.length,
-        total,
-        hasMore,
-        responseKeys: res && typeof res === 'object' ? Object.keys(res) : [],
-      });
+      console.log(`[fetchPage] ${basePath} → found ${rawData.length} items, total=${total}, hasMore=${hasMore}`);
     }
 
     return { data: rawData, total: total || rawData.length, hasMore };
@@ -178,6 +160,35 @@ export async function fetchPage<T extends { _id?: string }>(
     console.error(`[fetchPage] Error fetching ${basePath}:`, error);
     return { data: [], total: 0, hasMore: false };
   }
+}
+
+// ── fetchAll: جلب كل الصفحات تلقائياً ───────────────────────────────────────
+export async function fetchAll<T extends { _id?: string }>(
+  basePath: string,
+  batchSize = 100,
+): Promise<{ data: T[]; total: number }> {
+  const all: T[] = [];
+  const seen = new Set<string>();
+  let page = 1;
+  let total = 0;
+
+  while (true) {
+    const res = await fetchPage<T>(basePath, page, batchSize);
+    if (res.total > total) total = res.total;
+
+    const fresh = res.data.filter(item => {
+      const id = item._id ?? JSON.stringify(item);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    all.push(...fresh);
+
+    if (!res.hasMore || fresh.length === 0 || page >= 50) break;
+    page++;
+  }
+
+  return { data: all, total: Math.max(total, all.length) };
 }
 
 export function fmt(dateStr?: string): string {

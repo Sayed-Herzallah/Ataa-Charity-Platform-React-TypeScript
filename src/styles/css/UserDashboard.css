@@ -8,11 +8,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap');
 
 .ud-root {
-  --br:       #10a37f;
-  --br-dk:    #0a7c62;
-  --br-lt:    rgba(16,163,127,.15);
-  --br-pale:  rgba(16,163,127,.07);
-  --br-xpale: rgba(16,163,127,.04);
+  --br:       #4f46e5;
+  --br-dk:    #3730a3;
+  --br-lt:    rgba(79,70,229,.15);
+  --br-pale:  rgba(79,70,229,.07);
+  --br-xpale: rgba(79,70,229,.04);
 
   --t1:  #111111;
   --t2:  #555566;
@@ -28,7 +28,7 @@
   --danger-lt:  rgba(220,38,38,.08);
   --warning:    #f59e0b;
   --warning-lt: rgba(245,158,11,.08);
-  --success:    #10a37f;
+  --success:    #4f46e5;
 
   --r-sm:   9px;
   --r-md:   14px;

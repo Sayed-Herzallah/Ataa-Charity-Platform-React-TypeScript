@@ -132,10 +132,18 @@ function Toast({ toast, onClose }: ToastProps) {
 
 function WelcomeScreen({ userName, roleType, onDone }: WelcomeScreenProps) {
   const roleLabel: Record<string, { label: string; icon: string; color: string }> = {
-    user:    { label: 'متبرع',        icon: 'fa-heart',         color: '#22c55e' },
-    charity: { label: 'جمعية خيرية',  icon: 'fa-building',      color: '#3ba8b4' },
+    user:    { label: 'متبرع',        icon: 'fa-heart',          color: '#22c55e' },
+    charity: { label: 'جمعية خيرية',  icon: 'fa-building',       color: '#3ba8b4' },
+    admin:   { label: 'مدير النظام',  icon: 'fa-shield-halved',  color: '#2563eb' },
   };
   const role = roleLabel[roleType] ?? roleLabel['user'];
+  const greetingText = roleType === 'admin' ? 'مرحبًا بعودتك' : 'أهلاً وسهلاً';
+  const subText = roleType === 'admin'
+    ? 'جاهز لإدارة المنصة...'
+    : roleType === 'charity'
+    ? 'جاهز لإدارة جمعيتك...'
+    : 'سيتم تسجيل دخولك الآن...';
+
   useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, [onDone]);
 
   return (
@@ -145,7 +153,7 @@ function WelcomeScreen({ userName, roleType, onDone }: WelcomeScreenProps) {
         <div className="lp-welcome-pulse" style={{ background: `${role.color}30` }} />
       </div>
       <div className="lp-welcome-text">
-        <span className="lp-welcome-greeting">أهلاً وسهلاً</span>
+        <span className="lp-welcome-greeting">{greetingText}</span>
         <h2 className="lp-welcome-name">{userName || 'بك'} 👋</h2>
       </div>
       <div
@@ -155,7 +163,7 @@ function WelcomeScreen({ userName, roleType, onDone }: WelcomeScreenProps) {
         <i className={`fa-solid ${role.icon}`} style={{ color: role.color }} />
         <span style={{ color: role.color }}>{role.label}</span>
       </div>
-      <p className="lp-welcome-msg">سيتم تسجيل دخولك الآن...</p>
+      <p className="lp-welcome-msg">{subText}</p>
       <div className="lp-welcome-bar-track">
         <div className="lp-welcome-bar-fill" style={{ background: role.color }} />
       </div>
@@ -722,8 +730,9 @@ export default function AuthPage() {
 
 const initialMode = (): 'login' | 'signup' => {
   const params = new URLSearchParams(window.location.search);
-  return params.get('mode') === 'signup' ? 'login' : 'signup';
-};
+  return params.get('mode') === 'login' ? 'signup' : 'login';
+}
+  ;
 
   const [mode, setMode]         = useState<'login' | 'signup'>(initialMode);
   const [showForgot, setShowForgot] = useState(false);
