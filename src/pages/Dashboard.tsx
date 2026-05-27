@@ -2388,7 +2388,6 @@
 //   );
 // }
 import { useEffect, useState, useCallback, useMemo, useRef, memo } from 'react';
-import ReactDOM from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'wouter';
 import {
@@ -2399,41 +2398,19 @@ import {
 } from 'recharts';
 import AIChatEmbed from '../components/shared/AIChatEmbed';
 import DonationDetail from './Donationdetail';
+import ScrollToTop from '../components/shared/ScrollToTop';
 import { request, notificationApi } from '../services';
 import type { Notification } from '../services';
 import '../styles/css/CharityDashboard.css';
-
-/* ── Count-up animation hook — lightweight, no deps beyond React ── */
-function useCountUp(target: number, duration = 850): number {
-  const [count, setCount] = useState(0);
-  const frameRef = useRef<number>(0);
-  const startRef = useRef<number>(0);
-  useEffect(() => {
-    if (target === 0) { setCount(0); return; }
-    cancelAnimationFrame(frameRef.current);
-    startRef.current = 0;
-    const animate = (ts: number) => {
-      if (!startRef.current) startRef.current = ts;
-      const elapsed = ts - startRef.current;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(target * eased));
-      if (progress < 1) frameRef.current = requestAnimationFrame(animate);
-    };
-    frameRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [target, duration]);
-  return count;
-}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    CONFIG & TYPES (Logic Preserved 100%)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const apiFetch = request;
 interface DashboardStats { Total_Donations: number; Pending_Donations: number; Accepted_Donations: number; Rejected_Donations: number; }
-interface DonorObj { _id: string; userName?: string; name?: string; phone?: string; address?: string; email?: string; createdAt?: string; updatedAt?: string; }
+interface DonorObj { _id: string; userName?: string; name?: string; phone?: string; address?: string; email?: string; }
 interface Donation { _id: string; type: string; size?: string; quantity?: number; description?: string; condition?: string; status: 'pending' | 'accepted' | 'rejected'; createdAt: string; updatedAt?: string; imageUrl?: Array<{ secure_url: string }>; donorId?: DonorObj | string | null; charityId?: string | { _id: string; name?: string }; rejectionReason?: string; acceptedAt?: string; rejectedAt?: string; }
-type Tab = 'stats' | 'donations' | 'automation' | 'chat' | 'settings';
+type Tab = 'stats' | 'donations' | 'requests' | 'automation' | 'chat' | 'settings';
 type DonView = 'cards' | 'table';
 
 const STATUS_CFG = { pending: { label: 'قيد المراجعة', bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', dot: '#f59e0b' }, accepted: { label: 'مقبول', bg: 'rgba(16,185,129,0.12)', color: '#10b981', dot: '#10b981' }, rejected: { label: 'مرفوض', bg: 'rgba(239,68,68,0.12)', color: '#ef4444', dot: '#ef4444' } } as const;
@@ -2461,18 +2438,10 @@ interface SettingsErrors {
 }
 
 function parseDonor(donorId: DonorObj | string | null | undefined) {
-  if (!donorId) return { name: '—', phone: '—', address: '—', initial: 'م', email: '—' };
-  if (typeof donorId === 'string') return { name: `#${donorId.slice(-4)}`, phone: '—', address: '—', initial: 'م', email: '—' };
-  // fallback chain: userName → email prefix → '—'
-  const emailPrefix = donorId.email ? donorId.email.split('@')[0] : null;
-  const name = donorId.userName || donorId.name || emailPrefix || '—';
-  return {
-    name,
-    phone: donorId.phone || '—',
-    address: donorId.address || '—',
-    email: donorId.email || '—',
-    initial: name !== '—' ? name.trim()[0]?.toUpperCase() || 'م' : 'م',
-  };
+  if (!donorId) return { name: '—', phone: '—', address: '—', initial: 'م' };
+  if (typeof donorId === 'string') return { name: `#${donorId.slice(-4)}`, phone: '—', address: '—', initial: 'م' };
+  const name = donorId.userName || donorId.name || '—';
+  return { name, phone: donorId.phone || '—', address: donorId.address || '—', initial: name !== '—' ? name.trim()[0]?.toUpperCase() || 'م' : 'م' };
 }
 
 const fmt12 = (val?: string | null): string => {
@@ -2561,7 +2530,6 @@ function NotificationBell({ notifications, unreadCount, onMarkRead, onMarkAllRea
   loading: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2658,10 +2626,10 @@ function NotificationBell({ notifications, unreadCount, onMarkRead, onMarkAllRea
                 )}
               </div>
             ) : (() => {
-              // Group by today/yesterday/older — no artificial slice limit
+              // Group by today/yesterday/older
               const now = new Date();
               const groups: Record<string, typeof displayedNotifs> = { today: [], yesterday: [], older: [] };
-              displayedNotifs.forEach(n => {
+              displayedNotifs.slice(0, 20).forEach(n => {
                 const d = new Date(n.createdAt);
                 const diffDays = Math.floor((now.setHours(0,0,0,0) - d.setHours(0,0,0,0)) / 86400000);
                 if (diffDays === 0) groups.today.push(n);
@@ -2680,8 +2648,8 @@ function NotificationBell({ notifications, unreadCount, onMarkRead, onMarkAllRea
                       <div
                         key={n._id}
                         className={`cd-notif-item${n.status === 'unread' ? ' unread' : ' cd-notif-item--read'}`}
-                        onClick={() => { if (n.status === 'unread') onMarkRead(n._id); setSelectedNotif(n); }}
-                        style={{ transition: 'all 0.25s ease', cursor: 'pointer' }}
+                        onClick={() => n.status === 'unread' && onMarkRead(n._id)}
+                        style={{ transition: 'all 0.25s ease' }}
                       >
                         <div className="cd-notif-item-icon" style={{ background: `${getNotifColor(n.type)}18`, color: getNotifColor(n.type) }}>
                           <i className={`ti ${getNotifIcon(n.type)}`} />
@@ -2710,38 +2678,11 @@ function NotificationBell({ notifications, unreadCount, onMarkRead, onMarkAllRea
             })()}
           </div>
 
-          {displayedNotifs.length > 0 && (
+          {displayedNotifs.length > 15 && (
             <div className="cd-notif-footer">
-              <span style={{ fontSize: 11, color: 'var(--t4)' }}>{displayedNotifs.length} إشعار</span>
+              <span style={{ fontSize: 11, color: 'var(--t4)' }}>عرض أحدث 15 إشعار</span>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── Notification Detail Modal ── */}
-      {selectedNotif && (
-        <div className="ap-modal-overlay" style={{ zIndex: 99999 }} onClick={e => { if (e.target === e.currentTarget) setSelectedNotif(null); }}>
-          <div className="ap-modal" style={{ maxWidth: 460 }}>
-            <div className="ap-modal-inner">
-              <div className="ap-modal-icon" style={{ background: `${getNotifColor(selectedNotif.type)}18` }}>
-                <i className={`ti ${getNotifIcon(selectedNotif.type)}`} style={{ color: getNotifColor(selectedNotif.type) }} />
-              </div>
-              {selectedNotif.title && <h3 className="ap-modal-title" style={{ fontSize: 15 }}>{selectedNotif.title}</h3>}
-              <div style={{ fontSize: 13.5, color: 'var(--t2)', lineHeight: 1.75, textAlign: 'right', marginBottom: 16, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {(selectedNotif as any).content || selectedNotif.message || ''}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--t4)', display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', marginBottom: 20 }}>
-                <i className="ti ti-clock" />
-                {new Date(selectedNotif.createdAt).toLocaleString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-              </div>
-              <div className="ap-modal-actions">
-                <button className="ap-modal-cancel" onClick={() => setSelectedNotif(null)}>إغلاق</button>
-                <button className="ap-modal-confirm" style={{ background: 'var(--teal)' }} onClick={() => { onDelete(selectedNotif._id); setSelectedNotif(null); }}>
-                  <i className="ti ti-trash" /> حذف
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
@@ -2752,6 +2693,7 @@ function Sidebar({ activeTab, onTabChange, userName, pendingCount, collapsed, on
   const NAV = [
     { id:'stats',      label:'نظرة عامة',       icon:'ti-layout-dashboard'    },
     { id:'donations',  label:'كل التبرعات',      icon:'ti-packages'            },
+    { id:'requests',   label:'الطلبات المعلقة', icon:'ti-clock-exclamation'   },
     { id:'automation', label:'التشغيل التلقائي', icon:'ti-settings-automation' },
     { id:'settings',   label:'الإعدادات',        icon:'ti-settings'            },
     { id:'chat',       label:'مساعد عطاء',       icon:'ti-robot'               },
@@ -2784,8 +2726,8 @@ function Sidebar({ activeTab, onTabChange, userName, pendingCount, collapsed, on
           >
             <span className="ap-nav-icon-wrap">
               <i className={`ti ${item.icon}`} />
-              {item.id === 'donations' && pendingCount > 0 && (
-                <span className="ap-nav-badge">{pendingCount > 99 ? '99+' : pendingCount}</span>
+              {item.id === 'requests' && pendingCount > 0 && (
+                <span className="ap-nav-badge">{pendingCount}</span>
               )}
             </span>
             {!collapsed && <span className="ap-nav-label">{item.label}</span>}
@@ -2822,7 +2764,7 @@ function MobileNav({ activeTab, onTabChange, pendingCount }: any) {
   const NAV = [
     { id:'stats',      icon:'ti-layout-dashboard',   label:'الرئيسية' },
     { id:'donations',  icon:'ti-packages',            label:'التبرعات' },
-    { id:'automation', icon:'ti-settings-automation', label:'تلقائي'   },
+    { id:'requests',   icon:'ti-clock-exclamation',   label:'معلقة'    },
     { id:'chat',       icon:'ti-robot',               label:'مساعد'    },
     { id:'settings',   icon:'ti-settings',            label:'إعدادات'  },
   ];
@@ -2830,7 +2772,7 @@ function MobileNav({ activeTab, onTabChange, pendingCount }: any) {
     <nav className="ap-mobile-nav">
       {NAV.map((item: any) => (
         <button key={item.id} className={`ap-mobile-nav-item${activeTab === item.id ? ' active' : ''}`} onClick={() => onTabChange(item.id)}>
-          <span className="ap-nav-icon-wrap"><i className={`ti ${item.icon}`} />{item.id === 'donations' && pendingCount > 0 && <span className="ap-nav-badge">{pendingCount > 99 ? '99+' : pendingCount}</span>}</span>
+          <span className="ap-nav-icon-wrap"><i className={`ti ${item.icon}`} />{item.id === 'requests' && pendingCount > 0 && <span className="ap-nav-badge">{pendingCount}</span>}</span>
           <span>{item.label}</span>
         </button>
       ))}
@@ -3274,22 +3216,6 @@ function Countdown({ targetTs, color }: { targetTs: number | null; color: string
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    MAIN DASHBOARD (Logic Preserved, UI 1:1 Admin)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-/* ── Animated KPI value — handles count-up with IntersectionObserver ── */
-function AnimatedKpiValue({ value }: { value: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } }, { threshold: 0.1 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  const animated = useCountUp(inView ? value : 0);
-  return <div ref={ref} className="ap-kpi-value">{animated.toLocaleString('en-US')}</div>;
-}
-
 export default function CharityDashboard() {
   const { user, isLoading: authLoading, logout } = useAuth() as any;
   const [, setLocation] = useLocation();
@@ -3346,11 +3272,11 @@ export default function CharityDashboard() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
   const [searchQ, setSearchQ] = useState('');
   const [donView, setDonView] = useState<DonView>('cards');
-  const ITEMS_PER_PAGE = 10;
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const ITEMS_PER_PAGE = 12;
   const [isDark, setIsDark] = useState(() => { try { return (localStorage.getItem('ap-theme') || 'dark') === 'dark'; } catch { return true; } });
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => { try { return localStorage.getItem('ap-sidebar-collapsed') === 'true'; } catch { return false; } });
@@ -3364,7 +3290,6 @@ export default function CharityDashboard() {
   const [showReport, setShowReport] = useState(false);
   const [confirmOpts, setConfirmOpts] = useState<ConfirmState | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   // ── View More / Expandable KPI State ──
   const [expandedKpi, setExpandedKpi] = useState<string | null>(null);
@@ -3424,43 +3349,15 @@ export default function CharityDashboard() {
 
   // ── Live Clock ──
   useEffect(() => {
-    const tick = () => setLiveTime(new Date().toLocaleString('en-US', {
-  hour: '2-digit', minute: '2-digit', second: '2-digit',
-  hour12: true
-}));
+    const tick = () => setLiveTime(new Date().toLocaleString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
     tick(); const id = setInterval(tick, 1000); return () => clearInterval(id);
   }, []);
-
-  // ── Scroll-to-top: dual listener (container + window) ──
-  useEffect(() => {
-    const onScroll = () => {
-      const el = contentRef.current;
-      const scrolled = (el ? el.scrollTop : 0) > 280 || window.scrollY > 280;
-      setShowScrollTop(scrolled);
-    };
-    let el: HTMLDivElement | null = null;
-    const attach = () => {
-      el = contentRef.current;
-      if (el) { el.addEventListener('scroll', onScroll, { passive: true }); return true; }
-      return false;
-    };
-    if (!attach()) {
-      const timer = setTimeout(attach, 150);
-      window.addEventListener('scroll', onScroll, { passive: true });
-      return () => { clearTimeout(timer); el?.removeEventListener('scroll', onScroll); window.removeEventListener('scroll', onScroll); };
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { el?.removeEventListener('scroll', onScroll); window.removeEventListener('scroll', onScroll); };
-  // selectedDonation في الـ deps: لما المستخدم يرجع من صفحة التبرع
-  // contentRef بيتغير (early-return → main-return) فلازم نعيد الـ attach
-  }, [tab, selectedDonation]);
 
   // Reset scroll when tab changes
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0 });
     window.scrollTo({ top: 0 });
     document.documentElement.scrollTo({ top: 0 });
-    setShowScrollTop(false);
     setSearchQ('');
   }, [tab]);
 
@@ -3511,22 +3408,14 @@ export default function CharityDashboard() {
       const [statsRes, donationsRes, requestsRes] = await Promise.allSettled([
         apiFetch('/dashboard/stats'), apiFetch('/dashboard/donations?page=1&limit=100'), apiFetch('/dashboard/requests?page=1&limit=100'),
       ]);
-      const donationsFromApi: any[] = donationsRes.status === 'fulfilled' && donationsRes.value.success ? donationsRes.value.donations || [] : [];
-      const requestsFromApi: any[]  = requestsRes.status  === 'fulfilled' && requestsRes.value.success  ? requestsRes.value.requests  || [] : [];
-
-      // دمج الـ requests مع الـ donations عشان كل التبرعات تظهر مع بيانات المتبرع
-      const requestsMap = new Map(requestsFromApi.map((r: any) => [r._id, r]));
-      const merged = donationsFromApi.map((d: any) => requestsMap.has(d._id) ? { ...d, ...requestsMap.get(d._id) } : d);
-      // لو donations فاضي خد الـ requests مباشرة
-      const allData = merged.length ? merged : requestsFromApi;
-
+      const donationsFromApi = donationsRes.status === 'fulfilled' && donationsRes.value.success ? donationsRes.value.donations || [] : [];
       if (statsRes.status === 'fulfilled' && statsRes.value.success) {
         const apiStats = statsRes.value.stats as DashboardStats;
-        const liveCounts = allData.reduce((acc: any, d: any) => { acc.total++; acc[d.status]++; return acc; }, { total: 0, pending: 0, accepted: 0, rejected: 0 });
-        setStats({ ...apiStats, Total_Donations: allData.length ? liveCounts.total : apiStats.Total_Donations, Pending_Donations: allData.length ? liveCounts.pending : apiStats.Pending_Donations, Accepted_Donations: allData.length ? liveCounts.accepted : apiStats.Accepted_Donations, Rejected_Donations: allData.length ? liveCounts.rejected : apiStats.Rejected_Donations });
+        const liveCounts = donationsFromApi.reduce((acc: any, d: any) => { acc.total++; acc[d.status]++; return acc; }, { total: 0, pending: 0, accepted: 0, rejected: 0 });
+        setStats({ ...apiStats, Total_Donations: donationsFromApi.length ? liveCounts.total : apiStats.Total_Donations, Pending_Donations: donationsFromApi.length ? liveCounts.pending : apiStats.Pending_Donations, Accepted_Donations: donationsFromApi.length ? liveCounts.accepted : apiStats.Accepted_Donations, Rejected_Donations: donationsFromApi.length ? liveCounts.rejected : apiStats.Rejected_Donations });
       }
-      setAllDonations(allData);
-      setPendingReqs(requestsFromApi.filter((d: any) => d.status === 'pending'));
+      setAllDonations(donationsFromApi);
+      if (requestsRes.status === 'fulfilled' && requestsRes.value.success) setPendingReqs((requestsRes.value.requests || []).filter((d: any) => d.status === 'pending'));
     } catch (err: unknown) { setError((err instanceof Error ? err.message : 'حدث خطأ')); } finally { setLoading(false); }
   }, []);
   useEffect(() => { if (!authLoading && user) fetchAll(); }, [user, authLoading, fetchAll]);
@@ -3667,7 +3556,7 @@ export default function CharityDashboard() {
         try {
           await apiFetch('/users/deleteAccount', { method: 'DELETE' });
           logout?.();
-          setLocation('/');
+          setLocation('/login');
         } catch (err: unknown) {
           showToast('error', err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف');
         } finally {
@@ -3689,7 +3578,7 @@ export default function CharityDashboard() {
         setConfirmLoading(true);
         try {
           logout?.();
-          setLocation('/');
+          setLocation('/login');
         } finally {
           setConfirmLoading(false);
           setConfirmOpts(null);
@@ -3720,14 +3609,31 @@ export default function CharityDashboard() {
     });
     return result;
   }, [allDonations, statusFilter, searchQ, sortOrder, dateFrom, dateTo]);
+  
+  const paginatedDonations = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredDonations.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredDonations, currentPage]);
+  
+  const totalPages = Math.max(1, Math.ceil(filteredDonations.length / ITEMS_PER_PAGE));
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, searchQ, sortOrder, dateFrom, dateTo]);
 
-  // ── Visible donations for "load more" pattern ──
-  const visibleDonations = useMemo(() => filteredDonations.slice(0, visibleCount), [filteredDonations, visibleCount]);
-  const remainingCount = Math.max(0, filteredDonations.length - visibleCount);
-  // Reset visibleCount when filters change
-  useEffect(() => { setVisibleCount(10); }, [statusFilter, searchQ, sortOrder, dateFrom, dateTo]);
-
-
+  // ── Filtered pending requests (search on requests tab) ──
+  const filteredPendingReqs = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return pendingReqs;
+    return pendingReqs.filter(d => {
+      const donor = parseDonor(d.donorId);
+      return (
+        d.type.toLowerCase().includes(q) ||
+        donor.name.toLowerCase().includes(q) ||
+        d._id.toLowerCase().includes(q) ||
+        (typeof d.donorId === 'string' ? d.donorId : (d.donorId as any)?._id || '').toLowerCase().includes(q)
+      );
+    });
+  }, [pendingReqs, searchQ]);
+  
   const charityName = charityProfileData?.charityName || user?.userName || 'الجمعية';
   const pendingCount = pendingReqs.length;
 
@@ -3750,6 +3656,7 @@ export default function CharityDashboard() {
       </main>
       <MobileNav activeTab={tab} onTabChange={(newTab: Tab) => { setSelectedDonation(null); setTab(newTab); }} pendingCount={pendingCount} />
       {toast && <div className={`ap-toast ${toast.type}`}><i className={`ti ${toast.type==='success'?'ti-circle-check':'ti-alert-circle'}`} />{toast.text}</div>}
+      <ScrollToTop />
       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />
     </div>
   );
@@ -3767,7 +3674,7 @@ export default function CharityDashboard() {
               <span>لوحة التحكم</span>
               <i className="ti ti-chevron-left" style={{fontSize:12,color:'var(--t4)'}}/>
               <span style={{color:'var(--t1)',fontWeight:700}}>
-                {tab==='stats'?'نظرة عامة':tab==='donations'?'كل التبرعات':tab==='automation'?'التشغيل التلقائي':'الإعدادات'}
+                {tab==='stats'?'نظرة عامة':tab==='donations'?'كل التبرعات':tab==='requests'?'الطلبات المعلقة':tab==='automation'?'التشغيل التلقائي':'الإعدادات'}
               </span>
             </div>
             <div className="ap-header-live-badge"><span className="ap-live-dot"/><span className="ap-header-live-time">{liveTime}</span></div>
@@ -3781,18 +3688,6 @@ export default function CharityDashboard() {
               onDelete={handleDeleteNotif}
               loading={notifLoading}
             />
-            {/* ── Report Issue Icon Button ── */}
-            <button
-              className="ap-header-icon-btn cd-report-icon-btn"
-              onClick={() => setShowReport(true)}
-              title="الإبلاغ عن مشكلة"
-              aria-label="الإبلاغ عن مشكلة"
-            >
-              <i className="ti ti-alert-octagon" />
-            </button>
-            <button className="ap-header-icon-btn" onClick={fetchAll} title="تحديث البيانات" disabled={loading} style={{position:'relative'}}>
-              <i className={`ti ti-refresh${loading ? ' ti-spin' : ''}`}/>
-            </button>
             <button className="ap-header-icon-btn ap-theme-btn" onClick={() => setIsDark(v => !v)} title={isDark?'وضع نهاري':'وضع ليلي'}><i className={`ti ${isDark?'ti-sun':'ti-moon'}`}/></button>
             <div className="ap-header-user" onClick={() => setTab('settings')} title="الإعدادات">
               <div className="ap-header-avatar">{charityName?.[0]?.toUpperCase()}</div>
@@ -3841,7 +3736,7 @@ export default function CharityDashboard() {
               ].map(s => (
                 <div key={s.id} className="ap-kpi-card" style={{ '--kpi-color': s.c } as React.CSSProperties}>
                   <div className="ap-kpi-icon-wrap"><i className={`ti ${s.i}`}/></div>
-                  <AnimatedKpiValue value={s.v} />
+                  <div className="ap-kpi-value">{s.v.toLocaleString('en-US')}</div>
                   <div className="ap-kpi-label">{s.l}</div>
                   <button
                     className={`ap-kpi-more-btn${expandedKpi === s.id ? ' expanded' : ''}`}
@@ -3953,74 +3848,11 @@ export default function CharityDashboard() {
                     <>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
-                          <Pie
-                            data={pieData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={52}
-                            outerRadius={80}
-                            dataKey="value"
-                            paddingAngle={3}
-                            activeIndex={undefined}
-                            activeShape={(props: any) => {
-                              const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
-                              return (
-                                <g>
-                                  <defs>
-                                    <filter id="pie-glow">
-                                      <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={fill} floodOpacity="0.6"/>
-                                    </filter>
-                                  </defs>
-                                  <path
-                                    d={`M${cx},${cy}`}
-                                    fill="none"
-                                  />
-                                  {/* الشريحة المكبّرة */}
-                                  <g filter="url(#pie-glow)">
-                                    <path
-                                      fill={fill}
-                                      d={`
-                                        M ${cx + (innerRadius - 4) * Math.cos(-startAngle * Math.PI / 180)},
-                                          ${cy + (innerRadius - 4) * Math.sin(-startAngle * Math.PI / 180)}
-                                      `}
-                                    />
-                                  </g>
-                                  <path
-                                    fill={fill}
-                                    opacity={1}
-                                    d={(() => {
-                                      const r = outerRadius + 8;
-                                      const ir = innerRadius - 2;
-                                      const sa = -startAngle * Math.PI / 180;
-                                      const ea = -endAngle * Math.PI / 180;
-                                      const x1 = cx + r * Math.cos(sa); const y1 = cy + r * Math.sin(sa);
-                                      const x2 = cx + r * Math.cos(ea); const y2 = cy + r * Math.sin(ea);
-                                      const ix1 = cx + ir * Math.cos(sa); const iy1 = cy + ir * Math.sin(sa);
-                                      const ix2 = cx + ir * Math.cos(ea); const iy2 = cy + ir * Math.sin(ea);
-                                      const large = Math.abs(endAngle - startAngle) > 180 ? 1 : 0;
-                                      return `M${x1},${y1} A${r},${r},0,${large},0,${x2},${y2} L${ix2},${iy2} A${ir},${ir},0,${large},1,${ix1},${iy1} Z`;
-                                    })()}
-                                  />
-                                </g>
-                              );
-                            }}
-                          >
-                            {pieData.map((e, i) => <Cell key={i} fill={e.color} strokeWidth={0} stroke="transparent"/>)}
+                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={52} outerRadius={80} dataKey="value" paddingAngle={3}>
+                            {pieData.map((e, i) => <Cell key={i} fill={e.color} strokeWidth={0}/>)}
                           </Pie>
                           <Tooltip
-                            contentStyle={{
-                              background: 'var(--surface2, #1a263c)',
-                              border: '1px solid var(--border2, rgba(255,255,255,0.12))',
-                              borderRadius: 12,
-                              color: 'var(--t1, #f0f5ff)',
-                              fontFamily: 'Tajawal',
-                              fontSize: 13,
-                              boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
-                              padding: '10px 16px',
-                              direction: 'rtl',
-                            }}
-                            labelStyle={{ color: 'var(--t3, #647da0)', fontWeight: 700, marginBottom: 4, fontSize: 11 }}
-                            itemStyle={{ color: 'var(--t1, #f0f5ff)', fontWeight: 600 }}
+                            contentStyle={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,color:'var(--t1)',fontFamily:'Tajawal',fontSize:12,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}
                             formatter={(val: number, name: string) => {
                               const total = pieData.reduce((s,d) => s+d.value, 0);
                               const pct = total > 0 ? Math.round((val/total)*100) : 0;
@@ -4071,14 +3903,14 @@ export default function CharityDashboard() {
             </div>
           </div>}
 
-          {/* ═══ DONATIONS TAB ═══ */}
-          {tab === 'donations' && <div className="ap-tab-pane">
+          {/* ═══ DONATIONS & REQUESTS TABS ═══ */}
+          {(tab === 'donations' || tab === 'requests') && <div className="ap-tab-pane">
             <div className="ap-section-header">
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <div className="ap-section-title">
-                  <i className="ti ti-clipboard-list" style={{color:'var(--teal)'}}/>
-                  كل التبرعات
-                  <span className="ap-count-badge" style={{background:'var(--teal)'}}>{filteredDonations.length}</span>
+                  <i className={`ti ${tab==='donations'?'ti-clipboard-list':'ti-clock-exclamation'}`} style={{color:'var(--teal)'}}/>
+                  {tab==='donations'?'كل التبرعات':'الطلبات المعلقة'}
+                  <span className="ap-count-badge" style={{background:'var(--teal)'}}>{tab==='donations'?filteredDonations.length:filteredPendingReqs.length}</span>
                 </div>
                 <div className="ap-view-switcher">
                   <button className={`ap-view-btn${donView==='table'?' active':''}`} onClick={() => setDonView('table')} title="جدول"><i className="ti ti-list"/></button>
@@ -4093,18 +3925,11 @@ export default function CharityDashboard() {
                     {searchQ && <button className="ap-search-clear" onClick={() => setSearchQ('')}><i className="ti ti-x"/></button>}
                   </div>
                   <div className="ap-filter-tabs">
-                    {(['all','pending','accepted','rejected'] as const).map(s => {
-                      const liveCount = s === 'all' ? allDonations.length : allDonations.filter(d => d.status === s).length;
-                      const isPending = s === 'pending';
-                      return (
-                        <button key={s} className={`ap-filter-tab${statusFilter===s?' active':''}`} onClick={() => setStatusFilter(s)} style={{position:'relative'}}>
-                          {s==='all' ? `الكل (${liveCount})` : STATUS_CFG[s as keyof typeof STATUS_CFG].label}
-                          {isPending && liveCount > 0 && (
-                            <span className="ap-filter-pending-badge">{liveCount}</span>
-                          )}
-                        </button>
-                      );
-                    })}
+                    {(['all','pending','accepted','rejected'] as const).map(s => (
+                      <button key={s} className={`ap-filter-tab${statusFilter===s?' active':''}`} onClick={() => setStatusFilter(s)}>
+                        {s==='all'?`الكل (${allDonations.length})`:STATUS_CFG[s as keyof typeof STATUS_CFG].label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -4180,11 +4005,11 @@ export default function CharityDashboard() {
               </div>
             </div>
 
-            {filteredDonations.length === 0
+            {(tab==='requests'?filteredPendingReqs:filteredDonations).length === 0
               ? <div className="ap-empty-state"><div className="ap-empty-icon"><i className="ti ti-inbox"/></div><div className="ap-empty-title">لا توجد بيانات مطابقة</div><div className="ap-empty-desc">جرّب تغيير الفلتر أو البحث</div></div>
               : donView === 'cards'
                 ? <div className="ap-card-grid">
-                    {visibleDonations.map(d => {
+                    {(tab==='requests'?filteredPendingReqs:paginatedDonations).map(d => {
                       const sc = STATUS_CFG[d.status]; const donor = parseDonor(d.donorId); const img = d.imageUrl?.[0]?.secure_url; const busy = actionLoading === `${d._id}-accepted` || actionLoading === `${d._id}-rejected`;
                       return (
                         <div key={d._id} className="ap-entity-card cd-donation-card" onClick={() => setSelectedDonation(d)} style={{cursor:'pointer'}}>
@@ -4241,14 +4066,6 @@ export default function CharityDashboard() {
                                 <span>{donor.phone}</span>
                               </div>
                             )}
-
-                            {/* Email */}
-                            {donor.email !== '—' && (
-                              <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,color:'var(--t3)',marginBottom:4,overflow:'hidden'}}>
-                                <i className="ti ti-mail" style={{color:'#3b82f6',fontSize:12,flexShrink:0}}/>
-                                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{donor.email}</span>
-                              </div>
-                            )}
                           </div>
 
                           {/* Date + Actions always at bottom */}
@@ -4258,16 +4075,14 @@ export default function CharityDashboard() {
 
                           {/* Actions */}
                           <div className="ap-entity-actions" onClick={e => e.stopPropagation()}>
-                            {d.status === 'pending' && (
-                              <>
-                                <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>
-                                  {actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-check"/>قبول</>}
-                                </button>
-                                <button className="ap-action-btn reject" disabled={busy} onClick={() => handleAction(d._id,'rejected')}>
-                                  {actionLoading===`${d._id}-rejected`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-x"/>رفض</>}
-                                </button>
-                              </>
-                            )}
+                            {tab==='requests' && <>
+                              <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>
+                                {actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-check"/>قبول</>}
+                              </button>
+                              <button className="ap-action-btn reject" disabled={busy} onClick={() => handleAction(d._id,'rejected')}>
+                                {actionLoading===`${d._id}-rejected`?<i className="ti ti-loader-2 ti-spin"/>:<><i className="ti ti-x"/>رفض</>}
+                              </button>
+                            </>}
                             <button className="ap-card-eye-btn" onClick={() => setSelectedDonation(d)}><i className="ti ti-eye"/>تفاصيل</button>
                           </div>
                         </div>
@@ -4278,25 +4093,23 @@ export default function CharityDashboard() {
                     <table className="ap-table">
                       <thead><tr><th>النوع</th><th>المتبرع</th><th>الكمية / المقاس</th><th>العنوان</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
                       <tbody>
-                        {visibleDonations.map(d => {
+                        {(tab==='requests'?filteredPendingReqs:paginatedDonations).map(d => {
                           const sc = STATUS_CFG[d.status]; const donor = parseDonor(d.donorId); const busy = actionLoading === `${d._id}-accepted` || actionLoading === `${d._id}-rejected`;
                           const donorAddress = donor.address !== '—' ? donor.address : (d as any).address || '—';
                           return (
                             <tr key={d._id} onClick={() => setSelectedDonation(d)} className="ap-table-row-clickable">
                               <td style={{fontWeight:600,color:'var(--t1)'}}>{d.type}</td>
-                              <td><div style={{display:'flex',alignItems:'center',gap:8}}><div className="ap-table-avatar">{donor.initial}</div><div><div style={{fontWeight:600,color:'var(--t1)',fontSize:13}}>{donor.name}</div>{donor.phone !== '—' && <div style={{fontSize:11,color:'var(--t4)'}}>{donor.phone}</div>}{donor.email !== '—' && <div style={{fontSize:10.5,color:'#3b82f6',marginTop:1}}>{donor.email}</div>}</div></div></td>
+                              <td><div style={{display:'flex',alignItems:'center',gap:8}}><div className="ap-table-avatar">{donor.initial}</div><div><div style={{fontWeight:600,color:'var(--t1)',fontSize:13}}>{donor.name}</div>{donor.phone !== '—' && <div style={{fontSize:11,color:'var(--t4)'}}>{donor.phone}</div>}</div></div></td>
                               <td style={{color:'var(--t2)',fontSize:12}}>{d.quantity ? `${d.quantity} قطعة` : '—'}{d.size ? <span style={{marginRight:6,color:'var(--t4)'}}>{d.size}</span> : ''}</td>
                               <td style={{color:'var(--t3)',fontSize:12,maxWidth:140}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{donorAddress}</div></td>
                               <td><span className="ap-badge" style={{background:sc.bg,color:sc.color}}><span className="ap-badge-dot" style={{background:sc.dot}}/>{sc.label}</span></td>
                               <td style={{color:'var(--t3)',fontSize:12}}>{fmt12(d.createdAt)}</td>
                               <td onClick={e => e.stopPropagation()}>
                                 <div style={{display:'flex',gap:6}}>
-                                  {d.status === 'pending' && (
-                                    <>
-                                      <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>{actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<i className="ti ti-check"/>}</button>
-                                      <button className="ap-action-btn reject"  disabled={busy} onClick={() => handleAction(d._id,'rejected')}>{actionLoading===`${d._id}-rejected`?<i className="ti ti-loader-2 ti-spin"/>:<i className="ti ti-x"/>}</button>
-                                    </>
-                                  )}
+                                  {tab==='requests' && <>
+                                    <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>{actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<i className="ti ti-check"/>}</button>
+                                    <button className="ap-action-btn reject"  disabled={busy} onClick={() => handleAction(d._id,'rejected')}>{actionLoading===`${d._id}-rejected`?<i className="ti ti-loader-2 ti-spin"/>:<i className="ti ti-x"/>}</button>
+                                  </>}
                                   <button className="ap-eye-btn" onClick={() => setSelectedDonation(d)}><i className="ti ti-eye"/></button>
                                 </div>
                               </td>
@@ -4308,19 +4121,58 @@ export default function CharityDashboard() {
                   </div>
             }
 
-            {/* Load More */}
-            {remainingCount > 0 && (
-              <div style={{display:'flex',justifyContent:'center',marginTop:20}}>
-                <button className="ap-load-more-btn" onClick={() => setVisibleCount(v => v + 10)}>
-                  <i className="ti ti-chevrons-down"/>
-                  عرض مزيد ({remainingCount.toLocaleString('en-US')})
-                </button>
+            {/* Pagination */}
+            {tab === 'donations' && totalPages > 1 && (
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginTop:20,flexWrap:'wrap'}}>
+                <button
+                  className="ap-modal-cancel"
+                  style={{padding:'7px 14px',fontSize:12,display:'flex',alignItems:'center',gap:5}}
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                ><i className="ti ti-chevrons-right"/></button>
+                <button
+                  className="ap-modal-cancel"
+                  style={{padding:'7px 14px',fontSize:12,display:'flex',alignItems:'center',gap:5}}
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                ><i className="ti ti-chevron-right"/> السابق</button>
+                <div style={{display:'flex',gap:4}}>
+                  {Array.from({length:Math.min(5,totalPages)},(_,i) => {
+                    let page: number;
+                    if (totalPages <= 5) page = i + 1;
+                    else if (currentPage <= 3) page = i + 1;
+                    else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
+                    else page = currentPage - 2 + i;
+                    return (
+                      <button key={page} onClick={() => setCurrentPage(page)}
+                        style={{width:34,height:34,borderRadius:8,border:`1px solid ${page===currentPage?'var(--teal)':'var(--border)'}`,background:page===currentPage?'var(--teal-dim)':'transparent',color:page===currentPage?'var(--teal)':'var(--t3)',fontWeight:page===currentPage?700:400,fontSize:13,cursor:'pointer',transition:'all 0.15s'}}>
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  className="ap-modal-cancel"
+                  style={{padding:'7px 14px',fontSize:12,display:'flex',alignItems:'center',gap:5}}
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                >التالي <i className="ti ti-chevron-left"/></button>
+                <button
+                  className="ap-modal-cancel"
+                  style={{padding:'7px 14px',fontSize:12,display:'flex',alignItems:'center',gap:5}}
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                ><i className="ti ti-chevrons-left"/></button>
+                <span style={{fontSize:12,color:'var(--t4)',marginRight:8}}>
+                  {((currentPage-1)*ITEMS_PER_PAGE)+1}–{Math.min(currentPage*ITEMS_PER_PAGE, filteredDonations.length)} من {filteredDonations.length}
+                </span>
               </div>
             )}
           </div>}
 
           {/* ═══ AUTOMATION TAB ═══ */}
           {tab === 'automation' && <div className="ap-tab-pane" style={{overflowY:'auto',overflowX:'hidden'}}>
+            {/* Banner */}
             {/* Timeline Header with Live Clock */}
             <div className="ap-auto-timeline-header">
               <div className="ap-auto-clock"><i className="ti ti-clock-hour-4" /></div>
@@ -4333,11 +4185,11 @@ export default function CharityDashboard() {
               </div>
             </div>
 
-            {/* ── Two-column layout: card (right) + log (left) ── */}
-            <div className="ap-auto-two-col">
+            {/* Cron Grid — Single Centered Card */}
+            <div className="ap-cron-grid" style={{display:'grid',gridTemplateColumns:'1fr',maxWidth:520,margin:'0 auto'}}>
 
-              {/* RIGHT: Cron Card */}
-              <div className={`ap-cron-card${nextRunTime ? ' ap-cron-active' : ''}`}>
+              {/* Card 1: تذكير التبرعات */}
+              <div className={`ap-cron-card${nextRunTime ? ' ap-cron-active' : ''}`} style={{width:'100%',boxSizing:'border-box'}}>
                 <div className="ap-cron-icon" style={{background:'rgba(14,201,127,0.14)'}}>
                   <i className="ti ti-bell-ringing" style={{color:'#0ec97f'}}/>
                 </div>
@@ -4397,60 +4249,13 @@ export default function CharityDashboard() {
                     </button>
                   )}
                 </div>
-                {/* Action buttons — below scheduler, left-aligned */}
-                <div className="ap-auto-card-actions">
-                  <button className="ap-cron-run-btn" style={{background:'#0ec97f',color:'#fff',flex:1}} disabled={cronLoading} onClick={handleReminder}>
-                    {cronLoading ? <><i className="ti ti-loader-2 ti-spin"/>جاري التشغيل...</> : <><i className="ti ti-player-play"/>تشغيل الآن</>}
-                  </button>
-                </div>
+                <button className="ap-cron-run-btn" style={{background:'#0ec97f',color:'#fff'}} disabled={cronLoading} onClick={handleReminder}>
+                  {cronLoading ? <><i className="ti ti-loader-2 ti-spin"/>جاري التشغيل...</> : <><i className="ti ti-player-play"/>تشغيل الآن</>}
+                </button>
               </div>
+            </div>
 
-              {/* LEFT: Execution Log */}
-              <div className="ap-cron-log ap-auto-log-col">
-                <div className="ap-cron-log-header">
-                  <div className="ap-section-title" style={{margin:0}}>
-                    <i className="ti ti-list-details" style={{color:'#0ec97f'}}/>
-                    سجل التنفيذ
-                    <span className="ap-count-badge" style={{background:'#0ec97f'}}>{cronLog.length}</span>
-                  </div>
-                  {cronLog.length > 0 && (
-                    <button className="ap-cron-log-clear" onClick={() => { setCronLog([]); try { localStorage.removeItem('ap-cron-log'); } catch {} }}>
-                      <i className="ti ti-trash"/> مسح الكل
-                    </button>
-                  )}
-                </div>
-                <div className="ap-cron-log-list">
-                  {cronLog.length === 0 ? (
-                    <div style={{textAlign:'center',padding:'28px 16px',color:'var(--t4)',fontSize:13,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
-                      <i className="ti ti-list-details" style={{fontSize:28,opacity:0.35}}/>
-                      <span>لا توجد سجلات بعد — شغّل أو جدوِل مهمة أولاً</span>
-                    </div>
-                  ) : (
-                    cronLog.map((log, i) => (
-                      <div key={i} className={`ap-cron-log-item ${log.type}`} style={{display:'flex',alignItems:'center',gap:8,justifyContent:'space-between'}}>
-                        <span style={{flex:1,fontSize:13}}>{log.type==='success'?'✓':'✗'} {log.text}</span>
-                        <span style={{fontSize:11,color:'var(--t4)',flexShrink:0,whiteSpace:'nowrap'}}>{log.time}</span>
-                        <button
-                          title="حذف"
-                          onClick={() => {
-                            const updated = cronLog.filter((_, idx) => idx !== i);
-                            setCronLog(updated);
-                            try { localStorage.setItem('ap-cron-log', JSON.stringify(updated)); } catch {}
-                          }}
-                          style={{flexShrink:0,width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'transparent',color:'var(--t4)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,transition:'all 0.15s'}}
-                          onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='rgba(239,68,68,0.1)';(e.currentTarget as HTMLButtonElement).style.color='#ef4444';(e.currentTarget as HTMLButtonElement).style.borderColor='rgba(239,68,68,0.3)';}}
-                          onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background='transparent';(e.currentTarget as HTMLButtonElement).style.color='var(--t4)';(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';}}
-                        >
-                          <i className="ti ti-x"/>
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>{/* end two-col */}
-
-            {/* Stats Row — below both columns */}
+            {/* Stats Row */}
             <div className="ap-cron-stats-row">
               {[
                 { icon:'ti-history',        color:'#0ec97f', value: cronLog.length,                        label:'عدد مرات التشغيل' },
@@ -4465,6 +4270,50 @@ export default function CharityDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Log */}
+            <div className="ap-cron-log">
+              <div className="ap-cron-log-header">
+                <div className="ap-section-title" style={{margin:0}}>
+                  <i className="ti ti-list-details" style={{color:'#0ec97f'}}/>
+                  سجل التنفيذ
+                  <span className="ap-count-badge" style={{background:'#0ec97f'}}>{cronLog.length}</span>
+                </div>
+                {cronLog.length > 0 && (
+                  <button className="ap-cron-log-clear" onClick={() => { setCronLog([]); try { localStorage.removeItem('ap-cron-log'); } catch {} }}>
+                    <i className="ti ti-trash"/> مسح الكل
+                  </button>
+                )}
+              </div>
+              <div className="ap-cron-log-list">
+                {cronLog.length === 0 ? (
+                  <div style={{textAlign:'center',padding:'28px 16px',color:'var(--t4)',fontSize:13,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+                    <i className="ti ti-list-details" style={{fontSize:28,opacity:0.35}}/>
+                    <span>لا توجد سجلات بعد — شغّل أو جدوِل مهمة أولاً</span>
+                  </div>
+                ) : (
+                  cronLog.map((log, i) => (
+                    <div key={i} className={`ap-cron-log-item ${log.type}`} style={{display:'flex',alignItems:'center',gap:8,justifyContent:'space-between'}}>
+                      <span style={{flex:1,fontSize:13}}>{log.type==='success'?'✓':'✗'} {log.text}</span>
+                      <span style={{fontSize:11,color:'var(--t4)',flexShrink:0,whiteSpace:'nowrap'}}>{log.time}</span>
+                      <button
+                        title="حذف"
+                        onClick={() => {
+                          const updated = cronLog.filter((_, idx) => idx !== i);
+                          setCronLog(updated);
+                          try { localStorage.setItem('ap-cron-log', JSON.stringify(updated)); } catch {}
+                        }}
+                        style={{flexShrink:0,width:24,height:24,borderRadius:6,border:'1px solid var(--border)',background:'transparent',color:'var(--t4)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,transition:'all 0.15s'}}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='rgba(239,68,68,0.1)';(e.currentTarget as HTMLButtonElement).style.color='#ef4444';(e.currentTarget as HTMLButtonElement).style.borderColor='rgba(239,68,68,0.3)';}}
+                        onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background='transparent';(e.currentTarget as HTMLButtonElement).style.color='var(--t4)';(e.currentTarget as HTMLButtonElement).style.borderColor='var(--border)';}}
+                      >
+                        <i className="ti ti-x"/>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>}
 
@@ -4761,21 +4610,7 @@ export default function CharityDashboard() {
       </main>
       <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} />
       {toast && <div className={`ap-toast ${toast.type}`}><i className={`ti ${toast.type==='success'?'ti-circle-check':'ti-alert-circle'}`} />{toast.text}</div>}
-      {showScrollTop && tab !== 'chat' && ReactDOM.createPortal(
-        <button
-          className="ap-scroll-top-btn"
-          onClick={() => {
-            contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          aria-label="العودة للأعلى"
-          title="العودة للأعلى"
-        >
-          <i className="ti ti-arrow-up" />
-        </button>,
-        document.body
-      )}
+      {tab !== 'chat' && <ScrollToTop />}
       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />
     </div>
   );
