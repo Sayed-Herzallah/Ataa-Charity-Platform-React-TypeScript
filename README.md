@@ -166,7 +166,7 @@ Email: sayedherzallah@example.com
 📜 LICENSE
 ================================================================================
 
-MIT License © 2024 Sayed Herzallah
+MIT License © 2026 Sayed Herzallah
 
 ================================================================================
 ⭐ SUPPORT
