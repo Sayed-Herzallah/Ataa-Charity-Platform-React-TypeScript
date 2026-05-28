@@ -82,14 +82,7 @@ export default function AppLayout({ children, showFooter }: AppLayoutProps) {
         {children}
       </main>
       {shouldShowFooter && <Footer />}
-      {/* Dashboard routes scroll inside .ap-content, not window */}
-      <ScrollToTop
-        containerClass={
-          NO_NAVBAR_PATHS.some(p => location === p || location.startsWith(p + '/'))
-            ? 'ap-content'
-            : undefined
-        }
-      />
+      <ScrollToTop />
     </>
   );
 }

@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,9 +46,9 @@ interface DonationDetailProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_MAP = {
-  pending:  { label: 'قيد المراجعة', icon: 'ti-clock-hour-4',  bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b', dot: '#f59e0b', glow: 'rgba(245,158,11,0.25)' },
-  accepted: { label: 'مقبول',        icon: 'ti-circle-check',  bg: 'rgba(14,201,127,0.12)',  color: '#0ec97f', dot: '#0ec97f', glow: 'rgba(14,201,127,0.25)' },
-  rejected: { label: 'مرفوض',        icon: 'ti-circle-x',      bg: 'rgba(239,68,68,0.12)',   color: '#ef4444', dot: '#ef4444', glow: 'rgba(239,68,68,0.25)'  },
+  pending:  { label: 'قيد المراجعة', icon: 'ti-clock-hour-4',  bg: 'rgba(245,158,11,0.08)',  color: '#f59e0b', dot: '#f59e0b', glow: 'rgba(245,158,11,0.2)' },
+  accepted: { label: 'مقبول',        icon: 'ti-circle-check',  bg: 'rgba(14,201,127,0.08)',  color: '#0ec97f', dot: '#0ec97f', glow: 'rgba(14,201,127,0.2)' },
+  rejected: { label: 'مرفوض',        icon: 'ti-circle-x',      bg: 'rgba(239,68,68,0.08)',   color: '#ef4444', dot: '#ef4444', glow: 'rgba(239,68,68,0.2)'  },
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ function formatDate(iso?: string | null) {
   });
 }
 
+// Ensure images array is strictly formatted
 function getImages(donation: Donation): string[] {
   const raw = donation.imageUrl;
   if (!raw) return [];
@@ -87,17 +89,260 @@ function parseDonor(donorId: DonorInfo | string | null | undefined) {
 
 // ─── Injected CSS ─────────────────────────────────────────────────────────────
 const STYLES = `
-@keyframes ddFadeIn   { from { opacity:0; transform:scale(0.96) } to { opacity:1; transform:scale(1) } }
-@keyframes ddSlideUp  { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+@keyframes ddFadeIn   { from { opacity:0; transform:scale(0.97) } to { opacity:1; transform:scale(1) } }
+@keyframes ddSlideUp  { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
 @keyframes ddSpin     { to { transform:rotate(360deg) } }
+@keyframes ddPulse    { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } }
+
+.dd-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: 'Tajawal', sans-serif !important;
+  animation: ddSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Modern Asymmetrical Grid */
+.dd-layout-grid {
+  display: grid;
+  grid-template-columns: 7.5fr 4.5fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dd-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Premium Dashboard Card styling */
+.dd-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12) !important;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.dd-card:hover {
+  border-color: var(--border2) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18) !important;
+}
+
+.dd-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--t1);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Specifications Grid */
+.dd-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .dd-spec-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Spec Box */
+.dd-spec-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.dd-spec-box:hover {
+  background: var(--surface3);
+  border-color: var(--teal-dim);
+  transform: translateY(-2px);
+}
+
+.dd-spec-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dd-spec-label {
+  font-size: 11.5px;
+  color: var(--t4);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.dd-spec-value {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+/* Interactive Action Buttons */
+.dd-action-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+@media (max-width: 480px) {
+  .dd-action-row {
+    flex-direction: column;
+  }
+}
+
+.dd-btn-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dd-btn-action:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.dd-btn-action:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.dd-btn-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.dd-btn-accept {
+  background: linear-gradient(135deg, #0ec97f 0%, #0aaa68 100%);
+  color: #fff;
+}
+
+.dd-btn-accept:hover {
+  box-shadow: 0 8px 22px rgba(14, 201, 127, 0.35);
+}
+
+.dd-btn-reject {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+}
+
+.dd-btn-reject:hover {
+  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.35);
+}
+
+/* Contact shortcuts */
+.dd-contact-shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 10px;
+  transition: all 0.2s ease;
+}
+
+.dd-contact-shortcut:hover {
+  border-color: var(--border2);
+  background: var(--surface3);
+}
+
+.dd-shortcut-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--t3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.dd-shortcut-btn:hover {
+  background: var(--teal-dim);
+  color: var(--teal);
+  border-color: var(--teal);
+  transform: scale(1.1);
+}
+
+.dd-shortcut-btn:active {
+  transform: scale(0.95);
+}
+
+/* Micro-tooltip for copied text */
+.dd-copied-tag {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -6px);
+  background: var(--teal);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  animation: ddFadeIn 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.dd-copied-tag::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--teal);
+}
 
 /* ── Timeline horizontal ── */
 .dd-timeline {
   display: flex;
   align-items: flex-start;
   gap: 0;
-  padding: 4px 0;
+  padding: 8px 0;
   overflow-x: auto;
+  scrollbar-width: none;
   scrollbar-width: none;
 }
 .dd-timeline::-webkit-scrollbar { display:none }
@@ -118,15 +363,15 @@ const STYLES = `
   top: 18px;
   inset-inline-start: 50%;
   width: 100%;
-  height: 2px;
+  height: 3px;
   background: var(--dd-line-color, var(--border));
   z-index: 0;
   transition: background 0.4s ease;
 }
 
 .dd-step-circle {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -140,8 +385,8 @@ const STYLES = `
 
 .dd-step-label {
   margin-top: 8px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   text-align: center;
   white-space: nowrap;
   transition: color 0.3s;
@@ -150,9 +395,9 @@ const STYLES = `
 .dd-step-sub {
   font-size: 10px;
   text-align: center;
-  margin-top: 3px;
+  margin-top: 4px;
   line-height: 1.4;
-  max-width: 100px;
+  max-width: 105px;
   white-space: normal;
 }
 
@@ -209,50 +454,10 @@ const STYLES = `
 .dd-nav-btn.prev { right: 10px; }
 .dd-nav-btn.next { left:  10px; }
 
-/* ── Info row ── */
-.dd-info-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.12s;
-}
-.dd-info-row:last-of-type { border-bottom: none; }
-
-/* ── Card section title ── */
-.dd-section-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  padding-bottom: 12px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-/* ── Stat chip ── */
-.dd-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
-/* ── Spin animation ── */
-.dd-spin { animation: ddSpin 0.7s linear infinite; }
-
 /* ── Thumbnail ── */
 .dd-thumb {
-  width: 52px; height: 52px;
-  border-radius: 8px;
+  width: 54px; height: 54px;
+  border-radius: 10px;
   object-fit: cover;
   cursor: pointer;
   border: 2px solid var(--border);
@@ -260,7 +465,7 @@ const STYLES = `
   flex-shrink: 0;
 }
 .dd-thumb:hover { transform: scale(1.06); }
-.dd-thumb.active { border-color: var(--teal); }
+.dd-thumb.active { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); }
 
 /* ── Zoom close btn ── */
 .dd-zoom-close {
@@ -281,10 +486,12 @@ const STYLES = `
   backdrop-filter: blur(6px);
 }
 .dd-zoom-close:hover { background: rgba(255,255,255,0.28); }
+
+.dd-spin { animation: ddSpin 0.7s linear infinite; }
 `;
 
 function InjectStyles() {
-  return <style>{STYLES}</style>;
+  return <style dangerouslySetInnerHTML={{ __html: STYLES }} />;
 }
 
 // ─── Horizontal Timeline ───────────────────────────────────────────────────────
@@ -317,10 +524,10 @@ function HorizontalTimeline({ status, createdAt }: { status: string; createdAt: 
   ];
 
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '18px 24px' }}>
-      <div className="dd-section-title" style={{ marginBottom: 20 }}>
-        <i className="ti ti-timeline" style={{ color: 'var(--teal)', fontSize: 14 }} />
-        مسار التبرع
+    <div className="dd-card">
+      <div className="dd-card-header" style={{ marginBottom: 20 }}>
+        <i className="ti ti-timeline" style={{ color: 'var(--teal)', fontSize: 16 }} />
+        <span>مسار حالة التبرع</span>
       </div>
 
       <div className="dd-timeline">
@@ -340,7 +547,7 @@ function HorizontalTimeline({ status, createdAt }: { status: string; createdAt: 
               <div
                 className="dd-step-circle"
                 style={{
-                  background: step.active ? (step.color + '1a') : 'var(--surface2)',
+                  background: step.active ? (step.color + '18') : 'var(--surface2)',
                   border: '2px solid ' + (step.active ? step.color : 'var(--border)'),
                   color: step.active ? step.color : 'var(--t4)',
                   boxShadow: step.active && i === steps.findIndex(s => s.id === 'decision')
@@ -392,58 +599,55 @@ function ImageGallery({ images }: { images: string[] }) {
 
   if (!images.length) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220, gap: 10, color: 'var(--t4)' }}>
-        <i className="ti ti-photo-off" style={{ fontSize: 40 }} />
-        <span style={{ fontSize: 13 }}>لا توجد صور</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 250, gap: 10, color: 'var(--t4)', background: 'var(--surface2)', borderRadius: '12px' }}>
+        <i className="ti ti-photo-off" style={{ fontSize: 48, opacity: 0.6 }} />
+        <span style={{ fontSize: 13.5, fontWeight: 700 }}>لا توجد صور متوفرة للمعاينة</span>
       </div>
     );
   }
 
   return (
     <>
-      {/* Card */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
-        <div className="dd-section-title" style={{ padding: '14px 16px 12px', marginBottom: 0, borderBottom: '1px solid var(--border)' }}>
-          <i className="ti ti-photo" style={{ color: 'var(--teal)', fontSize: 14 }} />
-          الصور {images.length > 1 && <span style={{ color: 'var(--teal)', fontWeight: 900 }}>({images.length})</span>}
-        </div>
-
         {/* Main image wrapper — relative container for buttons */}
-        <div style={{ position: 'relative' }}>
-          <div style={{ position: 'relative', cursor: 'zoom-in', background: 'var(--surface2)', overflow: 'hidden' }} onClick={() => setZoomed(true)}>
-          <img
-            src={images[active]}
-            alt="صورة التبرع"
-            key={images[active]}
-            style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block', animation: 'ddFadeIn 0.2s ease' }}
-          />
+        <div style={{ position: 'relative', borderRadius: '12px 12px 0 0', overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <div style={{ position: 'relative', cursor: 'zoom-in', background: 'var(--surface2)' }} onClick={() => setZoomed(true)}>
+            <img
+              src={images[active]}
+              alt="صورة التبرع"
+              key={images[active]}
+              style={{ width: '100%', aspectRatio: '16/10', objectFit: 'cover', display: 'block', animation: 'ddFadeIn 0.22s ease' }}
+            />
 
-          {/* zoom hint */}
-          <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(6px)' }}>
-            <i className="ti ti-zoom-in" /> تكبير
-          </div>
-
-          {/* counter */}
-          {images.length > 1 && (
-            <div dir="ltr" style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, backdropFilter: 'blur(6px)' }}>
-              {active + 1} / {images.length}
+            {/* zoom hint */}
+            <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.65)', color: '#fff', borderRadius: 8, padding: '5px 11px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5, backdropFilter: 'blur(8px)' }}>
+              <i className="ti ti-zoom-in" /> تكبير المعاينة
             </div>
-          )}
+
+            {/* counter */}
+            {images.length > 1 && (
+              <div dir="ltr" style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.65)', color: '#fff', borderRadius: 8, padding: '5px 11px', fontSize: 11, fontWeight: 700, backdropFilter: 'blur(8px)' }}>
+                {active + 1} / {images.length}
+              </div>
+            )}
           </div>
 
-          {/* prev / next — دايماً ظاهرين */}
-          <button className="dd-nav-btn prev" onClick={e => { e.stopPropagation(); prev(); }} aria-label="السابق">
-            <i className="ti ti-chevron-right" />
-          </button>
-          <button className="dd-nav-btn next" onClick={e => { e.stopPropagation(); next(); }} aria-label="التالي">
-            <i className="ti ti-chevron-left" />
-          </button>
+          {/* prev / next buttons */}
+          {images.length > 1 && (
+            <>
+              <button className="dd-nav-btn prev" onClick={e => { e.stopPropagation(); prev(); }} aria-label="السابق">
+                <i className="ti ti-chevron-right" />
+              </button>
+              <button className="dd-nav-btn next" onClick={e => { e.stopPropagation(); next(); }} aria-label="التالي">
+                <i className="ti ti-chevron-left" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Thumbnails */}
         {images.length > 1 && (
-          <div style={{ display: 'flex', gap: 7, padding: '10px 12px', flexWrap: 'wrap', background: 'var(--surface2)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', gap: 8, padding: '12px', flexWrap: 'wrap', background: 'var(--surface2)', borderRadius: '0 0 12px 12px', border: '1px solid var(--border)', borderTop: 'none' }}>
             {images.map((img, i) => (
               <img key={i} src={img} alt="" className={`dd-thumb${i === active ? ' active' : ''}`} onClick={() => setActive(i)} />
             ))}
@@ -455,15 +659,15 @@ function ImageGallery({ images }: { images: string[] }) {
       {zoomed && (
         <div
           onClick={() => setZoomed(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out', backdropFilter: 'blur(12px)' }}
         >
           {/* Close */}
           <button className="dd-zoom-close" onClick={() => setZoomed(false)} aria-label="إغلاق">
             <i className="ti ti-x" />
           </button>
 
-          {/* Image + nav buttons في row واحد */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, zIndex: 1 }} onClick={e => e.stopPropagation()}>
+          {/* Image + nav buttons in a row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, zIndex: 1 }} onClick={e => e.stopPropagation()}>
             {images.length > 1 && (
               <button className="dd-zoom-nav" onClick={e => { e.stopPropagation(); prev(); }} aria-label="السابق" style={{ position: 'static', transform: 'none', flexShrink: 0 }}>
                 <i className="ti ti-chevron-right" />
@@ -474,7 +678,7 @@ function ImageGallery({ images }: { images: string[] }) {
               src={images[active]}
               alt="صورة مكبرة"
               onClick={e => e.stopPropagation()}
-              style={{ maxWidth: '70vw', maxHeight: '80vh', borderRadius: 14, objectFit: 'contain', cursor: 'default', animation: 'ddFadeIn 0.22s ease', userSelect: 'none' }}
+              style={{ maxWidth: '75vw', maxHeight: '82vh', borderRadius: 16, objectFit: 'contain', cursor: 'default', animation: 'ddFadeIn 0.25s cubic-bezier(0.22, 1, 0.36, 1)', userSelect: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}
             />
             {images.length > 1 && (
               <button className="dd-zoom-nav" onClick={e => { e.stopPropagation(); next(); }} aria-label="التالي" style={{ position: 'static', transform: 'none', flexShrink: 0 }}>
@@ -485,13 +689,13 @@ function ImageGallery({ images }: { images: string[] }) {
 
           {/* Dots */}
           {images.length > 1 && (
-            <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 11 }}>
+            <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 11 }}>
               {images.map((_, i) => (
                 <button
                   key={i}
                   onClick={e => { e.stopPropagation(); setActive(i); }}
                   aria-label={`صورة ${i + 1}`}
-                  style={{ width: i === active ? 28 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.22s ease', background: i === active ? '#fff' : 'rgba(255,255,255,0.38)' }}
+                  style={{ width: i === active ? 30 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.22s ease', background: i === active ? '#0ec97f' : 'rgba(255,255,255,0.35)' }}
                 />
               ))}
             </div>
@@ -499,7 +703,7 @@ function ImageGallery({ images }: { images: string[] }) {
 
           {/* Image counter */}
           {images.length > 1 && (
-            <div dir="ltr" style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', color: '#fff', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
+            <div dir="ltr" style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', color: '#fff', padding: '5px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid rgba(255,255,255,0.15)' }}>
               {active + 1} / {images.length}
             </div>
           )}
@@ -509,34 +713,48 @@ function ImageGallery({ images }: { images: string[] }) {
   );
 }
 
-// ─── Info Row ─────────────────────────────────────────────────────────────────
-function InfoRow({ icon, label, value, mono = false, badge, accent }: {
-  icon: string; label: string; value?: string | number | null;
-  mono?: boolean; badge?: React.ReactNode; accent?: string;
-}) {
-  if (value == null && !badge) return null;
+// ─── Info Row Helper Component ──────────────────────────────────────────────────
+function InfoBox({ icon, label, value, color = 'var(--teal)' }: { icon: string; label: string; value?: string | number | null; color?: string }) {
+  if (value == null || value === '') return null;
   return (
-    <div className="dd-info-row">
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: accent ? (accent + '18') : 'var(--teal-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <i className={`ti ${icon}`} style={{ color: accent || 'var(--teal)', fontSize: 13 }} />
+    <div className="dd-spec-box">
+      <div className="dd-spec-icon-wrap" style={{ background: color + '12', border: `1.5px solid ${color}25` }}>
+        <i className={`ti ${icon}`} style={{ color: color, fontSize: 15 }} />
       </div>
-      <span style={{ fontSize: 12, color: 'var(--t3)', minWidth: 88, flexShrink: 0 }}>{label}</span>
-      {badge || (
-        <span style={{ fontSize: mono ? 10.5 : 13, color: 'var(--t1)', fontWeight: 600, wordBreak: 'break-all', fontFamily: mono ? "'IBM Plex Mono', monospace" : undefined, marginRight: 'auto' } as React.CSSProperties}>
-          {value}
-        </span>
-      )}
+      <div>
+        <span className="dd-spec-label">{label}</span>
+        <span className="dd-spec-value">{value}</span>
+      </div>
     </div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DonationDetail({ donation, onBack, onAction, actionLoading }: DonationDetailProps) {
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (donation) {
+      console.log('--- DIAGNOSTIC INFO ---');
+      console.log('Donation ID:', donation._id);
+      console.log('donorId type:', typeof donation.donorId);
+      console.log('donorId value:', donation.donorId);
+      console.log('Parsed donor object:', parseDonor(donation.donorId));
+      console.log('-----------------------');
+    }
+  }, [donation]);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(label);
+    setTimeout(() => setCopiedText(null), 2000);
+  };
+
   if (!donation) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 12, color: 'var(--t4)' }}>
-        <i className="ti ti-package-off" style={{ fontSize: 44 }} />
-        <p style={{ margin: 0, fontSize: 14 }}>لم يتم العثور على بيانات التبرع</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 14, color: 'var(--t4)', fontFamily: "'Tajawal', sans-serif" }}>
+        <i className="ti ti-package-off" style={{ fontSize: 52, opacity: 0.6 }} />
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>لم يتم العثور على أي تفاصيل أو بيانات لهذا التبرع</p>
       </div>
     );
   }
@@ -548,210 +766,264 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
   const isRejLoading = actionLoading === `${donation._id}-rejected`;
   const busy = isAccLoading || isRejLoading;
 
-  const card: React.CSSProperties = {
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
-  };
-
-  const cardPadded: React.CSSProperties = {
-    ...card,
-    padding: '18px 20px',
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontFamily: "'Tajawal', sans-serif" }}>
+    <div className="dd-container">
       <InjectStyles />
 
-      {/* ══ Top Banner ══ */}
-      <div style={{ ...cardPadded, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderRadius: 'var(--radius-lg)', padding: '16px 20px' }}>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-          <button className="ap-icon-btn" onClick={onBack} title="رجوع" style={{ width: 38, height: 38, flexShrink: 0 }}>
-            <i className="ti ti-arrow-right" />
-          </button>
-          <div>
-            <div style={{ fontSize: 10.5, color: 'var(--t4)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span className="ap-breadcrumb-link" style={{ color: 'var(--teal)', cursor: 'pointer' }} onClick={onBack}>التبرعات</span>
-              <i className="ti ti-chevron-left" style={{ fontSize: 9 }} />
-              <span>تفاصيل التبرع</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)' }}>{donation.type}</span>
-              {/* Status pill */}
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.color}40` }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc.dot, display: 'inline-block' }} />
-                {sc.label}
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--t4)', fontFamily: "'IBM Plex Mono', monospace", padding: '3px 9px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 7 }}>
-                {formatDate(donation.createdAt)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ══ Timeline ══ */}
+      {/* ══ Timeline Tracker ══ */}
       <HorizontalTimeline status={donation.status} createdAt={donation.createdAt} />
 
-      {/* ══ Main Grid ══ */}
-      <div className="cd-detail-main-grid">
-
-        {/* COL 1 — Gallery */}
-        <div className="cd-detail-img-card" style={{ ...card }}>
-          <ImageGallery images={images} />
-        </div>
-
-        {/* COL 2 — Donation Info */}
-        <div style={{ ...cardPadded }}>
-          <div className="dd-section-title">
-            <i className="ti ti-info-circle" style={{ color: 'var(--teal)', fontSize: 14 }} />
-            تفاصيل التبرع
+      {/* ══ Main Grid Layout (Asymmetrical SaaS grid) ══ */}
+      <div className="dd-layout-grid">
+        
+        {/* RIGHT COLUMN (Desktop side) — Gallery, Description & Details */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          {/* Gallery card */}
+          <div className="dd-card" style={{ padding: 16 }}>
+            <ImageGallery images={images} />
           </div>
 
-          <InfoRow icon="ti-fingerprint"   label="المعرف"          value={donation._id}                                    mono />
-          <InfoRow icon="ti-tag"           label="النوع"           value={donation.type} />
-          <InfoRow icon="ti-package"       label="الكمية"          value={donation.quantity != null ? `${donation.quantity} قطعة` : null} />
-          <InfoRow icon="ti-ruler"         label="المقاس"          value={donation.size || null} />
-          <InfoRow icon="ti-star"          label="حالة القطعة"     value={donation.condition || null} />
-          <InfoRow
-            icon="ti-circle-dot"
-            label="القرار"
-            badge={
-              <span className="dd-chip" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.color}33` }}>
-                <i className={`ti ${sc.icon}`} style={{ fontSize: 13 }} />
-                {sc.label}
-              </span>
-            }
-          />
-          <InfoRow icon="ti-calendar-plus" label="تاريخ التقديم"  value={formatDate(donation.createdAt)} />
-          {donation.updatedAt && donation.updatedAt !== donation.createdAt && (
-            <InfoRow icon="ti-refresh"     label="آخر تحديث"       value={formatDate(donation.updatedAt)} />
-          )}
-
-          {/* سبب الرفض */}
-          {donation.rejectionReason && (
-            <div style={{ marginTop: 14, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#ef4444', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <i className="ti ti-alert-circle" /> سبب الرفض
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.7 }}>{donation.rejectionReason}</div>
+          {/* Donation Specifications card */}
+          <div className="dd-card">
+            <div className="dd-card-header">
+              <i className="ti ti-info-circle" style={{ color: 'var(--teal)', fontSize: 16 }} />
+              <span>مواصفات وتفاصيل التبرع</span>
             </div>
-          )}
 
-          {/* الوصف */}
-          {donation.description && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--t3)', marginBottom: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <i className="ti ti-file-description" /> الوصف
+            <div className="dd-spec-grid">
+              <InfoBox icon="ti-fingerprint"   label="المعرف البرمجي"   value={donation._id} color="#6366f1" />
+              <InfoBox icon="ti-tag"           label="نوع القطعة"      value={donation.type} />
+              <InfoBox icon="ti-package"       label="الكمية الإجمالية" value={donation.quantity != null ? `${donation.quantity} قطع` : null} color="#10b981" />
+              <InfoBox icon="ti-ruler"         label="المقاس المتوفر"   value={donation.size || null} color="#ec4899" />
+              <InfoBox icon="ti-star"          label="حالة التوريد"     value={donation.condition || null} color="#f59e0b" />
+              <InfoBox icon="ti-calendar-plus" label="تاريخ تسجيل الطلب" value={formatDate(donation.createdAt)} color="#14b8a6" />
+            </div>
+
+            {/* Description area */}
+            {donation.description && (
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--t3)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <i className="ti ti-file-description" style={{ color: 'var(--teal)' }} /> الوصف التوضيحي
+                </div>
+                <div style={{ fontSize: 13.5, color: 'var(--t2)', lineHeight: 1.8, padding: '14px 18px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                  {donation.description}
+                </div>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.8, padding: '10px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 9 }}>
-                {donation.description}
+            )}
+          </div>
+
+          {/* Rejection notice card (if rejected) */}
+          {donation.status === 'rejected' && donation.rejectionReason && (
+            <div className="dd-card" style={{ background: 'rgba(239,68,68,0.02)', border: '1.5px solid rgba(239,68,68,0.22)' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <i className="ti ti-alert-triangle" style={{ fontSize: 16 }} /> سبب رفض الطلب
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--t2)', lineHeight: 1.8, padding: '12px 16px', background: 'rgba(239,68,68,0.06)', borderRadius: 10, border: '1px dashed rgba(239,68,68,0.15)' }}>
+                {donation.rejectionReason}
               </div>
             </div>
           )}
         </div>
 
-        {/* COL 3 — Donor Info */}
-        <div style={{ ...cardPadded }}>
-          <div className="dd-section-title">
-            <i className="ti ti-user" style={{ color: '#3b82f6', fontSize: 14 }} />
-            بيانات المتبرع
+        {/* LEFT COLUMN (Desktop sidebar) — Donor Info and Action Panel */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          {/* Donor Information card */}
+          <div className="dd-card">
+            <div className="dd-card-header">
+              <i className="ti ti-user" style={{ color: '#3b82f6', fontSize: 16 }} />
+              <span>معلومات حساب المتبرع</span>
+            </div>
+
+            {donor ? (
+              <>
+                {/* Visual Premium Profile banner */}
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', background: 'var(--surface2)', borderRadius: 14, border: '1px solid var(--border)', marginBottom: 18 }}>
+                  <div className="ap-table-avatar" style={{ width: 50, height: 50, fontSize: 20, borderRadius: 12, flexShrink: 0, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '2px solid rgba(59,130,246,0.2)' }}>
+                    {(donor.userName || donor.email || donor._id || 'ع').trim()[0]?.toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 10, color: 'var(--t4)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <i className="ti ti-shield-check" style={{ color: '#0ec97f', fontSize: 12 }} /> متبرع مسجل
+                    </div>
+                    <div style={{ fontWeight: 900, color: 'var(--t1)', fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {donor.userName || 'متبرع عطاء'}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <i className="ti ti-map-pin" style={{ color: '#3b82f6', fontSize: 13 }} />{donor.address || 'العنوان غير متوفر'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info parameters */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                  {/* Username */}
+                  <div className="dd-contact-shortcut">
+                    <div>
+                      <span style={{ fontSize: 10.5, color: 'var(--t4)', display: 'block' }}>اسم المستخدم</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{donor.userName || '—'}</span>
+                    </div>
+                    {donor.userName && (
+                      <button className="dd-shortcut-btn" onClick={() => handleCopy(donor.userName || '', 'userName')} title="نسخ اسم المستخدم">
+                        <i className="ti ti-copy" />
+                        {copiedText === 'userName' && <span className="dd-copied-tag">تم النسخ!</span>}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Monospace Donor ID */}
+                  <div className="dd-contact-shortcut">
+                    <div>
+                      <span style={{ fontSize: 10.5, color: 'var(--t4)', display: 'block' }}>معرف المتبرع (ID)</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', fontFamily: "'IBM Plex Mono', monospace" }}>{donor._id}</span>
+                    </div>
+                    <button className="dd-shortcut-btn" onClick={() => handleCopy(donor._id, 'donorId')} title="نسخ المعرف">
+                      <i className="ti ti-copy" />
+                      {copiedText === 'donorId' && <span className="dd-copied-tag">تم النسخ!</span>}
+                    </button>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="dd-contact-shortcut">
+                    <div>
+                      <span style={{ fontSize: 10.5, color: 'var(--t4)', display: 'block' }}>رقم الهاتف</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', fontFamily: donor.phone ? "'IBM Plex Mono', monospace" : undefined }}>{donor.phone || 'غير متوفر'}</span>
+                    </div>
+                    {donor.phone && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <a href={`tel:${donor.phone}`} className="dd-shortcut-btn" title="اتصال مباشر" style={{ textDecoration: 'none' }}>
+                          <i className="ti ti-phone-call" />
+                        </a>
+                        <button className="dd-shortcut-btn" onClick={() => handleCopy(donor.phone || '', 'phone')} title="نسخ الرقم">
+                          <i className="ti ti-copy" />
+                          {copiedText === 'phone' && <span className="dd-copied-tag">تم النسخ!</span>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="dd-contact-shortcut">
+                    <div>
+                      <span style={{ fontSize: 10.5, color: 'var(--t4)', display: 'block' }}>البريد الإلكتروني</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', wordBreak: 'break-all' }}>{donor.email || 'غير متوفر'}</span>
+                    </div>
+                    {donor.email && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <a
+                          href={`https://mail.google.com/mail/?view=cm&fs=1&to=${donor.email}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="dd-shortcut-btn"
+                          title="إرسال بريد"
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <i className="ti ti-mail-fast" />
+                        </a>
+                        <button className="dd-shortcut-btn" onClick={() => handleCopy(donor.email || '', 'email')} title="نسخ البريد">
+                          <i className="ti ti-copy" />
+                          {copiedText === 'email' && <span className="dd-copied-tag">تم النسخ!</span>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Address */}
+                  <div className="dd-contact-shortcut">
+                    <div>
+                      <span style={{ fontSize: 10.5, color: 'var(--t4)', display: 'block' }}>العنوان بالكامل</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{donor.address || 'غير متوفر'}</span>
+                    </div>
+                    {donor.address && (
+                      <button className="dd-shortcut-btn" onClick={() => handleCopy(donor.address || '', 'address')} title="نسخ العنوان">
+                        <i className="ti ti-copy" />
+                        {copiedText === 'address' && <span className="dd-copied-tag">تم النسخ!</span>}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Registration Date */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)', fontSize: 11.5 }}>
+                    <span style={{ color: 'var(--t4)' }}>تاريخ الانضمام (التسجيل)</span>
+                    <span style={{ color: 'var(--t2)', fontWeight: 700 }}>{donor.createdAt ? formatDate(donor.createdAt) : 'غير متوفر'}</span>
+                  </div>
+
+                  {/* Last Account Update */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)', fontSize: 11.5 }}>
+                    <span style={{ color: 'var(--t4)' }}>آخر تحديث للحساب</span>
+                    <span style={{ color: 'var(--t2)', fontWeight: 700 }}>
+                      {donor.updatedAt && donor.updatedAt !== donor.createdAt ? formatDate(donor.updatedAt) : 'لا يوجد تحديث'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '36px 0', color: 'var(--t4)' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, border: '1px solid var(--border)' }}>
+                  <i className="ti ti-user-off" />
+                </div>
+                <span style={{ fontSize: 13.5, fontWeight: 700 }}>بيانات المتبرع غير متوفرة</span>
+                <span style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.6, maxWidth: 200 }}>قد يكون حساب المتبرع محذوفاً أو غير مرتبط بشكل صحيح.</span>
+              </div>
+            )}
           </div>
 
-          {donor ? (
-            <>
-              {/* Avatar hero */}
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <div className="ap-table-avatar" style={{ width: 46, height: 46, fontSize: 19, borderRadius: 12, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1.5px solid rgba(59,130,246,0.25)' }}>
-                  {(donor.userName || donor.name || donor.email || donor._id).trim()[0]?.toUpperCase()}
+          {/* Action / Decision Panel Card */}
+          {donation.status === 'pending' && onAction ? (
+            <div className="dd-card" style={{ border: '1.5px solid var(--teal-dim)' }}>
+              <div className="dd-card-header">
+                <i className="ti ti-clipboard-list" style={{ color: 'var(--teal)', fontSize: 16 }} />
+                <span>اتخاذ قرار بشأن التبرع</span>
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--t3)', lineHeight: 1.75, margin: '0 0 16px' }}>
+                يرجى معاينة الصور وتفاصيل القطعة جيداً قبل اتخاذ الإجراء. عند قبول التبرع أو رفضه، يتم إرسال إشعار تلقائي إلى المتبرع فوراً.
+              </p>
+              
+              <div className="dd-action-row">
+                <button
+                  className="dd-btn-action dd-btn-accept"
+                  disabled={busy}
+                  onClick={() => onAction(donation._id, 'accepted')}
+                >
+                  {isAccLoading
+                    ? <><i className="ti ti-loader-2 dd-spin" /> جاري القبول...</>
+                    : <><i className="ti ti-circle-check" /> قبول التبرع</>
+                  }
+                </button>
+                <button
+                  className="dd-btn-action dd-btn-reject"
+                  disabled={busy}
+                  onClick={() => onAction(donation._id, 'rejected')}
+                >
+                  {isRejLoading
+                    ? <><i className="ti ti-loader-2 dd-spin" /> جاري الرفض...</>
+                    : <><i className="ti ti-circle-x" /> رفض التبرع</>
+                  }
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="dd-card">
+              <div className="dd-card-header">
+                <i className="ti ti-clipboard-check" style={{ color: sc.color, fontSize: 16 }} />
+                <span>حالة الطلب الحالية</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', background: sc.bg, border: '1.5px dashed ' + sc.color + '40', borderRadius: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: sc.color + '20', color: sc.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, boxShadow: '0 0 0 4px ' + sc.glow }}>
+                  <i className={`ti ${sc.icon}`} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 10.5, color: 'var(--t4)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <i className="ti ti-at" style={{ fontSize: 11 }} /> اسم المستخدم
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--t1)', fontSize: 15 }}>{donor.userName || donor.email?.split('@')[0] || `#${donor._id.slice(-4)}`}</div>
-                  {donor.address && (
-                    <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <i className="ti ti-map-pin" style={{ color: '#3b82f6', fontSize: 12 }} />{donor.address}
-                    </div>
-                  )}
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1)' }}>{sc.label}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 3 }}>تم تسجيل هذا القرار بنجاح — الطلب مغلق ولا يمكن التعديل عليه.</div>
                 </div>
               </div>
-
-              <InfoRow icon="ti-user-circle"   label="اسم المستخدم"       value={donor.userName}   accent="#3b82f6" />
-              <InfoRow icon="ti-id-badge"       label="اسم المتبرع"        value={donor.name}       accent="#3b82f6" />
-              <InfoRow icon="ti-phone"         label="الهاتف"             value={donor.phone}      accent="#3b82f6" />
-              <InfoRow icon="ti-map-pin"        label="العنوان"            value={donor.address}    accent="#3b82f6" />
-              <InfoRow icon="ti-mail"           label="البريد الإلكتروني"  value={donor.email}      accent="#3b82f6" />
-              <InfoRow icon="ti-calendar-plus"  label="تاريخ التسجيل"     value={formatDate(donor.createdAt)}  accent="#3b82f6" />
-              {donor.updatedAt && donor.updatedAt !== donor.createdAt && (
-                <InfoRow icon="ti-calendar-event" label="آخر تحديث للحساب" value={formatDate(donor.updatedAt)} accent="#3b82f6" />
-              )}
-              <InfoRow icon="ti-fingerprint"   label="معرف المتبرع"      value={donor._id}        accent="#3b82f6" mono />
-            </>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '32px 0', color: 'var(--t4)' }}>
-              <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                <i className="ti ti-user-off" />
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>بيانات المتبرع غير متاحة</span>
-              <span style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.6 }}>الحساب محذوف أو غير مرتبط بهذا التبرع</span>
             </div>
           )}
         </div>
+
       </div>
-
-      {/* ══ Action / Status Card ══ */}
-      {donation.status === 'pending' && onAction ? (
-        <div style={{ ...card, padding: '20px 22px' }}>
-          <div className="dd-section-title">
-            <i className="ti ti-clipboard-list" style={{ color: 'var(--teal)', fontSize: 14 }} />
-            اتخاذ إجراء
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.75, margin: '0 0 18px' }}>
-            بعد مراجعة التبرع يمكنك قبوله أو رفضه. سيتم إشعار المتبرع تلقائياً بقرارك.
-          </p>
-          <div className="cd-action-row">
-            <button
-              className="cd-btn-accept-lg"
-              disabled={busy}
-              onClick={() => onAction(donation._id, 'accepted')}
-            >
-              {isAccLoading
-                ? <><i className="ti ti-loader-2 dd-spin" /> جارٍ القبول...</>
-                : <><i className="ti ti-circle-check" /> قبول التبرع</>
-              }
-            </button>
-            <button
-              className="cd-btn-reject-lg"
-              disabled={busy}
-              onClick={() => onAction(donation._id, 'rejected')}
-            >
-              {isRejLoading
-                ? <><i className="ti ti-loader-2 dd-spin" /> جارٍ الرفض...</>
-                : <><i className="ti ti-circle-x" /> رفض التبرع</>
-              }
-            </button>
-          </div>
-        </div>
-      ) : donation.status !== 'pending' ? (
-        <div style={{ ...card, padding: '16px 20px' }}>
-          <div className="dd-section-title">
-            <i className="ti ti-clipboard-check" style={{ color: sc.color, fontSize: 14 }} />
-            حالة الطلب
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: sc.bg, border: '1px solid ' + sc.color + '33', borderRadius: 10 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: sc.color + '20', color: sc.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0, boxShadow: '0 0 0 4px ' + sc.glow }}>
-              <i className={`ti ${sc.icon}`} />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)' }}>{sc.label}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 2 }}>تم اتخاذ القرار — لا يمكن التعديل</div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
     </div>
   );
 }

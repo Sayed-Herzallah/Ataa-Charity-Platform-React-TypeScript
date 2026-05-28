@@ -1,3428 +1,3 @@
-// import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-// import { useAuth } from '../../contexts/AuthContext';
-// import { useLocation } from 'wouter';
-// import '../../styles/css/AdminPanel.css';
-// import '@tabler/icons-webfont/dist/tabler-icons.css';
-// import {
-//   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-//   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-// } from 'recharts';
-// import AIChatEmbed from '../../components/shared/AIChatEmbed';
-// import { usersApi } from '../../services';
-// import {
-//   apiFetch, fetchPage, fetchAll,
-//   User, Charity, Report, Tab, ApprovalStatus,
-//   APPROVAL_CFG, ROLE_CFG,
-//   TEAL2, AMBER, RED,
-//   fmt,
-// } from './adminTypes';
-
-// // 12-hour datetime formatter for display
-// const fmt12 = (val?: string | null): string => {
-//   if (!val) return '—';
-//   const d = new Date(val);
-//   if (isNaN(d.getTime())) return '—';
-//   return d.toLocaleString('ar-EG', {
-//     year: 'numeric', month: 'short', day: 'numeric',
-//     hour: '2-digit', minute: '2-digit', hour12: true,
-//   });
-// };
-
-// type ViewMode = 'table' | 'cards';
-// type ThemeMode = 'dark' | 'light';
-
-// const NAV_ITEMS = [
-//   { id: 'overview',   label: 'نظرة عامة',       icon: 'ti-layout-dashboard'    },
-//   { id: 'users',      label: 'المستخدمون',       icon: 'ti-users'               },
-//   { id: 'charities',  label: 'الجمعيات',          icon: 'ti-building-community'  },
-//   { id: 'reports',    label: 'التقارير',          icon: 'ti-alert-circle'        },
-//   { id: 'automation', label: 'التشغيل التلقائي', icon: 'ti-settings-automation' },
-//   { id: 'settings',   label: 'الإعدادات',        icon: 'ti-settings'            },
-//   { id: 'ai-chat',    label: 'مساعد الذكاء',     icon: 'ti-brain'               },
-// ];
-
-// // ─── Sidebar Component ────────────────────────────────────────────────────────
-// function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, collapsed, onToggleCollapse, newUsersCount, newCharitiesCount, newReportsCount }: {
-//   activeTab: Tab;
-//   onTabChange: (tab: Tab) => void;
-//   userName: string;
-//   onLogout: () => void;
-//   pendingCount: number;
-//   collapsed: boolean;
-//   onToggleCollapse: () => void;
-//   newUsersCount: number;
-//   newCharitiesCount: number;
-//   newReportsCount: number;
-// }) {
-//   return (
-//     <aside className={`ap-sidebar${collapsed ? ' collapsed' : ''}`}>
-//       <div className="ap-sidebar-brand">
-//         <div className="ap-brand-icon">
-//           <i className="ti ti-shield-check" />
-//         </div>
-//         {!collapsed && <span className="ap-brand-title">لوحة التحكم</span>}
-//         <button
-//           className="ap-collapse-btn"
-//           onClick={onToggleCollapse}
-//           title={collapsed ? 'توسيع الشريط' : 'طي الشريط'}
-//         >
-//           <i className={`ti ${collapsed ? 'ti-layout-sidebar-right-expand' : 'ti-layout-sidebar-right-collapse'}`} />
-//         </button>
-//       </div>
-
-//       <nav className="ap-sidebar-nav">
-//         {NAV_ITEMS.map(item => {
-//           const badgeCount =
-//             item.id === 'users'     ? newUsersCount :
-//             item.id === 'charities' ? (newCharitiesCount + pendingCount) :
-//             item.id === 'reports'   ? newReportsCount : 0;
-//           return (
-//             <button
-//               key={item.id}
-//               className={`ap-nav-item${activeTab === item.id ? ' active' : ''}`}
-//               onClick={() => onTabChange(item.id as Tab)}
-//               title={collapsed ? item.label : undefined}
-//             >
-//               <span className="ap-nav-icon-wrap">
-//                 <i className={`ti ${item.icon}`} />
-//                 {badgeCount > 0 && (
-//                   <span className="ap-nav-badge">{badgeCount > 99 ? '99+' : badgeCount}</span>
-//                 )}
-//               </span>
-//               {!collapsed && <span className="ap-nav-label">{item.label}</span>}
-//               {!collapsed && activeTab === item.id && <span className="ap-nav-active-bar" />}
-//             </button>
-//           );
-//         })}
-//       </nav>
-
-//       <div className="ap-sidebar-footer">
-//         {!collapsed && (
-//           <div className="ap-sidebar-user" onClick={() => onTabChange('settings')} title="الإعدادات">
-//             <div className="ap-user-avatar">{userName?.slice(0, 1).toUpperCase()}</div>
-//             <div className="ap-user-meta">
-//               <span className="ap-user-name">{userName}</span>
-//               <span className="ap-user-role">مسؤول النظام</span>
-//             </div>
-//             <i className="ti ti-settings" style={{ fontSize: 14, color: 'var(--t4)' }} />
-//           </div>
-//         )}
-//         {collapsed && (
-//           <button
-//             className="ap-nav-item"
-//             onClick={() => onTabChange('settings')}
-//             title="الإعدادات"
-//             style={{ justifyContent: 'center', padding: '10px 0' }}
-//           >
-//             <span className="ap-nav-icon-wrap">
-//               <i className="ti ti-settings" />
-//             </span>
-//           </button>
-//         )}
-//         <button className="ap-sidebar-logout" onClick={onLogout} title="تسجيل الخروج">
-//           <i className="ti ti-logout" />
-//           {!collapsed && <span>خروج</span>}
-//         </button>
-//       </div>
-//     </aside>
-//   );
-// }
-
-// // ─── Mobile Bottom Nav ────────────────────────────────────────────────────────
-// function MobileNav({ activeTab, onTabChange, pendingCount, onLogout, newUsersCount, newCharitiesCount, newReportsCount }: {
-//   activeTab: Tab;
-//   onTabChange: (tab: Tab) => void;
-//   pendingCount: number;
-//   onLogout: () => void;
-//   newUsersCount: number;
-//   newCharitiesCount: number;
-//   newReportsCount: number;
-// }) {
-//   return (
-//     <nav className="ap-mobile-nav">
-//       {NAV_ITEMS.map(item => {
-//         const badgeCount =
-//           item.id === 'users'     ? newUsersCount :
-//           item.id === 'charities' ? (newCharitiesCount + pendingCount) :
-//           item.id === 'reports'   ? newReportsCount : 0;
-//         return (
-//           <button
-//             key={item.id}
-//             className={`ap-mobile-nav-item${activeTab === item.id ? ' active' : ''}`}
-//             onClick={() => onTabChange(item.id as Tab)}
-//           >
-//             <span className="ap-nav-icon-wrap">
-//               <i className={`ti ${item.icon}`} />
-//               {badgeCount > 0 && (
-//                 <span className="ap-nav-badge">{badgeCount > 99 ? '99+' : badgeCount}</span>
-//               )}
-//             </span>
-//             <span>{item.label}</span>
-//           </button>
-//         );
-//       })}
-//       <button className="ap-mobile-nav-item ap-mobile-nav-logout" onClick={onLogout}>
-//         <span className="ap-nav-icon-wrap"><i className="ti ti-logout" /></span>
-//         <span>خروج</span>
-//       </button>
-//     </nav>
-//   );
-// }
-
-// // ─── View Toggle Component ──────────────────────────────────────────────────
-// function ViewToggle({ mode, onChange }: { mode: ViewMode; onChange: (mode: ViewMode) => void }) {
-//   return (
-//     <div className="ap-view-switcher">
-//       <button 
-//         className={`ap-view-btn ${mode === 'table' ? 'active' : ''}`} 
-//         onClick={() => onChange('table')}
-//         title="عرض كجدول"
-//       >
-//         <i className="ti ti-list" />
-//       </button>
-//       <button 
-//         className={`ap-view-btn ${mode === 'cards' ? 'active' : ''}`} 
-//         onClick={() => onChange('cards')}
-//         title="عرض ككروت"
-//       >
-//         <i className="ti ti-layout-grid" />
-//       </button>
-//     </div>
-//   );
-// }
-
-// function StatusBadge({ status }: { status: string }) {
-//   const cfg = APPROVAL_CFG[status as ApprovalStatus] ?? {
-//     label: status, bg: '#1c2333', color: '#9aa5b9', dot: '#3d4a60',
-//   };
-//   return (
-//     <span className="ap-badge" style={{ background: cfg.bg, color: cfg.color }}>
-//       <span className="ap-badge-dot" style={{ background: cfg.dot }} />
-//       {cfg.label}
-//     </span>
-//   );
-// }
-
-// function RoleBadge({ role }: { role: string }) {
-//   const cfg = ROLE_CFG[role as keyof typeof ROLE_CFG] ?? {
-//     label: role, bg: '#1c2333', color: '#9aa5b9', icon: '',
-//   };
-//   return (
-//     <span className="ap-badge" style={{ background: cfg.bg, color: cfg.color }}>
-//       {cfg.icon} {cfg.label}
-//     </span>
-//   );
-// }
-
-// function Toast({ msg }: { msg: { type: 'success' | 'error'; text: string } | null }) {
-//   if (!msg) return null;
-//   return (
-//     <div className={`ap-toast ${msg.type}`}>
-//       <i className={`ti ${msg.type === 'success' ? 'ti-circle-check' : 'ti-alert-circle'}`} />
-//       {msg.text}
-//     </div>
-//   );
-// }
-
-// interface ConfirmState {
-//   title: string;
-//   message: string;
-//   confirmLabel?: string;
-//   variant?: 'danger' | 'ok';
-//   icon?: string;
-//   onConfirm: () => void;
-// }
-
-// function ConfirmModal({ opts, loading, onClose }: {
-//   opts: ConfirmState | null;
-//   loading: boolean;
-//   onClose: () => void;
-// }) {
-//   if (!opts) return null;
-//   const isDanger = opts.variant !== 'ok';
-//   const confirmBg = isDanger ? RED : TEAL2;
-//   return (
-//     <div className="ap-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-//       <div className="ap-modal">
-//         <div className="ap-modal-inner">
-//           <div className="ap-modal-icon" style={{ background: confirmBg + '22' }}>
-//             <i className={`ti ${opts.icon ?? (isDanger ? 'ti-trash' : 'ti-check')}`} style={{ color: confirmBg }} />
-//           </div>
-//           <h3 className="ap-modal-title">{opts.title}</h3>
-//           <p className="ap-modal-msg">{opts.message}</p>
-//           <div className="ap-modal-actions">
-//             <button className="ap-modal-cancel" onClick={onClose} disabled={loading}>إلغاء</button>
-//             <button
-//               className="ap-modal-confirm"
-//               disabled={loading}
-//               style={{ background: confirmBg }}
-//               onClick={opts.onConfirm}
-//             >
-//               {loading && <i className="ti ti-loader-2 ti-spin" />}
-//               {opts.confirmLabel ?? 'تأكيد'}
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function RejectModal({ target, loading, onClose, onConfirm }: {
-//   target: { id: string; name: string } | null;
-//   loading: boolean;
-//   onClose: () => void;
-//   onConfirm: (reason: string) => void;
-// }) {
-//   const [reason, setReason] = useState('');
-//   useEffect(() => { if (target) setReason(''); }, [target]);
-//   if (!target) return null;
-//   return (
-//     <div className="ap-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-//       <div className="ap-modal">
-//         <div className="ap-modal-inner">
-//           <div className="ap-modal-icon" style={{ background: RED + '22' }}>
-//             <i className="ti ti-x" style={{ color: RED }} />
-//           </div>
-//           <h3 className="ap-modal-title">رفض جمعية "{target.name}"</h3>
-//           <p className="ap-modal-msg">يمكنك تحديد سبب الرفض ليصل للجمعية بالبريد الإلكتروني.</p>
-//           <div className="ap-form-group" style={{ marginBottom: 20 }}>
-//             <label className="ap-form-label">سبب الرفض</label>
-//             <textarea
-//               className="ap-form-textarea"
-//               rows={3}
-//               value={reason}
-//               onChange={e => setReason(e.target.value)}
-//               placeholder="سبب الرفض (اختياري)"
-//             />
-//           </div>
-//           <div className="ap-modal-actions">
-//             <button className="ap-modal-cancel" onClick={onClose} disabled={loading}>إلغاء</button>
-//             <button
-//               className="ap-modal-confirm"
-//               disabled={loading}
-//               style={{ background: RED }}
-//               onClick={() => onConfirm(reason)}
-//             >
-//               {loading && <i className="ti ti-loader-2 ti-spin" />}
-//               تأكيد الرفض
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function EditCharityModal({ target, loading, setLoading, onClose, onSaved, showMsg }: {
-//   target: Charity | null;
-//   loading: string | null;
-//   setLoading: (v: string | null) => void;
-//   onClose: () => void;
-//   onSaved: (id: string, form: { charityName: string; address: string; description: string }) => void;
-//   showMsg: (type: 'success' | 'error', text: string) => void;
-// }) {
-//   const [form, setForm] = useState({ charityName: '', address: '', description: '' });
-//   const [errors, setErrors] = useState<Record<string, string>>({});
-
-//   useEffect(() => {
-//     if (target) {
-//       setForm({
-//         charityName: target.charityName ?? '',
-//         address: target.address ?? '',
-//         description: target.description ?? '',
-//       });
-//       setErrors({});
-//     }
-//   }, [target]);
-
-//   if (!target) return null;
-
-//   const validate = () => {
-//     const e: Record<string, string> = {};
-//     if (!form.charityName.trim() || form.charityName.trim().length < 3)
-//       e.charityName = 'اسم الجمعية يجب أن يكون 3 أحرف على الأقل';
-//     if (!form.address.trim() || form.address.trim().length < 5)
-//       e.address = 'العنوان يجب أن يكون 5 أحرف على الأقل';
-//     return e;
-//   };
-
-//   const isBusy = loading === 'edit-' + target._id;
-//   const changed =
-//     form.charityName  !== (target.charityName  ?? '') ||
-//     form.address      !== (target.address      ?? '') ||
-//     form.description  !== (target.description  ?? '');
-
-//   const handleSave = async () => {
-//     const e = validate();
-//     if (Object.keys(e).length) { setErrors(e); return; }
-//     setLoading('edit-' + target._id);
-//     try {
-//       await apiFetch(`/charity/${target._id}`, {
-//         method: 'PATCH',
-//         body: JSON.stringify({
-//           charityName: form.charityName.trim(),
-//           address: form.address.trim(),
-//           description: form.description.trim(),
-//         }),
-//       });
-//       onSaved(target._id, form);
-//       showMsg('success', `تم تحديث "${form.charityName}" بنجاح`);
-//       onClose();
-//     } catch (err: unknown) {
-//       showMsg('error', (err instanceof Error ? err.message : null) || 'فشل التحديث');
-//     } finally { setLoading(null); }
-//   };
-
-//   return (
-//     <div className="ap-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-//       <div className="ap-modal">
-//         <div className="ap-modal-inner">
-//           <div className="ap-modal-icon" style={{ background: TEAL2 + '22' }}>
-//             <i className="ti ti-edit" style={{ color: TEAL2 }} />
-//           </div>
-//           <h3 className="ap-modal-title">تعديل بيانات الجمعية</h3>
-//           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16 }}>
-//             <div className="ap-form-group">
-//               <label className="ap-form-label">
-//                 اسم الجمعية <span style={{ color: RED }}>*</span>
-//               </label>
-//               <input
-//                 className={`ap-form-input${errors.charityName ? ' error' : ''}`}
-//                 value={form.charityName}
-//                 onChange={e => {
-//                   setForm(f => ({ ...f, charityName: e.target.value }));
-//                   setErrors(er => ({ ...er, charityName: '' }));
-//                 }}
-//                 placeholder="اسم الجمعية"
-//               />
-//               {errors.charityName && (
-//                 <div className="ap-form-err">
-//                   <i className="ti ti-alert-circle" />{errors.charityName}
-//                 </div>
-//               )}
-//             </div>
-//             <div className="ap-form-group">
-//               <label className="ap-form-label">
-//                 العنوان <span style={{ color: RED }}>*</span>
-//               </label>
-//               <input
-//                 className={`ap-form-input${errors.address ? ' error' : ''}`}
-//                 value={form.address}
-//                 onChange={e => {
-//                   setForm(f => ({ ...f, address: e.target.value }));
-//                   setErrors(er => ({ ...er, address: '' }));
-//                 }}
-//                 placeholder="عنوان الجمعية"
-//               />
-//               {errors.address && (
-//                 <div className="ap-form-err">
-//                   <i className="ti ti-alert-circle" />{errors.address}
-//                 </div>
-//               )}
-//             </div>
-//             <div className="ap-form-group">
-//               <label className="ap-form-label">
-//                 الوصف{' '}
-//                 <span style={{ fontSize: 11, color: 'var(--t4)', fontWeight: 400 }}>(اختياري)</span>
-//               </label>
-//               <textarea
-//                 className="ap-form-textarea"
-//                 rows={3}
-//                 value={form.description}
-//                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-//                 placeholder="وصف مختصر عن الجمعية..."
-//               />
-//             </div>
-//           </div>
-//           <div className="ap-info-box" style={{ marginBottom: 18 }}>
-//             <div className="ap-info-row">
-//               <span className="lbl">البريد الإلكتروني:</span>
-//               <span className="val">{target.email}</span>
-//             </div>
-//             <div className="ap-info-row">
-//               <span className="lbl">حالة الجمعية:</span>
-//               <span className="val"><StatusBadge status={target.approvalStatus} /></span>
-//             </div>
-//             {target.licenseNumber && (
-//               <div className="ap-info-row">
-//                 <span className="lbl">رقم الترخيص:</span>
-//                 <span className="val">{target.licenseNumber}</span>
-//               </div>
-//             )}
-//           </div>
-//           <div className="ap-modal-actions">
-//             <button className="ap-modal-cancel" onClick={onClose} disabled={isBusy}>إلغاء</button>
-//             <button
-//               className="ap-modal-confirm"
-//               disabled={isBusy || !changed}
-//               style={{ background: TEAL2 }}
-//               onClick={handleSave}
-//             >
-//               {isBusy && <i className="ti ti-loader-2 ti-spin" />}
-//               {isBusy ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function PageSkeleton() {
-//   return (
-//     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-//       <div className="ap-kpi-grid">
-//         {[1, 2, 3, 4].map(i => (
-//           <div key={i} className="ap-kpi-card">
-//             <div className="ap-skel" style={{ width: 40, height: 40, borderRadius: 10, marginBottom: 14 }} />
-//             <div className="ap-skel" style={{ height: 28, width: 80, marginBottom: 8 }} />
-//             <div className="ap-skel" style={{ height: 12, width: 110 }} />
-//           </div>
-//         ))}
-//       </div>
-//       <div className="ap-charts-row">
-//         {[1, 2].map(i => (
-//           <div key={i} className="ap-chart-card">
-//             <div className="ap-skel" style={{ height: 14, width: 140, marginBottom: 18 }} />
-//             <div className="ap-skel" style={{ height: 200, width: '100%', borderRadius: 8 }} />
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
-
-// function DetailRow({ icon, label, value, mono, danger }: {
-//   icon: string; label: string; value: string; mono?: boolean; danger?: boolean;
-// }) {
-//   return (
-//     <div className="ap-detail-row">
-//       <div className="ap-detail-row-icon"><i className={`ti ${icon}`} /></div>
-//       <span className="ap-detail-row-label">{label}</span>
-//       <span className={`ap-detail-row-val${mono ? ' mono' : ''}${danger ? ' danger' : ''}`}>
-//         {value}
-//       </span>
-//     </div>
-//   );
-// }
-
-// function EmptyState({ icon, title, desc }: { icon: string; title: string; desc?: string }) {
-//   return (
-//     <div className="ap-empty-state">
-//       <div className="ap-empty-icon"><i className={`ti ${icon}`} /></div>
-//       <div className="ap-empty-title">{title}</div>
-//       {desc && <div className="ap-empty-desc">{desc}</div>}
-//     </div>
-//   );
-// }
-
-// function ErrorBanner({ msg, onRetry }: { msg: string; onRetry: () => void }) {
-//   return (
-//     <div className="ap-error-banner">
-//       <i className="ti ti-alert-triangle" style={{ color: AMBER, fontSize: 20, flexShrink: 0 }} />
-//       <div style={{ flex: 1 }}>
-//         <div style={{ fontWeight: 700, marginBottom: 3, color: 'var(--t1)' }}>حدث خطأ</div>
-//         <div style={{ fontSize: 13, color: 'var(--t3)' }}>{msg}</div>
-//       </div>
-//       <button className="ap-retry-btn" onClick={onRetry}>
-//         <i className="ti ti-refresh" /> إعادة المحاولة
-//       </button>
-//     </div>
-//   );
-// }
-
-// function SectionTitle({ icon, color, title, badge }: {
-//   icon: string; color: string; title: string; badge?: number;
-// }) {
-//   return (
-//     <div className="ap-section-title">
-//       <i className={`ti ${icon}`} style={{ color }} />
-//       {title}
-//       {badge !== undefined && (
-//         <span className="ap-count-badge" style={{ background: color }}>{badge}</span>
-//       )}
-//     </div>
-//   );
-// }
-
-// function SearchBox({ value, onChange, placeholder }: {
-//   value: string;
-//   onChange: (v: string) => void;
-//   placeholder?: string;
-// }) {
-//   return (
-//     <div className="ap-search-wrap">
-//       <i className="ti ti-search ap-search-icon" />
-//       <input
-//         className="ap-search-input"
-//         value={value}
-//         onChange={e => onChange(e.target.value)}
-//         placeholder={placeholder ?? 'بحث...'}
-//       />
-//       {value && (
-//         <button className="ap-search-clear" onClick={() => onChange('')}>
-//           <i className="ti ti-x" />
-//         </button>
-//       )}
-//     </div>
-//   );
-// }
-
-// function LoadMoreBtn({ loading, remaining, onClick }: {
-//   loading: boolean; remaining: number; onClick: () => void;
-// }) {
-//   return (
-//     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
-//       <button className="ap-load-more-btn" onClick={onClick} disabled={loading}>
-//         {loading
-//           ? <><i className="ti ti-loader-2 ti-spin" /> جاري التحميل...</>
-//           : <>تحميل المزيد {remaining > 0 && `(${remaining.toLocaleString('en-US')})`}</>
-//         }
-//       </button>
-//     </div>
-//   );
-// }
-
-// // ─── Countdown Component ───────────────────────────────────────────────────
-// function Countdown({ targetTs, color }: { targetTs: number | null; color: string }) {
-//   const [remaining, setRemaining] = useState('');
-//   useEffect(() => {
-//     if (!targetTs) { setRemaining(''); return; }
-//     const update = () => {
-//       const diff = targetTs - Date.now();
-//       if (diff <= 0) { setRemaining('جاري التشغيل...'); return; }
-//       const h = Math.floor(diff / 3_600_000);
-//       const m = Math.floor((diff % 3_600_000) / 60_000);
-//       const s = Math.floor((diff % 60_000) / 1_000);
-//       setRemaining(
-//         h > 0
-//           ? `${h}س ${String(m).padStart(2,'0')}د ${String(s).padStart(2,'0')}ث`
-//           : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-//       );
-//     };
-//     update();
-//     const id = setInterval(update, 1_000);
-//     return () => clearInterval(id);
-//   }, [targetTs]);
-//   if (!targetTs || !remaining) return null;
-//   return (
-//     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color, fontFamily: "'IBM Plex Mono', monospace" }}>
-//       <i className="ti ti-hourglass-high" style={{ fontSize: 13 }} />
-//       {remaining}
-//     </div>
-//   );
-// }
-
-// function KpiCard({ icon, label, value, change, changeDir, color }: {
-//   icon: string; label: string; value: string | number;
-//   change?: string; changeDir?: 'up' | 'down' | 'neutral'; color: string;
-// }) {
-//   return (
-//     <div className="ap-kpi-card" style={{ '--kpi-color': color } as React.CSSProperties}>
-//       <div className="ap-kpi-icon-wrap"><i className={`ti ${icon}`} /></div>
-//       <div className="ap-kpi-value">{value}</div>
-//       <div className="ap-kpi-label">{label}</div>
-//       {change && (
-//         <div className={`ap-kpi-change ${changeDir ?? 'neutral'}`}>{change}</div>
-//       )}
-//     </div>
-//   );
-// }
-
-// function ChartTooltip({ active, payload, label }: {
-//   active?: boolean;
-//   payload?: { value: number; name: string }[];
-//   label?: string;
-// }) {
-//   if (!active || !payload?.length) return null;
-//   return (
-//     <div className="ap-chart-tooltip">
-//       <div className="ap-chart-tooltip-label">{label}</div>
-//       {payload.map((p, i) => (
-//         <div key={i} className="ap-chart-tooltip-row">
-//           <span>{p.name}</span>
-//           <span style={{ fontWeight: 700 }}>{p.value.toLocaleString('en-US')}</span>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// }
-
-// function CronCard({ icon, iconBg, iconColor, title, desc, code, codeBg, codeBorder, codeColor, loading, btnColor, onRun }: {
-//   icon: string; iconBg: string; iconColor: string;
-//   title: string; desc: string; code: string;
-//   codeBg: string; codeBorder: string; codeColor: string;
-//   loading: boolean; btnColor: string; onRun: () => void;
-// }) {
-//   return (
-//     <div className="ap-cron-card">
-//       <div className="ap-cron-icon" style={{ background: iconBg }}>
-//         <i className={`ti ${icon}`} style={{ color: iconColor }} />
-//       </div>
-//       <div className="ap-cron-title">{title}</div>
-//       <p className="ap-cron-desc">{desc}</p>
-//       <code className="ap-cron-code" style={{ background: codeBg, borderColor: codeBorder, color: codeColor }}>
-//         {code}
-//       </code>
-//       <button
-//         className="ap-cron-run-btn"
-//         style={{ background: btnColor }}
-//         disabled={loading}
-//         onClick={onRun}
-//       >
-//         {loading
-//           ? <><i className="ti ti-loader-2 ti-spin" />جاري التشغيل...</>
-//           : <><i className="ti ti-player-play" />تشغيل الآن</>
-//         }
-//       </button>
-//     </div>
-//   );
-// }
-
-// export default function AdminPanel() {
-//   const { user, logout } = useAuth();
-//   const [, navigate] = useLocation();
-//   const [tab, setTab] = useState<Tab>('overview');
-
-//   // ─── View Modes State ──────────────────────────────────────────────────────
-//   const [usersViewMode, setUsersViewMode] = useState<ViewMode>('table');
-//   const [charitiesViewMode, setCharitiesViewMode] = useState<ViewMode>('cards');
-//   const [reportsViewMode, setReportsViewMode] = useState<ViewMode>('cards');
-
-//   // ─── Theme Mode Logic ──────────────────────────────────────────────────────
-//   const [theme, setTheme] = useState<ThemeMode>(() => {
-//     try {
-//       return (localStorage.getItem('ap-theme') as ThemeMode) || 'dark';
-//     } catch { return 'dark'; }
-//   });
-
-//   useEffect(() => {
-//     try {
-//       localStorage.setItem('ap-theme', theme);
-//       if (theme === 'light') {
-//         document.body.classList.add('ap-light-theme');
-//       } else {
-//         document.body.classList.remove('ap-light-theme');
-//       }
-//     } catch { /* ignore */ }
-//   }, [theme]);
-
-//   const toggleTheme = () => {
-//     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-//   };
-
-//   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-//     try {
-//       return localStorage.getItem('ap-sidebar-collapsed') === 'true';
-//     } catch { return false; }
-//   });
-
-//   const handleToggleSidebar = () => {
-//     setSidebarCollapsed(v => {
-//       const next = !v;
-//       try { localStorage.setItem('ap-sidebar-collapsed', String(next)); } catch { /* ignore */ }
-//       return next;
-//     });
-//   };
-
-//   const [users,      setUsers]     = useState<User[]>([]);
-//   const [charities, setCharities] = useState<Charity[]>([]);
-//   const [reports,    setReports]   = useState<Report[]>([]);
-
-//   const [usersTotal,      setUsersTotal]     = useState(0);
-//   const [charitiesTotal, setCharitiesTotal] = useState(0);
-//   const [reportsTotal,    setReportsTotal]   = useState(0);
-
-//   // States for accurate total statistics / trend charts
-//   const [allUsersForTrend, setAllUsersForTrend] = useState<User[]>([]);
-//   const [allCharitiesForTrend, setAllCharitiesForTrend] = useState<Charity[]>([]);
-//   const [allReportsForTrend, setAllReportsForTrend] = useState<Report[]>([]);
-
-
-//   const [usersPage,      setUsersPage]     = useState(1);
-//   const [charitiesPage, setCharitiesPage] = useState(1);
-//   const [reportsPage,    setReportsPage]   = useState(1);
-
-//   const [hasMoreUsers,       setHasMoreUsers]       = useState(false);
-//   const [hasMoreCharities,   setHasMoreCharities]   = useState(false);
-//   const [hasMoreReports,     setHasMoreReports]     = useState(false);
-//   const [charitiesRemaining, setCharitiesRemaining] = useState(0);
-//   const [loadingMore,        setLoadingMore]        = useState<string | null>(null);
-
-//   // ── Overview cards expanded state ──────────────────────────────────────────
-//   const [ovUsersExp,     setOvUsersExp]     = useState(false);
-//   const [ovCharExp,      setOvCharExp]      = useState(false);
-//   const [ovReportsExp,   setOvReportsExp]   = useState(false);
-
-//   const [loading,       setLoading]       = useState(true);
-//   const [error,         setError]         = useState<string | null>(null);
-//   const [actionLoading, setActionLoading] = useState<string | null>(null);
-//   const [toast,         setToast]         = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-//   const [showScrollTop, setShowScrollTop] = useState(false);
-//   const contentRef = useRef<HTMLDivElement>(null);
-
-//   // ── تتبع العناصر الجديدة (badge أحمر على الـ sidebar) ──────────────────────
-//   const [newUsersCount,     setNewUsersCount]     = useState(0);
-//   const [newCharitiesCount, setNewCharitiesCount] = useState(0);
-//   const [newReportsCount,   setNewReportsCount]   = useState(0);
-//   const [confirmOpts,   setConfirmOpts]   = useState<ConfirmState | null>(null);
-//   const [confirmLoading,setConfirmLoading]= useState(false);
-//   const [rejectTarget,  setRejectTarget]  = useState<{ id: string; name: string } | null>(null);
-//   const [rejectLoading, setRejectLoading] = useState(false);
-//   const [editCharityTarget,  setEditCharityTarget]  = useState<Charity | null>(null);
-//   const [userDetailModal,    setUserDetailModal]    = useState<User | null>(null);
-//   const [reportModal,        setReportModal]        = useState<Report | null>(null);
-//   const [charityDetailModal, setCharityDetailModal] = useState<Charity | null>(null);
-
-//   const [usersSearch,     setUsersSearch]     = useState('');
-//   const [charitiesSearch, setCharitiesSearch] = useState('');
-//   const [reportsSearch,   setReportsSearch]   = useState('');
-//   const [charitiesFilter, setCharitiesFilter] = useState<string>('all');
-
-//   // ─── Sort State ────────────────────────────────────────────────────────────
-//   type SortDir = 'newest' | 'oldest';
-//   const [usersSort,     setUsersSort]     = useState<SortDir>('newest');
-//   const [charitiesSort, setCharitiesSort] = useState<SortDir>('newest');
-//   const [reportsSort,   setReportsSort]   = useState<SortDir>('newest');
-//   const [usersRoleFilter, setUsersRoleFilter] = useState<string>('all');
-//   const [reportsSenderFilter, setReportsSenderFilter] = useState<string>('all');
-
-//   // ─── Date Range Filters ────────────────────────────────────────────────────
-//   const [usersDateFrom,     setUsersDateFrom]     = useState('');
-//   const [usersDateTo,       setUsersDateTo]       = useState('');
-//   const [charitiesDateFrom, setCharitiesDateFrom] = useState('');
-//   const [charitiesDateTo,   setCharitiesDateTo]   = useState('');
-//   const [reportsDateFrom,   setReportsDateFrom]   = useState('');
-//   const [reportsDateTo,     setReportsDateTo]     = useState('');
-
-//   const [cronLoading, setCronLoading] = useState({ reminder: false, report: false });
-//   const [cronLog, setCronLog]         = useState<{ type: 'success' | 'error'; text: string; time: string }[]>([]);
-//   const [lastRun, setLastRun]         = useState<string | null>(null);
-
-//   // ─── Scheduler State (datetime-based, localStorage-persistent) ──────────────
-//   const SCHED_LS_KEY = 'ap_scheduler_v1';
-
-//   // Load persisted schedule targets from localStorage on init
-//   const loadPersistedSchedules = (): Record<string, number | null> => {
-//     try {
-//       const raw = localStorage.getItem(SCHED_LS_KEY);
-//       if (!raw) return { reminder: null, report: null };
-//       return JSON.parse(raw);
-//     } catch { return { reminder: null, report: null }; }
-//   };
-
-//   const [schedulerTimers,  setSchedulerTimers]  = useState<Record<string, ReturnType<typeof setTimeout>>>({});
-//   // nextRunTimes: human-readable label for display
-//   const [nextRunTimes,     setNextRunTimes]      = useState<Record<string, string | null>>({ reminder: null, report: null });
-//   // nextRunTs: epoch ms — persisted to localStorage
-//   const [nextRunTs,        setNextRunTs]         = useState<Record<string, number | null>>(() => loadPersistedSchedules());
-
-//   // Scheduled datetime inputs (date + time)
-//   const todayStr = new Date().toISOString().split('T')[0];
-//   const nowTimeStr = (() => {
-//     const d = new Date(); d.setMinutes(d.getMinutes() + 1);
-//     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-//   })();
-//   const [schedInputs, setSchedInputs] = useState<Record<string, { date: string; time: string; seconds: string }>>({
-//     reminder: { date: todayStr, time: nowTimeStr, seconds: '00' },
-//     report:   { date: todayStr, time: nowTimeStr, seconds: '00' },
-//   });
-
-//   const showMsg = useCallback((type: 'success' | 'error', text: string) => {
-//     setToast({ type, text });
-//     setTimeout(() => setToast(null), 3500);
-//   }, []);
-
-//   // Helper: format epoch ms to Arabic label
-//   const formatScheduleLabel = (ts: number) =>
-//     new Date(ts).toLocaleString('ar-EG', {
-//       year: 'numeric', month: 'short', day: 'numeric',
-//       hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-//     });
-
-//   // Helper: persist to localStorage
-//   const persistSchedule = useCallback((key: string, ts: number | null) => {
-//     try {
-//       const current = loadPersistedSchedules();
-//       const updated = { ...current, [key]: ts };
-//       localStorage.setItem(SCHED_LS_KEY, JSON.stringify(updated));
-//     } catch { /* ignore */ }
-//   // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-//   // ─── Schedule at exact datetime ────────────────────────────────────────────
-//   const scheduleAt = useCallback((
-//     key: 'reminder' | 'report',
-//     runFn: () => Promise<void>,
-//     targetDate: Date,
-//   ) => {
-//     // Clear previous timer
-//     setSchedulerTimers(prev => {
-//       if (prev[key]) clearTimeout(prev[key]);
-//       return { ...prev, [key]: undefined as any };
-//     });
-
-//     const delay = targetDate.getTime() - Date.now();
-//     if (delay <= 0) {
-//       showMsg('error', 'الوقت المحدد في الماضي! اختر وقتاً مستقبلياً.');
-//       return;
-//     }
-
-//     const ts = targetDate.getTime();
-//     const label = formatScheduleLabel(ts);
-
-//     // Persist timestamp to localStorage so it survives refresh
-//     persistSchedule(key, ts);
-//     setNextRunTs(prev => ({ ...prev, [key]: ts }));
-//     setNextRunTimes(prev => ({ ...prev, [key]: label }));
-
-//     const timer = setTimeout(async () => {
-//       await runFn();
-//       persistSchedule(key, null);
-//       setNextRunTs(p => ({ ...p, [key]: null }));
-//       setNextRunTimes(p => ({ ...p, [key]: null }));
-//       setSchedulerTimers(p => ({ ...p, [key]: undefined as any }));
-//     }, delay);
-
-//     setSchedulerTimers(prev => ({ ...prev, [key]: timer }));
-
-//     const keyLabel = key === 'reminder' ? 'تذكير التبرعات' : 'تقرير الأدمن';
-//     showMsg('success', `✓ تمت جدولة "${keyLabel}" في ${label}`);
-//   // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [showMsg, persistSchedule]);
-
-//   const cancelSchedule = useCallback((key: 'reminder' | 'report') => {
-//     setSchedulerTimers(prev => {
-//       if (prev[key]) clearTimeout(prev[key]);
-//       return { ...prev, [key]: undefined as any };
-//     });
-//     persistSchedule(key, null);
-//     setNextRunTs(prev => ({ ...prev, [key]: null }));
-//     setNextRunTimes(prev => ({ ...prev, [key]: null }));
-//     showMsg('success', 'تم إلغاء الجدولة');
-//   }, [showMsg, persistSchedule]);
-
-//   // ─── On mount: restore any persisted schedules ──────────────────────────────
-//   // runDonationReminder and runAdminReport are defined after this block,
-//   // so we use refs to avoid circular dependency
-//   const runReminderRef = useRef<() => Promise<void>>(async () => {});
-//   const runReportRef   = useRef<() => Promise<void>>(async () => {});
-
-//   useEffect(() => {
-//     const persisted = loadPersistedSchedules();
-//     const keys: Array<'reminder' | 'report'> = ['reminder', 'report'];
-//     keys.forEach(key => {
-//       const ts = persisted[key];
-//       if (!ts) return;
-//       const delay = ts - Date.now();
-//       if (delay <= 0) {
-//         // Missed — clear it
-//         persistSchedule(key, null);
-//         setNextRunTs(p => ({ ...p, [key]: null }));
-//         setNextRunTimes(p => ({ ...p, [key]: null }));
-//         showMsg('error', `انتهت جدولة "${key === 'reminder' ? 'تذكير التبرعات' : 'تقرير الأدمن'}" — الوقت مضى أثناء عدم الاتصال`);
-//         return;
-//       }
-//       // Restore label
-//       const label = formatScheduleLabel(ts);
-//       setNextRunTs(p => ({ ...p, [key]: ts }));
-//       setNextRunTimes(p => ({ ...p, [key]: label }));
-
-//       const runFn = key === 'reminder'
-//         ? () => runReminderRef.current()
-//         : () => runReportRef.current();
-
-//       const timer = setTimeout(async () => {
-//         await runFn();
-//         persistSchedule(key, null);
-//         setNextRunTs(p => ({ ...p, [key]: null }));
-//         setNextRunTimes(p => ({ ...p, [key]: null }));
-//         setSchedulerTimers(p => ({ ...p, [key]: undefined as any }));
-//       }, delay);
-
-//       setSchedulerTimers(prev => ({ ...prev, [key]: timer }));
-//     });
-
-//     return () => {
-//       setSchedulerTimers(prev => {
-//         Object.values(prev).forEach(t => { if (t) clearTimeout(t); });
-//         return {};
-//       });
-//     };
-//   // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-//   useEffect(() => {
-//     const tick = () => {
-//       const now = new Date();
-//       // 12-hour format for Arabic sidebar
-//       const timeStr12 = now.toLocaleTimeString('en-US', {
-//         hour: '2-digit', minute: '2-digit', hour12: true,
-//       });
-//       // Structured English live time for header badge
-//       const headerTime = now.toLocaleTimeString('en-US', {
-//         hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-//       });
-//       const el = document.getElementById('ap-clock');
-//       if (el) el.textContent = timeStr12;
-//       const el2 = document.getElementById('ap-clock-header');
-//       if (el2) el2.textContent = headerTime;
-//     };
-//     tick();
-//     const id = setInterval(tick, 1_000);
-//     return () => clearInterval(id);
-//   }, []);
-
-//   // const showMsg = useCallback((type: 'success' | 'error', text: string) => {
-//   //   setToast({ type, text });
-//   //   setTimeout(() => setToast(null), 3500);
-//   // }, []);
-
-//   // ── helpers لتتبع العناصر الجديدة ──────────────────────────────────────────
-//   const calcNew = (key: string, currentTotal: number): number => {
-//     const seen = parseInt(localStorage.getItem(key) ?? '0', 10);
-//     return Math.max(0, currentTotal - seen);
-//   };
-//   const markSeen = useCallback((key: string, total: number) => {
-//     localStorage.setItem(key, String(total));
-//   }, []);
-
-//   const loadData = useCallback(async () => {
-//     setLoading(true);
-//     setError(null);
-//     setUsersPage(1);
-//     setCharitiesPage(1);
-//     setReportsPage(1);
-
-//     try {
-//       const [uRes, cRes, uAll, cAll, cRejected, cPending] = await Promise.allSettled([
-//         fetchPage<User>('/users', 1, 10),
-//         fetchPage<Charity>('/charity/charities', 1, 10),
-//         fetchAll<User>('/users'),
-//         fetchAll<Charity>('/charity/charities'),
-//         // جلب المرفوضة بشكل منفصل في حالة الـ endpoint ميجيبهاش افتراضياً
-//         fetchAll<Charity>('/charity/charities?status=rejected'),
-//         fetchAll<Charity>('/charity/charities?status=pending'),
-//       ]);
-
-//       if (uRes.status === 'fulfilled') {
-//         setUsers(uRes.value.data ?? []);
-//         setUsersTotal(uRes.value.total ?? 0);
-//         setHasMoreUsers(uRes.value.hasMore ?? false);
-//       }
-//       if (cRes.status === 'fulfilled') {
-//         setCharities(cRes.value.data ?? []);
-//         setCharitiesTotal(cRes.value.total ?? 0);
-//         setHasMoreCharities(cRes.value.hasMore ?? false);
-//         setCharitiesRemaining(
-//           Math.max(0, (cRes.value.total ?? 0) - (cRes.value.data?.length ?? 0))
-//         );
-//       }
-
-//       if (uAll.status === 'fulfilled') {
-//         const allUsers = uAll.value.data ?? [];
-//         // لو fetchAll رجع فاضي، استخدم داتا الـ pagination كـ fallback للـ chart
-//         const trendUsers = allUsers.length > 0
-//           ? allUsers
-//           : (uRes.status === 'fulfilled' ? (uRes.value.data ?? []) : []);
-//         setAllUsersForTrend(trendUsers);
-//         // ── badge: كمية المستخدمين الجدد ──
-//         setNewUsersCount(calcNew('ap_seen_users', trendUsers.length));
-//         if (allUsers.length > 0) {
-//           setUsersTotal(uAll.value.total);
-//           setUsers(allUsers.slice(0, 10));
-//           setUsersPage(1);
-//           setHasMoreUsers(allUsers.length > 10);
-//         }
-//       } else if (uRes.status === 'fulfilled') {
-//         setAllUsersForTrend(uRes.value.data ?? []);
-//         setNewUsersCount(calcNew('ap_seen_users', (uRes.value.data ?? []).length));
-//       }
-//       if (cAll.status === 'fulfilled') {
-//         const allCharities = cAll.value.data ?? [];
-//         const trendCharities = allCharities.length > 0
-//           ? allCharities
-//           : (cRes.status === 'fulfilled' ? (cRes.value.data ?? []) : []);
-
-//         // ── دمج المرفوضة والمعلقة مع النتائج الأساسية ──
-//         const rejectedData = cRejected.status === 'fulfilled' ? (cRejected.value.data ?? []) : [];
-//         const pendingData  = cPending.status  === 'fulfilled' ? (cPending.value.data  ?? []) : [];
-
-//         // دمج وإزالة التكرار بالـ _id
-//         // ترتيب الأولوية: rejectedData/pendingData أولاً، ثم trendCharities تكسب (تـ overwrite)
-//         // عشان الـ main endpoint بيكون أدق من الـ filtered endpoints
-//         const mergedMap = new Map<string, any>();
-//         [...rejectedData, ...pendingData, ...trendCharities].forEach(c => {
-//           if (!c._id) return;
-//           const existing = mergedMap.get(c._id);
-//           if (!existing) {
-//             mergedMap.set(c._id, c);
-//           } else {
-//             // الـ status الصريح (مش undefined) يكسب دايماً
-//             const existingStatus = existing.approvalStatus || existing.status;
-//             const newStatus = c.approvalStatus || c.status;
-//             if (newStatus && !existingStatus) {
-//               mergedMap.set(c._id, c);
-//             } else if (newStatus && existingStatus) {
-//               // لو الاتنين عندهم status، اللي جاي من trendCharities يكسب
-//               mergedMap.set(c._id, c);
-//             }
-//           }
-//         });
-//         const merged = Array.from(mergedMap.values());
-
-//         // ── normalize: الـ API بترجع status بس الكود بيستخدم approvalStatus ──
-//         const normalized = merged.map((c: any) => {
-//           // نجرب كل الـ field names الممكنة ونتجاهل الـ empty strings
-//           const rawStatus =
-//             c.approvalStatus ||
-//             c.status ||
-//             c.approval_status ||
-//             c.charityStatus ||
-//             c.charity_status ||
-//             (c.isApproved === true ? 'approved' : c.isApproved === false ? 'rejected' : null);
-//           // نتأكد إن الـ status مش empty string
-//           const finalStatus = (rawStatus && rawStatus.toString().trim())
-//             ? rawStatus.toString().trim()
-//             : 'pending';
-//           return {
-//             ...c,
-//             approvalStatus: finalStatus,
-//             createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
-//           };
-//         });
-
-//         console.log('[Charity Debug] total after merge:', normalized.length,
-//           '| approved:', normalized.filter((c:any)=>c.approvalStatus==='approved').length,
-//           '| pending:',  normalized.filter((c:any)=>c.approvalStatus==='pending').length,
-//           '| rejected:', normalized.filter((c:any)=>c.approvalStatus==='rejected').length,
-//         );
-//         // debug: كل الجمعيات اللي مش approved — نشوف الـ raw fields بتاعتها
-//         const nonApproved = normalized.filter((c:any) => c.approvalStatus !== 'approved');
-//         console.log('[Charity NonApproved]', nonApproved.map((c:any) => ({
-//           charityName: c.charityName,
-//           approvalStatus: c.approvalStatus,
-//           rawStatus: c.status,
-//           rawApprovalStatus: c.approvalStatus,
-//           isApproved: c.isApproved,
-//           allFields: JSON.stringify(c).substring(0, 300),
-//         })));
-
-//         setAllCharitiesForTrend(normalized);
-//         setCharitiesTotal(normalized.length);
-//         setCharities(normalized.slice(0, 10));
-//         setCharitiesPage(1);
-//         setHasMoreCharities(normalized.length > 10);
-//         setCharitiesRemaining(Math.max(0, normalized.length - 10));
-//         // ── badge: كمية الجمعيات الجديدة (يعتمد على الـ total الكلي) ──
-//         setNewCharitiesCount(calcNew('ap_seen_charities', normalized.length));
-//       } else if (cRes.status === 'fulfilled') {
-//         const fallback = (cRes.value.data ?? []).map((c: any) => ({
-//           ...c,
-//           approvalStatus: c.approvalStatus || c.status || 'pending',
-//           createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
-//         }));
-//         setAllCharitiesForTrend(fallback);
-//       }
-
-//       // Bulletproof direct fetch for reports (without query params to avoid backend failures)
-//       let reportsList: Report[] = [];
-//       let reportsTotalCount = 0;
-//       try {
-//         const repRes = await apiFetch('/report/allReports');
-//         console.log('[DEBUG AdminPanel] Direct fetch `/report/allReports` response:', repRes);
-//         const foundArray = Array.isArray(repRes)
-//           ? repRes
-//           : (
-//               repRes?.data?.Data ||
-//               repRes?.data?.data ||
-//               repRes?.data?.reports ||
-//               repRes?.data?.allReports ||
-//               repRes?.Data?.Data ||
-//               repRes?.Data?.reports ||
-//               repRes?.Data?.allReports ||
-//               repRes?.reports ||
-//               repRes?.allReports ||
-//               repRes?.result?.reports ||
-//               repRes?.result ||
-//               (Array.isArray(repRes?.Data) ? repRes.Data : null) ||
-//               (Array.isArray(repRes?.data) ? repRes.data : null) ||
-//               []
-//             );
-//         console.log('[DEBUG AdminPanel] Extracted reports array:', foundArray);
-//         reportsList = Array.isArray(foundArray) ? foundArray : [];
-//         reportsTotalCount =
-//           repRes?.data?.Total_Items ||
-//           repRes?.data?.totalItems ||
-//           repRes?.data?.total ||
-//           repRes?.Data?.Total_Items ||
-//           repRes?.total ||
-//           repRes?.totalCount ||
-//           repRes?.totalItems ||
-//           reportsList.length;
-//       } catch (err) {
-//         console.error('Failed direct reports fetch from /report/allReports:', err);
-//         let fallbackSuccess = false;
-//         const alternativeEndpoints = ['/report', '/reports', '/report/all', '/reports/all'];
-//         for (const endpoint of alternativeEndpoints) {
-//           try {
-//             console.log(`[DEBUG AdminPanel] Trying fallback endpoint: ${endpoint}`);
-//             const altRes = await apiFetch(endpoint);
-//             console.log(`[DEBUG AdminPanel] Fallback endpoint ${endpoint} response:`, altRes);
-//             const foundArray = Array.isArray(altRes)
-//               ? altRes
-//               : (altRes?.reports || altRes?.allReports || altRes?.data?.reports || altRes?.data?.allReports || altRes?.data || altRes?.Data || []);
-//             if (foundArray && foundArray.length > 0) {
-//               reportsList = foundArray;
-//               reportsTotalCount = altRes?.total || altRes?.totalItems || foundArray.length;
-//               console.log(`[DEBUG AdminPanel] Successfully recovered reports from: ${endpoint}`);
-//               fallbackSuccess = true;
-//               break;
-//             }
-//           } catch (altErr) {
-//             console.warn(`[DEBUG AdminPanel] Fallback endpoint ${endpoint} failed:`, altErr);
-//           }
-//         }
-
-//         if (!fallbackSuccess) {
-//           // Final fallback to fetchPage
-//           try {
-//             const pageRes = await fetchPage<Report>('/report/allReports', 1, 1000);
-//             reportsList = pageRes.data;
-//             reportsTotalCount = pageRes.total;
-//           } catch (innerErr) {
-//             console.error('Fallback fetchPage reports failed:', innerErr);
-//           }
-//         }
-//       }
-
-//       setReports(reportsList.slice(0, 10));
-//       setReportsTotal(reportsTotalCount);
-//       setHasMoreReports(reportsTotalCount > 10);
-//       setAllReportsForTrend(reportsList);
-//       // ── badge: كمية التقارير الجديدة ──
-//       setNewReportsCount(calcNew('ap_seen_reports', reportsList.length));
-
-//       const failures = [uRes, cRes].filter(r => r.status === 'rejected') as PromiseRejectedResult[];
-//       if (failures.length === 2) {
-//         throw new Error((failures[0].reason instanceof Error ? failures[0].reason.message : null) || 'فشل تحميل البيانات');
-//       }
-//     } catch (e: unknown) {
-//       const status = (e as { status?: number })?.status;
-//       if (status === 401) {
-//         setTimeout(() => logout?.(), 1500);
-//       }
-//       setError((e instanceof Error ? e.message : null) || 'فشل تحميل البيانات');
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [logout]);
-
-//   useEffect(() => { loadData(); }, [loadData]);
-
-//   // ── مراقبة تلقائية كل 60 ثانية لجلب أي مستخدمين أو جمعيات جديدة ──────────
-//   useEffect(() => {
-//     const id = setInterval(async () => {
-//       try {
-//         const [uAll, cAll, cRej, cPend] = await Promise.all([
-//           fetchAll<User>('/users'),
-//           fetchAll<Charity>('/charity/charities'),
-//           fetchAll<Charity>('/charity/charities?status=rejected').catch(() => ({ data: [], total: 0, hasMore: false })),
-//           fetchAll<Charity>('/charity/charities?status=pending').catch(() => ({ data: [], total: 0, hasMore: false })),
-//         ]);
-//         const allUsers = uAll.data;
-//         // نفس منطق الدمج الذكي: rejected/pending أولاً، main endpoint يكسب
-//         const pollingMap = new Map<string, any>();
-//         [...(cRej.data ?? []), ...(cPend.data ?? []), ...(cAll.data ?? [])].forEach(c => {
-//           if (!c._id) return;
-//           const existing = pollingMap.get(c._id);
-//           if (!existing) {
-//             pollingMap.set(c._id, c);
-//           } else {
-//             const existingStatus = existing.approvalStatus || existing.status;
-//             const newStatus = c.approvalStatus || c.status;
-//             if (newStatus && (!existingStatus || newStatus !== 'pending')) {
-//               pollingMap.set(c._id, c);
-//             }
-//           }
-//         });
-//         const allCharities = Array.from(pollingMap.values());
-//         if (allUsers.length > 0) {
-//           setAllUsersForTrend(allUsers);
-//           setUsersTotal(uAll.total);
-//           setUsers(prev => allUsers.slice(0, Math.max(prev.length, 10)));
-//           setHasMoreUsers(allUsers.length > Math.max(users.length, 10));
-//         }
-//         if (allCharities.length > 0) {
-//           const normalizedC = allCharities.map((c: any) => ({
-//             ...c,
-//             approvalStatus: c.approvalStatus || c.status || 'pending',
-//             createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
-//           }));
-//           setAllCharitiesForTrend(normalizedC);
-//           setCharitiesTotal(cAll.total || normalizedC.length);
-//           setCharities(prev => normalizedC.slice(0, Math.max(prev.length, 10)));
-//           setHasMoreCharities(normalizedC.length > Math.max(charities.length, 10));
-//           setCharitiesRemaining(Math.max(0, normalizedC.length - Math.max(charities.length, 10)));
-//         }
-//       } catch { /* silent background refresh */ }
-//     }, 5 * 60_000); // كل 5 دقائق بدل 60 ثانية عشان نتجنب 429
-//     return () => clearInterval(id);
-//   }, [users.length, charities.length]);
-
-//   // ── مسح الـ badge لما يدخل الـ tab ──────────────────────────────────────────
-//   useEffect(() => {
-//     if (tab === 'users') {
-//       markSeen('ap_seen_users', allUsersForTrend.length);
-//       setNewUsersCount(0);
-//     } else if (tab === 'charities') {
-//       markSeen('ap_seen_charities', allCharitiesForTrend.length);
-//       setNewCharitiesCount(0);
-//     } else if (tab === 'reports') {
-//       markSeen('ap_seen_reports', allReportsForTrend.length);
-//       setNewReportsCount(0);
-//     }
-//   // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [tab]);
-
-//   // ── Scroll-to-top inside admin content ──
-//   useEffect(() => {
-//     // نقرأ الـ ref داخل الـ effect مباشرة وليس من خارجه
-//     const el = contentRef.current;
-//     if (!el) return;
-//     const onScroll = () => setShowScrollTop(el.scrollTop > 300);
-//     el.addEventListener('scroll', onScroll, { passive: true });
-//     // reset لما يتغير الـ tab
-//     setShowScrollTop(el.scrollTop > 300);
-//     return () => el.removeEventListener('scroll', onScroll);
-//   }, [tab]);
-
-//   const loadMoreUsers = async () => {
-//     // استخدم الـ cache أولاً لو موجود
-//     if (allUsersForTrend.length > users.length) {
-//       const next = usersPage + 1;
-//       const nextSlice = allUsersForTrend
-//         .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
-//         .slice(0, next * 10);
-//       setUsers(nextSlice);
-//       setUsersPage(next);
-//       setHasMoreUsers(allUsersForTrend.length > next * 10);
-//       return;
-//     }
-//     // fallback: جلب من API
-//     const next = usersPage + 1;
-//     setLoadingMore('users');
-//     try {
-//       const res = await fetchPage<User>('/users', next, 10);
-//       if (!res.data?.length) { setHasMoreUsers(false); return; }
-//       setUsers(prev => {
-//         const ids = new Set(prev.map(u => u._id));
-//         return [...prev, ...res.data.filter(u => !ids.has(u._id))];
-//       });
-//       setUsersPage(next);
-//       setHasMoreUsers(res.hasMore ?? false);
-//     } finally { setLoadingMore(null); }
-//   };
-
-//   const loadMoreCharities = async () => {
-//     // استخدم الـ cache أولاً لو موجود
-//     if (allCharitiesForTrend.length > charities.length) {
-//       const next = charitiesPage + 1;
-//       const sorted = [...allCharitiesForTrend].sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
-//       const nextSlice = sorted.slice(0, next * 10);
-//       setCharities(nextSlice);
-//       setCharitiesPage(next);
-//       setHasMoreCharities(allCharitiesForTrend.length > next * 10);
-//       setCharitiesRemaining(Math.max(0, allCharitiesForTrend.length - next * 10));
-//       return;
-//     }
-//     // fallback: جلب من API
-//     const next = charitiesPage + 1;
-//     setLoadingMore('charities');
-//     try {
-//       const res = await fetchPage<Charity>('/charity/charities', next, 10);
-//       if (!res.data?.length) { setHasMoreCharities(false); return; }
-//       setCharities(prev => {
-//         const ids = new Set(prev.map(c => c._id));
-//         return [...prev, ...res.data.filter(c => !ids.has(c._id))];
-//       });
-//       setCharitiesPage(next);
-//       setHasMoreCharities(res.hasMore ?? false);
-//       setCharitiesRemaining(Math.max(0, (res.total ?? 0) - (charities.length + res.data.length)));
-//     } finally { setLoadingMore(null); }
-//   };
-
-//   // ─── Load all charities for filtering (client-side filter fix) ─────────────
-//   const [allCharitiesLoaded, setAllCharitiesLoaded] = useState(false);
-//   const [loadingAllCharities, setLoadingAllCharities] = useState(false);
-
-//   const ensureAllCharitiesLoaded = useCallback(async () => {
-//     if (allCharitiesLoaded || loadingAllCharities) return;
-//     setLoadingAllCharities(true);
-//     try {
-//       let page = 2;
-//       let more = hasMoreCharities;
-//       while (more) {
-//         const res = await fetchPage<Charity>('/charity/charities', page, 50);
-//         if (!res.data?.length) break;
-//         setCharities(prev => {
-//           const ids = new Set(prev.map(c => c._id));
-//           return [...prev, ...res.data.filter(c => !ids.has(c._id))];
-//         });
-//         more = res.hasMore ?? false;
-//         page++;
-//         if (!more) break;
-//       }
-//       setHasMoreCharities(false);
-//       setAllCharitiesLoaded(true);
-//     } finally {
-//       setLoadingAllCharities(false);
-//     }
-//   }, [allCharitiesLoaded, loadingAllCharities, hasMoreCharities]);
-
-//   // When filter changes away from 'all', load all charities first
-//   const handleCharitiesFilterChange = useCallback((f: string) => {
-//     setCharitiesFilter(f);
-//     if (f !== 'all' && !allCharitiesLoaded) {
-//       ensureAllCharitiesLoaded();
-//     }
-//   }, [allCharitiesLoaded, ensureAllCharitiesLoaded]);
-
-//   const loadMoreReports = async () => {
-//     const next = reportsPage + 1;
-//     setLoadingMore('reports');
-//     try {
-//       if (allReportsForTrend.length > 0) {
-//         const nextSlice = allReportsForTrend.slice(0, next * 10);
-//         setReports(nextSlice);
-//         setReportsPage(next);
-//         setHasMoreReports(allReportsForTrend.length > next * 10);
-//         return;
-//       }
-//       const res = await fetchPage<Report>('/report/allReports', next, 10);
-//       if (!res.data?.length) { setHasMoreReports(false); return; }
-//       setReports(prev => {
-//         const ids = new Set(prev.map(r => r._id));
-//         return [...prev, ...res.data.filter(r => !ids.has(r._id))];
-//       });
-//       setReportsPage(next);
-//       setHasMoreReports(res.hasMore ?? false);
-//     } finally { setLoadingMore(null); }
-//   };
-
-//   const handleDeleteUser = (id: string, name: string) => {
-//     setConfirmOpts({
-//       title: `حذف المستخدم "${name}"`,
-//       message: 'هذا الإجراء لا يمكن التراجع عنه. سيتم حذف الحساب نهائيًا.',
-//       confirmLabel: 'حذف', variant: 'danger', icon: 'ti-user-off',
-//       onConfirm: async () => {
-//         setConfirmLoading(true);
-//         try {
-//           await apiFetch(`/users/${id}`, { method: 'DELETE' });
-//           setUsers(prev => prev.filter(u => u._id !== id));
-//           setAllUsersForTrend(prev => prev.filter(u => u._id !== id));
-//           showMsg('success', `تم حذف "${name}" بنجاح`);
-//         } catch (e: unknown) {
-//           showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الحذف');
-//         } finally { setConfirmLoading(false); setConfirmOpts(null); }
-//       },
-//     });
-//   };
-
-//   const handleApprove = async (id: string, name: string) => {
-//     setActionLoading('approve-' + id);
-//     try {
-//       await apiFetch(`/charity/${id}/approve`, { method: 'PATCH' });
-//       setCharities(prev =>
-//         prev.map(c => c._id === id ? { ...c, approvalStatus: 'approved' as ApprovalStatus } : c)
-//       );
-//       setAllCharitiesForTrend(prev => {
-//         const updated = prev.map(c => c._id === id ? { ...c, approvalStatus: 'approved' as ApprovalStatus } : c);
-//         // حدّث الـ badge عشان القبول تغيير في الحالة
-//         setNewCharitiesCount(c => c + 1);
-//         return updated;
-//       });
-//       showMsg('success', `تمت الموافقة على "${name}"`);
-//     } catch (e: unknown) {
-//       showMsg('error', (e instanceof Error ? e.message : null) || 'فشلت الموافقة');
-//     } finally { setActionLoading(null); }
-//   };
-
-//   const handleReject = async (reason: string) => {
-//     if (!rejectTarget) return;
-//     setRejectLoading(true);
-//     try {
-//       await apiFetch(`/charity/${rejectTarget.id}/reject`, {
-//         method: 'PATCH',
-//         body: JSON.stringify({ rejectionReason: reason }),
-//       });
-//       setCharities(prev =>
-//         prev.map(c =>
-//           c._id === rejectTarget.id ? { ...c, approvalStatus: 'rejected' as ApprovalStatus } : c
-//         )
-//       );
-//       setAllCharitiesForTrend(prev => {
-//         const updated = prev.map(c =>
-//           c._id === rejectTarget.id ? { ...c, approvalStatus: 'rejected' as ApprovalStatus } : c
-//         );
-//         // حدّث الـ badge عشان الرفض تغيير في الحالة
-//         setNewCharitiesCount(c => c + 1);
-//         return updated;
-//       });
-//       showMsg('success', `تم رفض "${rejectTarget.name}"`);
-//     } catch (e: unknown) {
-//       showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الرفض');
-//     } finally { setRejectLoading(false); setRejectTarget(null); }
-//   };
-
-//   const handleDeleteCharity = (id: string, name: string) => {
-//     setConfirmOpts({
-//       title: `حذف جمعية "${name}"`,
-//       message: 'هذا الإجراء لا يمكن التراجع عنه.',
-//       confirmLabel: 'حذف', variant: 'danger', icon: 'ti-building-off',
-//       onConfirm: async () => {
-//         setConfirmLoading(true);
-//         try {
-//           await apiFetch(`/charity/${id}`, { method: 'DELETE' });
-//           setCharities(prev => prev.filter(c => c._id !== id));
-//           setAllCharitiesForTrend(prev => prev.filter(c => c._id !== id));
-//           showMsg('success', `تم حذف "${name}" بنجاح`);
-//         } catch (e: unknown) {
-//           showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الحذف');
-//         } finally { setConfirmLoading(false); setConfirmOpts(null); }
-//       },
-//     });
-//   };
-
-//   const runDonationReminder = async () => {
-//     setCronLoading(p => ({ ...p, reminder: true }));
-//     const time = new Date().toLocaleTimeString('en-US');
-//     try {
-//       await apiFetch('/cron/donationReminder');
-//       setCronLog(p => [{ type: 'success', text: 'تذكير التبرعات: تم التشغيل بنجاح', time }, ...p]);
-//       setLastRun(new Date().toISOString());
-//       showMsg('success', 'تم تشغيل تذكير التبرعات');
-//     } catch (e: unknown) {
-//       const msg = (e instanceof Error ? e.message : null) || 'فشل';
-//       setCronLog(p => [{ type: 'error', text: `تذكير التبرعات: ${msg}`, time }, ...p]);
-//       showMsg('error', 'فشل تشغيل التذكير');
-//     } finally { setCronLoading(p => ({ ...p, reminder: false })); }
-//   };
-//   // Wire ref so the restore-on-mount useEffect can call it
-//   runReminderRef.current = runDonationReminder;
-
-//   const runAdminReport = async () => {
-//     setCronLoading(p => ({ ...p, report: true }));
-//     const time = new Date().toLocaleTimeString('en-US');
-//     try {
-//       await apiFetch('/cron/adminReport');
-//       setCronLog(p => [{ type: 'success', text: 'تقرير الأدمن: تم الإرسال بنجاح', time }, ...p]);
-//       setLastRun(new Date().toISOString());
-//       showMsg('success', 'تم إرسال تقرير الأدمن');
-//     } catch (e: unknown) {
-//       const msg = (e instanceof Error ? e.message : null) || 'فشل';
-//       setCronLog(p => [{ type: 'error', text: `تقرير الأدمن: ${msg}`, time }, ...p]);
-//       showMsg('error', 'فشل إرسال التقرير');
-//     } finally { setCronLoading(p => ({ ...p, report: false })); }
-//   };
-//   // Wire ref
-//   runReportRef.current = runAdminReport;
-
-//   const handleLogout = () => {
-//     setConfirmOpts({
-//       title: 'تسجيل الخروج',
-//       message: 'هل أنت متأكد من تسجيل الخروج؟ سيتم إنهاء جلستك الحالية.',
-//       confirmLabel: 'تسجيل الخروج',
-//       variant: 'danger',
-//       icon: 'ti-logout',
-//       onConfirm: async () => {
-//         setConfirmLoading(true);
-//         try {
-//           logout?.();
-//           navigate('/');
-//         } finally {
-//           setConfirmLoading(false);
-//           setConfirmOpts(null);
-//         }
-//       },
-//     });
-//   };
-
-//   const [settingsTab, setSettingsTab] = useState<'account' | 'profile' | 'password' | 'danger'>('account');
-//   const [profileForm, setProfileForm] = useState({ userName: '', phone: '', address: '' });
-//   const [passForm, setPassForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
-//   const [settingsSaving, setSettingsSaving] = useState(false);
-//   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
-//   const [passErrors, setPassErrors] = useState<Record<string, string>>({});
-//   const [showOldPass, setShowOldPass] = useState(false);
-//   const [showNewPass, setShowNewPass] = useState(false);
-//   const [showConfirmPass, setShowConfirmPass] = useState(false);
-//   const [showDeleteModal, setShowDeleteModal] = useState(false);
-//   const [deleteConfirmText, setDeleteConfirmText] = useState('');
-//   const [deleteBtnLoading, setDeleteBtnLoading] = useState(false);
-
-//   // ─── Admin Panel Validation Regexes ───────────────────────────────────────
-//   const AP_nameRegex = /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/;
-//   const AP_passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
-//   const AP_phoneRegex = /^(002|\+2)?01[0125][0-9]{8}$/;
-
-//   useEffect(() => {
-//     if (user) {
-//       setProfileForm({
-//         userName: user.userName || '',
-//         phone: (user as any).phone || '',
-//         address: (user as any).address || '',
-//       });
-//     }
-//   }, [user]);
-
-//   const { refreshUser } = useAuth();
-
-//   const saveProfile = async () => {
-//     const errs: Record<string, string> = {};
-//     if (!AP_nameRegex.test(profileForm.userName)) errs.userName = 'الاسم: يبدأ بحرف، 3-30 حرف، بدون رموز خاصة';
-//     if (profileForm.phone && !AP_phoneRegex.test(profileForm.phone)) errs.phone = 'رقم غير صالح — أدخل رقماً مصرياً صحيحاً';
-//     if (profileForm.address && (profileForm.address.length < 5 || profileForm.address.length > 100)) errs.address = 'العنوان يجب أن يكون بين 5 و 100 حرف';
-//     setProfileErrors(errs);
-//     if (Object.keys(errs).length) return;
-//     setSettingsSaving(true);
-//     try {
-//       await usersApi.updateProfile(profileForm);
-//       await refreshUser();
-//       showMsg('success', 'تم تحديث الملف الشخصي بنجاح');
-//     } catch (err: unknown) {
-//       showMsg('error', err instanceof Error ? err.message : 'حدث خطأ');
-//     } finally { setSettingsSaving(false); }
-//   };
-
-//   const handleDeleteAccount = async () => {
-//     if (deleteConfirmText !== user?.userName) return;
-//     setDeleteBtnLoading(true);
-//     try {
-//       await usersApi.deleteAccount();
-//       showMsg('success', 'تم حذف الحساب بنجاح، سيتم توجيهك الآن');
-//       setTimeout(() => {
-//         logout?.();
-//         navigate('/');
-//       }, 1500);
-//     } catch (err: unknown) {
-//       showMsg('error', err instanceof Error ? err.message : 'فشل حذف الحساب');
-//     } finally {
-//       setDeleteBtnLoading(false);
-//       setShowDeleteModal(false);
-//     }
-//   };
-
-//   const savePassword = async () => {
-//     const errs: Record<string, string> = {};
-//     if (!passForm.oldPassword) errs.oldPassword = 'كلمة المرور الحالية مطلوبة';
-//     if (!AP_passwordRegex.test(passForm.newPassword)) errs.newPassword = 'يجب: حرف كبير، حرف صغير، رقم، و8 أحرف على الأقل';
-//     if (passForm.newPassword !== passForm.confirmPassword) errs.confirmPassword = 'كلمتا المرور غير متطابقتين';
-//     setPassErrors(errs);
-//     if (Object.keys(errs).length) return;
-//     setSettingsSaving(true);
-//     try {
-//       await usersApi.changePassword(passForm);
-//       setPassForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-//       showMsg('success', 'تم تغيير كلمة المرور بنجاح');
-//     } catch (err: unknown) {
-//       showMsg('error', err instanceof Error ? err.message : 'حدث خطأ');
-//     } finally { setSettingsSaving(false); }
-//   };
-
-//   const filteredUsers = users
-//     .filter(u => {
-//       if (usersRoleFilter !== 'all' && u.roleType !== usersRoleFilter) return false;
-//       if (usersDateFrom && u.createdAt && new Date(u.createdAt) < new Date(usersDateFrom)) return false;
-//       if (usersDateTo && u.createdAt && new Date(u.createdAt) > new Date(usersDateTo + 'T23:59:59')) return false;
-//       if (!usersSearch) return true;
-//       const q = usersSearch.toLowerCase();
-//       return (
-//         u.userName?.toLowerCase().includes(q) ||
-//         u.email?.toLowerCase().includes(q) ||
-//         u._id?.toLowerCase().includes(q)
-//       );
-//     })
-//     .sort((a, b) => {
-//       const ta = new Date(a.createdAt ?? 0).getTime();
-//       const tb = new Date(b.createdAt ?? 0).getTime();
-//       return usersSort === 'newest' ? tb - ta : ta - tb;
-//     });
-
-//   // Helper: extract timestamp from createdAt OR MongoDB ObjectId hex prefix
-//   const getCharityTimestamp = (c: Charity): number => {
-//     const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
-//     if (raw) {
-//       const t = new Date(raw).getTime();
-//       if (!isNaN(t)) return t;
-//     }
-//     try {
-//       const hex = c._id?.substring(0, 8);
-//       if (hex) return parseInt(hex, 16) * 1000;
-//     } catch { /* ignore */ }
-//     return 0;
-//   };
-
-//   const filteredCharities = allCharitiesForTrend
-//     .filter(c => charitiesFilter === 'all' || c.approvalStatus === charitiesFilter)
-//     .filter(c => {
-//       const ts = getCharityTimestamp(c);
-//       if (charitiesDateFrom && ts < new Date(charitiesDateFrom).getTime()) return false;
-//       if (charitiesDateTo && ts > new Date(charitiesDateTo + 'T23:59:59').getTime()) return false;
-//       if (!charitiesSearch) return true;
-//       const q = charitiesSearch.toLowerCase();
-//       return (
-//         c.charityName?.toLowerCase().includes(q) ||
-//         c.email?.toLowerCase().includes(q) ||
-//         c._id?.toLowerCase().includes(q) ||
-//         c.userId?.toLowerCase().includes(q)
-//       );
-//     })
-//     .sort((a, b) => {
-//       const ta = getCharityTimestamp(a);
-//       const tb = getCharityTimestamp(b);
-//       return charitiesSort === 'newest' ? tb - ta : ta - tb;
-//     });
-
-//   const filteredReports = reports
-//     .filter(r => {
-//       if (reportsSenderFilter !== 'all') {
-//         const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
-//         if (reportsSenderFilter === 'charity' && !isCharity) return false;
-//         if (reportsSenderFilter === 'user' && isCharity) return false;
-//       }
-//       if (reportsDateFrom && r.createdAt && new Date(r.createdAt) < new Date(reportsDateFrom)) return false;
-//       if (reportsDateTo && r.createdAt && new Date(r.createdAt) > new Date(reportsDateTo + 'T23:59:59')) return false;
-//       if (!reportsSearch) return true;
-//       const q = reportsSearch.toLowerCase();
-//       return (
-//         r.description?.toLowerCase().includes(q) ||
-//         r.userName?.toLowerCase().includes(q)    ||
-//         r.charityName?.toLowerCase().includes(q) ||
-//         r._id?.toLowerCase().includes(q)         ||
-//         r.userId?.toLowerCase().includes(q)
-//       );
-//     })
-//     .sort((a, b) => {
-//       const ta = new Date(a.createdAt ?? 0).getTime();
-//       const tb = new Date(b.createdAt ?? 0).getTime();
-//       return reportsSort === 'newest' ? tb - ta : ta - tb;
-//     });
-
-//   const pendingCount = allCharitiesForTrend.filter(c => c.approvalStatus === 'pending').length;
-
-//   const MONTHS_AR = [
-//     'يناير','فبراير','مارس','أبريل','مايو','يونيو',
-//     'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'
-//   ];
-
-//   // ── helper: يدور على أي حقل تاريخ في الـ object تلقائياً ──
-//   // يشمل MongoDB ObjectId (أول 4 bytes = unix timestamp)
-//   const getDateStr = (obj: any): string | undefined => {
-//     if (!obj || typeof obj !== 'object') return undefined;
-//     const knownKeys = [
-//       'createdAt','created_at','registeredAt','joinedAt','date',
-//       'updatedAt','updated_at','approvedAt','approved_at',
-//       'dateCreated','dateAdded','timestamp','creationDate',
-//     ];
-//     for (const k of knownKeys) {
-//       if (obj[k] && typeof obj[k] === 'string') return obj[k];
-//     }
-//     // بحث شامل عن أي string يشبه تاريخ ISO
-//     for (const k of Object.keys(obj)) {
-//       const v = obj[k];
-//       if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v;
-//     }
-//     // Fallback: استخرج التاريخ من MongoDB ObjectId (_id)
-//     // أول 8 حروف hex = unix timestamp بالثواني
-//     if (obj._id && typeof obj._id === 'string' && /^[0-9a-f]{24}$/i.test(obj._id)) {
-//       const tsSeconds = parseInt(obj._id.substring(0, 8), 16);
-//       if (!isNaN(tsSeconds)) return new Date(tsSeconds * 1000).toISOString();
-//     }
-//     return undefined;
-//   };
-
-//   const trendData = useMemo(() => {
-//     // ── الأشهر بترتيب يناير → ديسمبر للسنة الحالية ──
-//     const currentYear = new Date().getFullYear();
-//     const months12: { year: number; month: number; label: string }[] = MONTHS_AR.map(
-//       (label, idx) => ({ year: currentYear, month: idx, label })
-//     );
-
-//     return months12.map(({ year, month, label }) => {
-//       const users = allUsersForTrend.filter(u => {
-//         const ds = getDateStr(u);
-//         if (!ds) return false;
-//         const d = new Date(ds);
-//         return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
-//       }).length;
-//       const charities = allCharitiesForTrend.filter(c => {
-//         const ds = getDateStr(c);
-//         if (!ds) return false;
-//         const d = new Date(ds);
-//         return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
-//       }).length;
-//       const reports = allReportsForTrend.filter(r => {
-//         const ds = getDateStr(r);
-//         if (!ds) return false;
-//         const d = new Date(ds);
-//         return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
-//       }).length;
-//       return { name: label, users, charities, reports };
-//     });
-//   }, [allUsersForTrend, allCharitiesForTrend, allReportsForTrend]);
-
-//   // ─── لوجيك حساب نسبة النمو الفعلي ديناميكياً للشهر الحالى ────────────────
-//   const dynamicTrend = useMemo(() => {
-//     const currentMonth = new Date().getMonth();
-//     const currentYear = new Date().getFullYear();
-
-//     const currentMonthCount = 
-//       allUsersForTrend.filter(u => { const ds = getDateStr(u); return ds && new Date(ds).getMonth() === currentMonth && new Date(ds).getFullYear() === currentYear; }).length +
-//       allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === currentMonth && new Date(ds).getFullYear() === currentYear; }).length;
-
-//     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-//     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-//     const lastMonthCount = 
-//       allUsersForTrend.filter(u => { const ds = getDateStr(u); return ds && new Date(ds).getMonth() === lastMonth && new Date(ds).getFullYear() === lastMonthYear; }).length +
-//       allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === lastMonth && new Date(ds).getFullYear() === lastMonthYear; }).length;
-
-//     let percentage = 0;
-//     if (lastMonthCount === 0) {
-//       percentage = currentMonthCount * 100;
-//     } else {
-//       percentage = parseFloat(((currentMonthCount / lastMonthCount) * 100).toFixed(1));
-//     }
-
-//     const isUp = currentMonthCount >= lastMonthCount;
-//     return {
-//       label: `${isUp ? '+' : '-'}${percentage.toLocaleString('en-US')}%`,
-//       isUp
-//     };
-//   }, [allUsersForTrend, allCharitiesForTrend]);
-
-//   // ─── نمو الجمعيات منفصل ────────────────────────────────────────────────────
-//   const charityTrend = useMemo(() => {
-//     const currentMonth = new Date().getMonth();
-//     const currentYear = new Date().getFullYear();
-//     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-//     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-//     const curr = allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === currentMonth && new Date(ds).getFullYear() === currentYear; }).length;
-//     const prev = allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === lastMonth && new Date(ds).getFullYear() === lastMonthYear; }).length;
-
-//     let pct = 0;
-//     if (prev === 0) pct = curr * 100;
-//     else pct = parseFloat(((curr / prev) * 100).toFixed(1));
-//     const isUp = curr >= prev;
-//     return { label: `${isUp ? '+' : '-'}${pct.toLocaleString('en-US')}%`, isUp };
-//   }, [allCharitiesForTrend]);
-
-//   const approvalPieData = [
-//     { name: 'موافق عليها', value: allCharitiesForTrend.filter(c => c.approvalStatus === 'approved').length },
-//     { name: 'معلقة',       value: allCharitiesForTrend.filter(c => c.approvalStatus === 'pending').length  },
-//     { name: 'مرفوضة',     value: allCharitiesForTrend.filter(c => c.approvalStatus === 'rejected').length  },
-//   ].filter(d => d.value > 0);
-//   const PIE_COLORS = [TEAL2, AMBER, RED];
-
-//   // ─── أرقام الشهر الحالي للـ chart stats ──────────────────────────────────
-//   const currentMonthStats = useMemo(() => {
-//     const m = new Date().getMonth();
-//     const y = new Date().getFullYear();
-//     const matchDate = (dateStr?: string) => {
-//       if (!dateStr) return false;
-//       const d = new Date(dateStr);
-//       return !isNaN(d.getTime()) && d.getMonth() === m && d.getFullYear() === y;
-//     };
-//     const users     = allUsersForTrend.filter(u => matchDate(getDateStr(u))).length;
-//     const charities = allCharitiesForTrend.filter(c => matchDate(getDateStr(c))).length;
-//     const reports   = allReportsForTrend.filter(r => matchDate(getDateStr(r))).length;
-//     return { users, charities, reports };
-//   }, [allUsersForTrend, allCharitiesForTrend, allReportsForTrend]);
-
-//   const userName = user?.userName ?? user?.email?.split('@')[0] ?? 'مسؤول';
-
-//   return (
-//     <div className="ap-layout" dir="rtl">
-//       <Sidebar
-//         activeTab={tab}
-//         onTabChange={setTab}
-//         userName={userName}
-//         onLogout={handleLogout}
-//         pendingCount={pendingCount}
-//         collapsed={sidebarCollapsed}
-//         onToggleCollapse={handleToggleSidebar}
-//         newUsersCount={newUsersCount}
-//         newCharitiesCount={newCharitiesCount}
-//         newReportsCount={newReportsCount}
-//       />
-
-//       <main className={`ap-main${tab === 'ai-chat' ? ' ap-main--ai' : ''}`}>
-//         {tab !== 'ai-chat' && (
-//           <header className="ap-page-header">
-//             <div className="ap-page-header-left" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-//               <div className="ap-page-breadcrumb">
-//                 <i className="ti ti-shield-check" style={{ color: TEAL2 }} />
-//                 <span>لوحة التحكم</span>
-//                 <i className="ti ti-chevron-left" style={{ fontSize: 12, color: 'var(--t4)' }} />
-//                 <span style={{ color: 'var(--t1)', fontWeight: 700 }}>
-//                   {NAV_ITEMS.find(n => n.id === tab)?.label}
-//                 </span>
-//               </div>
-//               {/* Live indicator in header */}
-//               <div className="ap-header-live-badge">
-//                 <span className="ap-live-dot" />
-//                 <span className="ap-header-live-time" id="ap-clock-header" />
-//               </div>
-//             </div>
-//             <div className="ap-page-header-right">
-//               <button 
-//                 className="ap-header-icon-btn ap-theme-btn" 
-//                 onClick={toggleTheme} 
-//                 title={theme === 'dark' ? 'تفعيل الوضع النهارى' : 'تفعيل الوضع الليلي'}
-//               >
-//                 <i className={`ti ${theme === 'dark' ? 'ti-sun' : 'ti-moon'}`} />
-//               </button>
-//               <button className="ap-header-icon-btn" onClick={loadData} title="تحديث البيانات">
-//                 <i className="ti ti-refresh" />
-//               </button>
-//               <div className="ap-header-user" onClick={() => setTab('settings')} title="الإعدادات">
-//                 <div className="ap-header-avatar">{userName.slice(0, 1).toUpperCase()}</div>
-//                 <span className="ap-header-username-text">{userName}</span>
-//                 <i className="ti ti-settings" style={{ fontSize: 13, color: 'var(--t4)' }} />
-//               </div>
-//             </div>
-//           </header>
-//         )}
-
-//         <div ref={contentRef} className={`ap-content${tab === 'ai-chat' ? ' ap-content--ai' : ''}`}>
-//           {/* زر العودة للأعلى داخل لوحة الأدمن */}
-//           {showScrollTop && tab !== 'ai-chat' && (
-//             <button
-//               className="ap-scroll-top-btn"
-//               onClick={() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-//               aria-label="العودة للأعلى"
-//               title="العودة للأعلى"
-//             >
-//               <i className="ti ti-arrow-up" />
-//             </button>
-//           )}
-//           {error && !loading && <ErrorBanner msg={error} onRetry={loadData} />}
-
-//           {loading ? <PageSkeleton /> : (
-//             <>
-//               {/* ══ OVERVIEW ══════════════════════════════════════════════════ */}
-//               {tab === 'overview' && (
-//                 <div className="ap-tab-pane" style={{ height: 'fit-content', gap: 12 }}>
-
-//                   {/* ── KPI Cards ─────────────────────────────────────────── */}
-//                   <div className="ap-kpi-grid">
-//                     <KpiCard icon="ti-users" label="إجمالي المستخدمين" value={(usersTotal || allUsersForTrend.length).toLocaleString('en-US')} change={dynamicTrend.label + ' هذا الشهر'} changeDir={dynamicTrend.isUp ? 'up' : 'down'} color={TEAL2} />
-//                     <KpiCard icon="ti-building-community" label="الجمعيات المسجلة" value={(charitiesTotal || allCharitiesForTrend.length).toLocaleString('en-US')} change={charityTrend.label + ' هذا الشهر'} changeDir={charityTrend.isUp ? 'up' : 'down'} color="#3b82f6" />
-//                     <KpiCard icon="ti-alert-circle" label="التقارير الواردة" value={(reportsTotal || allReportsForTrend.length).toLocaleString('en-US')} change={pendingCount > 0 ? `${pendingCount} معلق` : 'لا يوجد معلق'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={AMBER} />
-//                     <KpiCard icon="ti-clock-pause" label="جمعيات معلقة" value={pendingCount.toLocaleString('en-US')} change={pendingCount > 0 ? 'تحتاج مراجعة' : 'الكل جاهز'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={RED} />
-//                   </div>
-
-//                   {/* ── Chart — full width ────────────────────────────────── */}
-//                   <div className="ap-pro-chart-card" style={{ width: '100%' }}>
-//                     <div className="ap-pro-chart-header">
-//                       <div className="ap-pro-chart-meta">
-//                         <div className="ap-pro-chart-value">
-//                           {(currentMonthStats.users + currentMonthStats.charities).toLocaleString('en-US')}
-//                         </div>
-//                         <div className="ap-pro-chart-label">
-//                           <i className="ti ti-trending-up" style={{color:TEAL2,marginLeft:4}}/>
-//                           تسجيلات هذا الشهر
-//                         </div>
-//                       </div>
-//                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-//                         <span className={`ap-chart-trend ${dynamicTrend.isUp?'up':'down'}`}>
-//                           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-//                             {dynamicTrend.isUp
-//                               ?<path d="M1 11 L5 4 L8 7 L12 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-//                               :<path d="M1 2 L5 9 L8 6 L12 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
-//                           </svg>
-//                           {dynamicTrend.label}
-//                         </span>
-//                         <div className="ap-pro-chart-period">
-//                           <i className="ti ti-calendar" style={{fontSize:11}}/>
-//                           آخر 12 شهراً
-//                         </div>
-//                       </div>
-//                     </div>
-
-//                     <div className="ap-chart-stats-row">
-//                       <div className="ap-chart-stat-mini">
-//                         <div className="ap-chart-stat-mini-val" style={{color:TEAL2}}>{currentMonthStats.users.toLocaleString('en-US')}</div>
-//                         <div className="ap-chart-stat-mini-lbl">مستخدمون هذا الشهر</div>
-//                         <div className={`ap-chart-stat-mini-badge ${dynamicTrend.isUp?'up':'down'}`}>{dynamicTrend.label}</div>
-//                       </div>
-//                       <div className="ap-chart-stat-mini">
-//                         <div className="ap-chart-stat-mini-val" style={{color:'#3b82f6'}}>{currentMonthStats.charities.toLocaleString('en-US')}</div>
-//                         <div className="ap-chart-stat-mini-lbl">جمعيات هذا الشهر</div>
-//                         <div className={`ap-chart-stat-mini-badge ${charityTrend.isUp?'up':'down'}`}>{charityTrend.label}</div>
-//                       </div>
-//                       <div className="ap-chart-stat-mini">
-//                         <div className="ap-chart-stat-mini-val" style={{color:AMBER}}>{currentMonthStats.reports.toLocaleString('en-US')}</div>
-//                         <div className="ap-chart-stat-mini-lbl">تقارير هذا الشهر</div>
-//                         {pendingCount>0&&<div className="ap-chart-stat-mini-badge down">{pendingCount} معلق</div>}
-//                       </div>
-//                     </div>
-
-//                     <div className="ap-pro-chart-legend">
-//                       <div className="ap-pro-legend-item"><div className="ap-pro-legend-line" style={{background:TEAL2}}><div className="ap-pro-legend-dot" style={{background:TEAL2}}/></div>المستخدمون</div>
-//                       <div className="ap-pro-legend-item"><div className="ap-pro-legend-line" style={{background:'#4f8ef7'}}><div className="ap-pro-legend-dot" style={{background:'#4f8ef7'}}/></div>الجمعيات</div>
-//                       <div className="ap-pro-legend-item"><div className="ap-pro-legend-line" style={{background:AMBER}}><div className="ap-pro-legend-dot" style={{background:AMBER}}/></div>التقارير</div>
-//                     </div>
-
-//                     <ResponsiveContainer width="100%" height={220}>
-//                       <AreaChart data={trendData} margin={{top:4,right:4,left:-24,bottom:0}}>
-//                         <defs>
-//                           <linearGradient id="gradU2" x1="0" y1="0" x2="0" y2="1">
-//                             <stop offset="0%"   stopColor={TEAL2}   stopOpacity={0.30}/>
-//                             <stop offset="100%" stopColor={TEAL2}   stopOpacity={0.02}/>
-//                           </linearGradient>
-//                           <linearGradient id="gradC2" x1="0" y1="0" x2="0" y2="1">
-//                             <stop offset="0%"   stopColor="#4f8ef7" stopOpacity={0.26}/>
-//                             <stop offset="100%" stopColor="#4f8ef7" stopOpacity={0.02}/>
-//                           </linearGradient>
-//                           <linearGradient id="gradR2" x1="0" y1="0" x2="0" y2="1">
-//                             <stop offset="0%"   stopColor={AMBER}   stopOpacity={0.26}/>
-//                             <stop offset="100%" stopColor={AMBER}   stopOpacity={0.02}/>
-//                           </linearGradient>
-//                         </defs>
-//                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
-//                         <XAxis dataKey="name" tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false}/>
-//                         <YAxis tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
-//                         <Tooltip content={<ChartTooltip/>}/>
-//                         <Area type="monotone" dataKey="users"     name="المستخدمون" stroke={TEAL2}    strokeWidth={2.5} fill="url(#gradU2)" dot={{fill:TEAL2,strokeWidth:0,r:3}}    activeDot={{r:5,fill:TEAL2,stroke:'var(--surface)',strokeWidth:2}}/>
-//                         <Area type="monotone" dataKey="charities" name="الجمعيات"   stroke="#4f8ef7" strokeWidth={2.5} fill="url(#gradC2)" dot={{fill:'#4f8ef7',strokeWidth:0,r:3}} activeDot={{r:5,fill:'#4f8ef7',stroke:'var(--surface)',strokeWidth:2}}/>
-//                         <Area type="monotone" dataKey="reports"   name="التقارير"   stroke={AMBER}   strokeWidth={2.5} fill="url(#gradR2)" dot={{fill:AMBER,strokeWidth:0,r:3}}   activeDot={{r:5,fill:AMBER,stroke:'var(--surface)',strokeWidth:2}}/>
-//                       </AreaChart>
-//                     </ResponsiveContainer>
-//                   </div>
-
-//                   {/* ── Three-column list grid ─────────────────────────────── */}
-//                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, alignItems: 'start' }}>
-
-//                     {/* ── آخر تسجيلات المستخدمين ── */}
-//                     {allUsersForTrend.length > 0 && (() => {
-//                       const sorted = [...allUsersForTrend].sort((a,b) => new Date(b.createdAt??0).getTime() - new Date(a.createdAt??0).getTime());
-//                       const visible = sorted.slice(0, 5);
-//                       return (
-//                         <div className="ap-chart-card">
-//                           <div className="ap-chart-header">
-//                             <span className="ap-chart-title">
-//                               <i className="ti ti-users" style={{ color: TEAL2 }} />
-//                               آخر تسجيلات المستخدمين
-//                             </span>
-//                             <button className="ap-card-eye-btn" style={{ fontSize: 12 }} onClick={() => setTab('users')}>
-//                               <i className="ti ti-eye" />عرض الكل
-//                             </button>
-//                           </div>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-//                             {visible.map((u, i) => {
-//                               const d = u.createdAt ? new Date(u.createdAt) : null;
-//                               const dateStr = d ? d.toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' }) : '—';
-//                               const roleColors: Record<string,string> = { admin:'#a78bfa', charity:'#3b82f6', user:TEAL2 };
-//                               const color = roleColors[u.roleType] ?? 'var(--t4)';
-//                               const roleLabel = u.roleType==='admin'?'أدمن':u.roleType==='charity'?'جمعية':'متبرع';
-//                               return (
-//                                 <div key={u._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i < visible.length-1 ? '1px solid var(--border)' : 'none', background: i%2===0 ? 'var(--surface2)' : 'transparent' }}>
-//                                   <div style={{ width:28, height:28, borderRadius:'50%', background:`${color}1a`, color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}>
-//                                     {u.userName?.slice(0,1).toUpperCase()??'?'}
-//                                   </div>
-//                                   <div style={{ flex:1, minWidth:0 }}>
-//                                     <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.userName}</div>
-//                                     <div style={{ fontSize:10.5, color:'var(--t4)', marginTop:1 }}><i className="ti ti-calendar" style={{fontSize:10}}/> {dateStr}</div>
-//                                   </div>
-//                                   <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:20, background:`${color}18`, color, flexShrink:0 }}>{roleLabel}</span>
-//                                 </div>
-//                               );
-//                             })}
-//                           </div>
-//                           <div style={{ marginTop:8, display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--t4)' }}>
-//                             <span>الإجمالي: <strong style={{color:'var(--t2)'}}>{usersTotal||allUsersForTrend.length}</strong> مستخدم</span>
-//                             <span>موثق: <strong style={{color:TEAL2}}>{allUsersForTrend.filter(u=>u.isVerified||u.verify).length}</strong></span>
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-
-//                     {/* ── آخر تسجيلات الجمعيات ── */}
-//                     {allCharitiesForTrend.length > 0 && (() => {
-//                       const sorted = [...allCharitiesForTrend].sort((a,b) => new Date(b.createdAt??0).getTime() - new Date(a.createdAt??0).getTime());
-//                       const visible = sorted.slice(0, 5);
-//                       return (
-//                         <div className="ap-chart-card">
-//                           <div className="ap-chart-header">
-//                             <span className="ap-chart-title">
-//                               <i className="ti ti-building-community" style={{ color: '#3b82f6' }} />
-//                               آخر تسجيلات الجمعيات
-//                             </span>
-//                             <button className="ap-card-eye-btn" style={{ fontSize: 12 }} onClick={() => setTab('charities')}>
-//                               <i className="ti ti-eye" />عرض الكل
-//                             </button>
-//                           </div>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-//                             {visible.map((c, i) => {
-//                               const d = c.createdAt ? new Date(c.createdAt) : null;
-//                               const dateStr = d ? d.toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' }) : '—';
-//                               const approvalColors: Record<string,string> = { approved:TEAL2, pending:AMBER, rejected:RED };
-//                               const color = approvalColors[c.approvalStatus] ?? 'var(--t4)';
-//                               return (
-//                                 <div key={c._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i < visible.length-1 ? '1px solid var(--border)' : 'none', background: i%2===0 ? 'var(--surface2)' : 'transparent' }}>
-//                                   <div style={{ width:28, height:28, borderRadius:7, background:`${color}1a`, color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
-//                                     <i className="ti ti-building-community"/>
-//                                   </div>
-//                                   <div style={{ flex:1, minWidth:0 }}>
-//                                     <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.charityName}</div>
-//                                     <div style={{ fontSize:10.5, color:'var(--t4)', marginTop:1 }}><i className="ti ti-calendar" style={{fontSize:10}}/> {dateStr}</div>
-//                                   </div>
-//                                   <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:20, background:`${color}18`, color, flexShrink:0 }}>
-//                                     {c.approvalStatus==='approved'?'مقبول':c.approvalStatus==='pending'?'معلق':'مرفوض'}
-//                                   </span>
-//                                 </div>
-//                               );
-//                             })}
-//                           </div>
-//                           <div style={{ marginTop:8, display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--t4)' }}>
-//                             <span>الإجمالي: <strong style={{color:'var(--t2)'}}>{charitiesTotal||allCharitiesForTrend.length}</strong> جمعية</span>
-//                             <span>معلق: <strong style={{color:AMBER}}>{pendingCount}</strong></span>
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-
-//                     {/* ── آخر التقارير الواردة ── */}
-//                     {allReportsForTrend.length > 0 && (() => {
-//                       const sorted = [...allReportsForTrend].sort((a,b) => new Date(b.createdAt??0).getTime() - new Date(a.createdAt??0).getTime());
-//                       const visible = sorted.slice(0, 5);
-//                       return (
-//                         <div className="ap-chart-card">
-//                           <div className="ap-chart-header">
-//                             <span className="ap-chart-title">
-//                               <i className="ti ti-alert-circle" style={{ color: AMBER }} />
-//                               آخر التقارير الواردة
-//                             </span>
-//                             <button className="ap-card-eye-btn" style={{ fontSize: 12 }} onClick={() => setTab('reports')}>
-//                               <i className="ti ti-eye" />عرض الكل
-//                             </button>
-//                           </div>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-//                             {visible.map((r, i) => {
-//                               const d = r.createdAt ? new Date(r.createdAt) : null;
-//                               const dateStr = d ? d.toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' }) : '—';
-//                               const senderName = r.userName || r.charityName || 'مستخدم غير معروف';
-//                               const isCharity = r.senderType==='charity' || (!r.senderType && !!r.charityName && !r.userName);
-//                               return (
-//                                 <div key={r._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i < visible.length-1 ? '1px solid var(--border)' : 'none', background: i%2===0 ? 'var(--surface2)' : 'transparent' }}>
-//                                   <div style={{ width:28, height:28, borderRadius:7, background:'rgba(245,158,11,0.1)', color:AMBER, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
-//                                     <i className={isCharity?"ti ti-building":"ti ti-user"}/>
-//                                   </div>
-//                                   <div style={{ flex:1, minWidth:0 }}>
-//                                     <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.description}</div>
-//                                     <div style={{ fontSize:10.5, color:'var(--t4)', marginTop:1, display:'flex', alignItems:'center', gap:4 }}>
-//                                       <span style={{fontWeight:600,color:'var(--t2)'}}>{senderName}</span>
-//                                       <span>•</span>
-//                                       <i className="ti ti-calendar" style={{fontSize:10}}/>{dateStr}
-//                                     </div>
-//                                   </div>
-//                                 </div>
-//                               );
-//                             })}
-//                           </div>
-//                           <div style={{ marginTop:8, fontSize:11, color:'var(--t4)' }}>
-//                             الإجمالي: <strong style={{color:'var(--t2)'}}>{reportsTotal||allReportsForTrend.length}</strong> تقرير
-//                           </div>
-//                         </div>
-//                       );
-//                     })()}
-
-//                   </div>
-//                 </div>
-//               )}
-
-//               {/* ══ USERS ══════════════════════════════════════════════════════ */}
-//               {tab === 'users' && (
-//                 <div className="ap-tab-pane">
-//                   <div className="ap-section-header">
-//                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-//                       <SectionTitle icon="ti-users" color={TEAL2} title="المستخدمون" badge={usersTotal || users.length} />
-//                       <ViewToggle mode={usersViewMode} onChange={setUsersViewMode} />
-//                     </div>
-//                   </div>
-
-//                   <div className="ap-filters-bar">
-//                     <div className="ap-filters-group">
-//                       <SearchBox value={usersSearch} onChange={setUsersSearch} placeholder="بحث بالمعرف أو الاسم:" />
-//                     </div>
-
-//                     <div className="ap-filters-group">
-//                       {/* Date Range */}
-//                       <div className="ap-date-range-wrap">
-//                         <div className="ap-date-field">
-//                           <span className="ap-date-label">من</span>
-//                           <input type="date" value={usersDateFrom} onChange={e => setUsersDateFrom(e.target.value)} title="من تاريخ" />
-//                         </div>
-//                         <div className="ap-date-field">
-//                           <span className="ap-date-label">إلى</span>
-//                           <input type="date" value={usersDateTo} onChange={e => setUsersDateTo(e.target.value)} title="إلى تاريخ" />
-//                         </div>
-//                         {(usersDateFrom || usersDateTo) && (
-//                           <button className="ap-date-range-clear" onClick={() => { setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
-//                         )}
-//                       </div>
-
-//                       {/* Sort */}
-//                       <div className="ap-filter-tabs">
-//                         <button className={`ap-filter-tab${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
-//                           <i className="ti ti-sort-descending" /> الأحدث
-//                         </button>
-//                         <button className={`ap-filter-tab${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
-//                           <i className="ti ti-sort-ascending" /> الأقدم
-//                         </button>
-//                       </div>
-
-//                       {/* Clear Filters Button */}
-//                       {(usersSearch !== '' || usersDateFrom !== '' || usersDateTo !== '') && (
-//                         <button className="ap-filter-reset-btn" onClick={() => {
-//                           setUsersSearch('');
-//                           setUsersDateFrom('');
-//                           setUsersDateTo('');
-//                         }}>
-//                           <i className="ti ti-filter-off" /> مسح التصفية
-//                         </button>
-//                       )}
-//                     </div>
-//                   </div>
-
-//                   {filteredUsers.length === 0 ? (
-//                     <EmptyState icon="ti-user-off" title="لا يوجد مستخدمون" desc="لم يتم العثور على مستخدمين مطابقين للبحث" />
-//                   ) : usersViewMode === 'table' ? (
-//                     <div className="ap-table-wrap">
-//                       <table className="ap-table">
-//                         <thead>
-//                           <tr>
-//                             <th>المستخدم</th>
-//                             <th className="ap-col-hide-sm">البريد الإلكتروني</th>
-//                             <th>الدور</th>
-//                             <th className="ap-col-hide-xs">موثق</th>
-//                             <th className="ap-col-hide-sm">تاريخ الانضمام</th>
-//                             <th></th>
-//                           </tr>
-//                         </thead>
-//                         <tbody>
-//                           {filteredUsers.map(u => {
-//                             const verified = u.isVerified || u.verify;
-//                             return (
-//                               <tr key={u._id} className="ap-table-row-clickable" onClick={() => setUserDetailModal(u)}>
-//                                 <td>
-//                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-//                                     <div className="ap-table-avatar">
-//                                       {u.userName?.slice(0, 1).toUpperCase() ?? '?'}
-//                                     </div>
-//                                     <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{u.userName}</span>
-//                                   </div>
-//                                 </td>
-//                                 <td className="ap-table-mono ap-col-hide-sm">{u.email}</td>
-//                                 <td><RoleBadge role={u.roleType} /></td>
-//                                 <td className="ap-col-hide-xs">
-//                                   <span className="ap-badge" style={{ background: verified ? 'rgba(34,197,94,0.14)' : 'rgba(244,63,94,0.14)', color: verified ? '#22c55e' : RED }}>
-//                                     <i className={`ti ${verified ? 'ti-circle-check' : 'ti-circle-x'}`} style={{ fontSize: 12 }} />
-//                                     {verified ? 'موثق' : 'غير موثق'}
-//                                   </span>
-//                                 </td>
-//                                 <td className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{fmt12(u.createdAt)}</td>
-//                                 <td onClick={e => e.stopPropagation()}>
-//                                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-//                                     <button className="ap-eye-btn" onClick={() => setUserDetailModal(u)} title="عرض التفاصيل">
-//                                       <i className="ti ti-eye" />
-//                                     </button>
-//                                     {u.roleType !== 'admin' && (
-//                                       <button className="ap-action-btn delete" onClick={() => handleDeleteUser(u._id, u.userName)}>
-//                                         <i className="ti ti-trash" />
-//                                       </button>
-//                                     )}
-//                                   </div>
-//                                 </td>
-//                               </tr>
-//                             );
-//                           })}
-//                         </tbody>
-//                       </table>
-//                     </div>
-//                   ) : (
-//                     <div className="ap-card-grid">
-//                       {filteredUsers.map(u => {
-//                         const verified = u.isVerified || u.verify;
-//                         return (
-//                           <div key={u._id} className="ap-entity-card" onClick={() => setUserDetailModal(u)}>
-//                             <div className="ap-entity-card-header">
-//                               <div className="ap-entity-avatar user">{u.userName?.slice(0, 1).toUpperCase()}</div>
-//                               <div style={{ flex: 1, minWidth: 0 }}>
-//                                 <div className="ap-entity-name">{u.userName}</div>
-//                                 <div className="ap-entity-email">{u.email}</div>
-//                               </div>
-//                             </div>
-//                             <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-//                               <RoleBadge role={u.roleType} />
-//                               <span className="ap-badge" style={{ background: verified ? 'rgba(34,197,94,0.14)' : 'rgba(244,63,94,0.14)', color: verified ? '#22c55e' : RED }}>
-//                                 {verified ? 'موثق' : 'غير موثق'}
-//                               </span>
-//                             </div>
-//                             <div className="ap-entity-date"><i className="ti ti-calendar" />{fmt12(u.createdAt)}</div>
-//                             <div className="ap-entity-actions" onClick={e => e.stopPropagation()}>
-//                               <button className="ap-card-eye-btn" onClick={() => setUserDetailModal(u)}>
-//                                 <i className="ti ti-eye" /> التفاصيل
-//                               </button>
-//                               {u.roleType !== 'admin' && (
-//                                 <button className="ap-action-btn delete" onClick={() => handleDeleteUser(u._id, u.userName)}>
-//                                   <i className="ti ti-trash" /> حذف
-//                                 </button>
-//                               )}
-//                             </div>
-//                           </div>
-//                         );
-//                       })}
-//                     </div>
-//                   )}
-
-//                   {hasMoreUsers && (
-//                     <LoadMoreBtn loading={loadingMore === 'users'} remaining={Math.max(0, usersTotal - users.length)} onClick={loadMoreUsers} />
-//                   )}
-//                 </div>
-//               )}
-
-//               {/* ══ CHARITIES ══════════════════════════════════════════════════ */}
-//               {tab === 'charities' && (
-//                 <div className="ap-tab-pane">
-//                   <div className="ap-section-header">
-//                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-//                       <SectionTitle icon="ti-building-community" color="#3b82f6" title="الجمعيات" badge={allCharitiesForTrend.length || charitiesTotal} />
-//                       <ViewToggle mode={charitiesViewMode} onChange={setCharitiesViewMode} />
-//                     </div>
-//                   </div>
-
-//                   <div className="ap-filters-bar">
-//                     <div className="ap-filters-group">
-//                       <SearchBox value={charitiesSearch} onChange={setCharitiesSearch} placeholder="بحث بالمعرف، الاسم أو النوع:" />
-//                       <div className="ap-filter-tabs">
-//                         {(['all', 'pending', 'approved', 'rejected'] as const).map(f => {
-//                             const count = f === 'all'
-//                               ? allCharitiesForTrend.length
-//                               : allCharitiesForTrend.filter(c => c.approvalStatus === f).length;
-//                             const labelMap = { all: 'الكل', pending: 'قيد المراجعة', approved: 'مقبول', rejected: 'مرفوض' };
-//                             const colorMap = { all: 'var(--t3)', pending: 'var(--amber)', approved: 'var(--teal)', rejected: 'var(--red)' };
-//                             return (
-//                               <button key={f} className={`ap-filter-tab${charitiesFilter === f ? ' active' : ''}`} onClick={() => handleCharitiesFilterChange(f)}>
-//                                 {labelMap[f]}
-//                                 {count > 0 && (
-//                                   <span className="ap-filter-badge" style={{
-//                                     marginRight: 4,
-//                                     background: charitiesFilter === f ? colorMap[f] : 'var(--surface3)',
-//                                     color: charitiesFilter === f ? '#fff' : colorMap[f],
-//                                   }}>{count}</span>
-//                                 )}
-//                               </button>
-//                             );
-//                           })}
-//                         {loadingAllCharities && (
-//                           <span style={{ fontSize: 11, color: 'var(--t4)', display: 'flex', alignItems: 'center', gap: 4, marginRight: 8 }}>
-//                             <i className="ti ti-loader-2 ti-spin" style={{ fontSize: 12 }} /> جاري التحميل...
-//                           </span>
-//                         )}
-//                       </div>
-//                     </div>
-
-//                     <div className="ap-filters-group">
-//                       {/* Date Range */}
-//                       <div className="ap-date-range-wrap">
-//                         <div className="ap-date-field">
-//                           <span className="ap-date-label">من</span>
-//                           <input type="date" value={charitiesDateFrom} onChange={e => setCharitiesDateFrom(e.target.value)} title="من تاريخ" />
-//                         </div>
-//                         <div className="ap-date-field">
-//                           <span className="ap-date-label">إلى</span>
-//                           <input type="date" value={charitiesDateTo} onChange={e => setCharitiesDateTo(e.target.value)} title="إلى تاريخ" />
-//                         </div>
-//                         {(charitiesDateFrom || charitiesDateTo) && (
-//                           <button className="ap-date-range-clear" onClick={() => { setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
-//                         )}
-//                       </div>
-
-//                       {/* Sort */}
-//                       <div className="ap-filter-tabs">
-//                         <button className={`ap-filter-tab${charitiesSort === 'newest' ? ' active' : ''}`} onClick={() => setCharitiesSort('newest')}>
-//                           <i className="ti ti-sort-descending" /> الأحدث
-//                         </button>
-//                         <button className={`ap-filter-tab${charitiesSort === 'oldest' ? ' active' : ''}`} onClick={() => setCharitiesSort('oldest')}>
-//                           <i className="ti ti-sort-ascending" /> الأقدم
-//                         </button>
-//                       </div>
-
-//                       {/* Clear Filters Button */}
-//                       {(charitiesSearch !== '' || charitiesFilter !== 'all' || charitiesDateFrom !== '' || charitiesDateTo !== '') && (
-//                         <button className="ap-filter-reset-btn" onClick={() => {
-//                           setCharitiesSearch('');
-//                           setCharitiesFilter('all');
-//                           setCharitiesDateFrom('');
-//                           setCharitiesDateTo('');
-//                         }}>
-//                           <i className="ti ti-filter-off" /> مسح التصفية
-//                         </button>
-//                       )}
-//                     </div>
-//                   </div>
-
-//                   {filteredCharities.length === 0 ? (
-//                     <EmptyState icon="ti-building-off" title="لا توجد جمعيات" desc="لم يتم العثور على جمعيات مطابقة" />
-//                   ) : charitiesViewMode === 'table' ? (
-//                     <div className="ap-table-wrap">
-//                       <table className="ap-table">
-//                         <thead>
-//                           <tr>
-//                             <th>الجمعية</th>
-//                             <th className="ap-col-hide-sm">البريد الإلكتروني</th>
-//                             <th className="ap-col-hide-xs">العنوان</th>
-//                             <th>الحالة</th>
-//                             <th className="ap-col-hide-sm">تاريخ الانضمام</th>
-//                             <th></th>
-//                           </tr>
-//                         </thead>
-//                         <tbody>
-//                           {filteredCharities.map(c => (
-//                             <tr key={c._id} className="ap-table-row-clickable" onClick={() => setCharityDetailModal(c)}>
-//                               <td>
-//                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-//                                   <div className="ap-table-avatar" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>
-//                                     <i className="ti ti-building-community" />
-//                                   </div>
-//                                   <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{c.charityName}</span>
-//                                 </div>
-//                               </td>
-//                               <td className="ap-table-mono ap-col-hide-sm">{c.email}</td>
-//                               <td className="ap-col-hide-xs">{c.address || '—'}</td>
-//                               <td><StatusBadge status={c.approvalStatus} /></td>
-//                               <td className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{(() => {
-//                                 const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
-//                                 if (raw) return fmt12(raw);
-//                                 try {
-//                                   const hex = c._id?.substring(0, 8);
-//                                   if (hex) return fmt12(new Date(parseInt(hex, 16) * 1000).toISOString());
-//                                 } catch { /* ignore */ }
-//                                 return '—';
-//                               })()}</td>
-//                               <td onClick={e => e.stopPropagation()}>
-//                                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-//                                   <button className="ap-eye-btn" onClick={() => setCharityDetailModal(c)}>
-//                                     <i className="ti ti-eye" />
-//                                   </button>
-//                                   {c.approvalStatus === 'pending' && (
-//                                     <>
-//                                       <button className="ap-action-btn approve" onClick={() => handleApprove(c._id, c.charityName)}>
-//                                         <i className="ti ti-check" />
-//                                       </button>
-//                                       <button className="ap-action-btn reject" onClick={() => setRejectTarget({ id: c._id, name: c.charityName })}>
-//                                         <i className="ti ti-x" />
-//                                       </button>
-//                                     </>
-//                                   )}
-//                                   <button className="ap-action-btn edit" onClick={() => setEditCharityTarget(c)}>
-//                                     <i className="ti ti-edit" />
-//                                   </button>
-//                                   <button className="ap-action-btn delete" onClick={() => handleDeleteCharity(c._id, c.charityName)}>
-//                                     <i className="ti ti-trash" />
-//                                   </button>
-//                                 </div>
-//                               </td>
-//                             </tr>
-//                           ))}
-//                         </tbody>
-//                       </table>
-//                     </div>
-//                   ) : (
-//                     <div className="ap-card-grid">
-//                       {filteredCharities.map(c => (
-//                         <div key={c._id} className="ap-entity-card" onClick={() => setCharityDetailModal(c)}>
-//                           <div className="ap-entity-card-header">
-//                             <div className="ap-entity-avatar charity"><i className="ti ti-building-community" /></div>
-//                             <div style={{ flex: 1, minWidth: 0 }}>
-//                               <div className="ap-entity-name">{c.charityName}</div>
-//                               <div className="ap-entity-email">{c.email}</div>
-//                             </div>
-//                           </div>
-//                           <div style={{ marginBottom: 10 }}>
-//                             <StatusBadge status={c.approvalStatus} />
-//                           </div>
-//                           {c.licenseNumber && (
-//                             <div className="ap-entity-meta ap-license-badge">
-//                               <i className="ti ti-certificate" style={{ color: 'var(--blue)' }} />
-//                               <span style={{ color: 'var(--blue)', fontWeight: 700, fontFamily: 'IBM Plex Mono, monospace', fontSize: 11 }}>
-//                                 رقم التسجيل: {c.licenseNumber}
-//                               </span>
-//                             </div>
-//                           )}
-//                           {c.address && <div className="ap-entity-meta"><i className="ti ti-map-pin" />{c.address}</div>}
-//                           <div className="ap-entity-date"><i className="ti ti-calendar" />{fmt12(c.createdAt)}</div>
-//                           <div className="ap-entity-actions" onClick={e => e.stopPropagation()}>
-//                             <button className="ap-card-eye-btn" onClick={() => setCharityDetailModal(c)}>
-//                               <i className="ti ti-eye" /> تفاصيل
-//                             </button>
-//                             {c.approvalStatus === 'pending' && (
-//                               <>
-//                                 <button className="ap-action-btn approve" disabled={!!actionLoading} onClick={() => handleApprove(c._id, c.charityName)}>
-//                                   <i className="ti ti-check" /> موافقة
-//                                 </button>
-//                                 <button className="ap-action-btn reject" disabled={!!actionLoading} onClick={() => setRejectTarget({ id: c._id, name: c.charityName })}>
-//                                   <i className="ti ti-x" /> رفض
-//                                 </button>
-//                               </>
-//                             )}
-//                             <button className="ap-action-btn edit" onClick={() => setEditCharityTarget(c)}>
-//                               <i className="ti ti-edit" />
-//                             </button>
-//                             <button className="ap-action-btn delete" disabled={!!actionLoading} onClick={() => handleDeleteCharity(c._id, c.charityName)}>
-//                               <i className="ti ti-trash" />
-//                             </button>
-//                           </div>
-//                         </div>
-//                       ))}
-//                     </div>
-//                   )}
-
-//                   {/* تحميل المزيد مخفي لأن كل الجمعيات بتتعرض من allCharitiesForTrend */}
-//                   {false && hasMoreCharities && (
-//                     <LoadMoreBtn loading={loadingMore === 'charities'} remaining={charitiesRemaining} onClick={loadMoreCharities} />
-//                   )}
-//                 </div>
-//               )}
-
-//               {/* ══ REPORTS ══════════════════════════════════════════════════ */}
-//               {tab === 'reports' && (
-//                 <div className="ap-tab-pane">
-//                   <div className="ap-section-header">
-//                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-//                       <SectionTitle icon="ti-alert-circle" color={AMBER} title="التقارير" badge={reportsTotal || reports.length} />
-//                       <ViewToggle mode={reportsViewMode} onChange={setReportsViewMode} />
-//                     </div>
-//                   </div>
-
-//                   <div className="ap-filters-bar">
-//                     <div className="ap-filters-group">
-//                       <SearchBox value={reportsSearch} onChange={setReportsSearch} placeholder="بحث بالمعرف، الاسم أو النوع:" />
-//                       <div className="ap-filter-tabs">
-//                         {(['all', 'user', 'charity'] as const).map(f => (
-//                           <button key={f} className={`ap-filter-tab${reportsSenderFilter === f ? ' active' : ''}`} onClick={() => setReportsSenderFilter(f)}>
-//                             {f === 'all' ? `الكل (${reportsTotal || allReportsForTrend.length})` : f === 'user' ? 'مستخدمون' : 'جمعيات'}
-//                           </button>
-//                         ))}
-//                       </div>
-//                     </div>
-
-//                     <div className="ap-filters-group">
-//                       {/* Date Range */}
-//                       <div className="ap-date-range-wrap">
-//                         <div className="ap-date-field">
-//                           <span className="ap-date-label">من</span>
-//                           <input type="date" value={reportsDateFrom} onChange={e => setReportsDateFrom(e.target.value)} title="من تاريخ" />
-//                         </div>
-//                         <div className="ap-date-field">
-//                           <span className="ap-date-label">إلى</span>
-//                           <input type="date" value={reportsDateTo} onChange={e => setReportsDateTo(e.target.value)} title="إلى تاريخ" />
-//                         </div>
-//                         {(reportsDateFrom || reportsDateTo) && (
-//                           <button className="ap-date-range-clear" onClick={() => { setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
-//                         )}
-//                       </div>
-
-//                       {/* Sort */}
-//                       <div className="ap-filter-tabs">
-//                         <button className={`ap-filter-tab${reportsSort === 'newest' ? ' active' : ''}`} onClick={() => setReportsSort('newest')}>
-//                           <i className="ti ti-sort-descending" /> الأحدث
-//                         </button>
-//                         <button className={`ap-filter-tab${reportsSort === 'oldest' ? ' active' : ''}`} onClick={() => setReportsSort('oldest')}>
-//                           <i className="ti ti-sort-ascending" /> الأقدم
-//                         </button>
-//                       </div>
-
-//                       {/* Clear Filters Button */}
-//                       {(reportsSearch !== '' || reportsSenderFilter !== 'all' || reportsDateFrom !== '' || reportsDateTo !== '') && (
-//                         <button className="ap-filter-reset-btn" onClick={() => {
-//                           setReportsSearch('');
-//                           setReportsSenderFilter('all');
-//                           setReportsDateFrom('');
-//                           setReportsDateTo('');
-//                         }}>
-//                           <i className="ti ti-filter-off" /> مسح التصفية
-//                         </button>
-//                       )}
-//                     </div>
-//                   </div>
-
-//                   {filteredReports.length === 0 ? (
-//                     <EmptyState icon="ti-mood-happy" title="لا توجد تقارير حتى الآن" desc="كل شيء يسير على ما يرام!" />
-//                   ) : reportsViewMode === 'table' ? (
-//                     <div className="ap-table-wrap">
-//                       <table className="ap-table">
-//                         <thead>
-//                           <tr>
-//                             <th className="ap-col-hide-sm">#</th>
-//                             <th>المُرسِل</th>
-//                             <th>الوصف</th>
-//                             <th className="ap-col-hide-sm">التاريخ</th>
-//                             <th></th>
-//                           </tr>
-//                         </thead>
-//                         <tbody>
-//                           {filteredReports.map((r, i) => {
-//                             // Smart detection: prefer senderType from API, fallback to field presence
-//                             const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
-//                             const isDonor   = !isCharity && (r.senderType === 'user' || r.senderType === 'donor' || !!r.userName);
-//                             const senderLabel = isCharity ? 'جمعية' : isDonor ? 'متبرع' : 'مستخدم';
-//                             const senderIcon  = isCharity ? 'ti-building' : 'ti-user';
-//                             const senderColor = isCharity ? '#3b82f6' : TEAL2;
-//                             const senderBg    = isCharity ? 'rgba(59,130,246,0.14)' : 'rgba(16,185,129,0.14)';
-//                             const senderName  = r.userName || r.charityName || '—';
-//                             return (
-//                               <tr key={r._id} className="ap-table-row-clickable" onClick={() => setReportModal(r)}>
-//                                 <td className="ap-col-hide-sm" style={{ fontWeight: 700, color: 'var(--amber)' }}>#{i + 1}</td>
-//                                 <td>
-//                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-//                                     <div style={{ width: 28, height: 28, borderRadius: 7, background: senderBg, color: senderColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
-//                                       <i className={`ti ${senderIcon}`} />
-//                                     </div>
-//                                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: senderBg, color: senderColor }}>{senderLabel}</span>
-//                                   </div>
-//                                 </td>
-//                                 <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</td>
-//                                 <td className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{fmt12(r.createdAt)}</td>
-//                                 <td onClick={e => e.stopPropagation()}>
-//                                   <button className="ap-eye-btn" onClick={() => setReportModal(r)}>
-//                                     <i className="ti ti-eye" />
-//                                   </button>
-//                                 </td>
-//                               </tr>
-//                             );
-//                           })}
-//                         </tbody>
-//                       </table>
-//                     </div>
-//                   ) : (
-//                     <div className="ap-card-grid">
-//                       {filteredReports.map((r, i) => {
-//                         const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
-//                         const senderLabel = isCharity ? 'جمعية' : r.senderType === 'donor' ? 'متبرع' : 'مستخدم';
-//                         const senderIcon  = isCharity ? 'ti-building' : 'ti-user';
-//                         const senderColor = isCharity ? '#3b82f6' : TEAL2;
-//                         const senderBg    = isCharity ? 'rgba(59,130,246,0.14)' : 'rgba(16,185,129,0.14)';
-//                         const senderName  = r.userName || r.charityName || '—';
-//                         return (
-//                           <div key={r._id} className="ap-report-card" onClick={() => setReportModal(r)}>
-//                             <div className="ap-report-card-top">
-//                               <span className="ap-report-num"><i className="ti ti-alert-triangle" />تقرير #{i + 1}</span>
-//                               <span className="ap-report-date"><i className="ti ti-calendar" />{fmt12(r.createdAt)}</span>
-//                             </div>
-//                             <div className="ap-report-sender">
-//                               <div className="ap-report-sender-icon" style={{ background: senderBg, color: senderColor }}>
-//                                 <i className={`ti ${senderIcon}`} />
-//                               </div>
-//                               <div>
-//                                 <div style={{ fontWeight: 700, color: 'var(--t1)', fontSize: 13 }}>{senderName}</div>
-//                                 <div style={{ fontSize: 11, color: senderColor, marginTop: 1, fontWeight: 700 }}>{senderLabel}</div>
-//                               </div>
-//                             </div>
-//                             <p className="ap-report-body">{r.description}</p>
-//                             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-//                               <button className="ap-card-eye-btn" onClick={e => { e.stopPropagation(); setReportModal(r); }}>
-//                                 <i className="ti ti-eye" /> عرض التقرير
-//                               </button>
-//                             </div>
-//                           </div>
-//                         );
-//                       })}
-//                     </div>
-//                   )}
-
-//                   {hasMoreReports && !reportsSearch && reportsSenderFilter === 'all' && !reportsDateFrom && !reportsDateTo && (
-//                     <LoadMoreBtn loading={loadingMore === 'reports'} remaining={Math.max(0, reportsTotal - reports.length)} onClick={loadMoreReports} />
-//                   )}
-//                 </div>
-//               )}
-
-//               {/* ══ AUTOMATION ══════════════════════════════════════════════ */}
-//               {tab === 'automation' && (
-//                 <div className="ap-tab-pane">
-//                   <div className="ap-automation-banner">
-//                     <div className="ap-automation-banner-icon"><i className="ti ti-settings-automation" /></div>
-//                     <div>
-//                       <div className="ap-automation-banner-title">التشغيل التلقائي</div>
-//                       <div className="ap-automation-banner-sub">يمكنك تشغيل المهام يدويًا أو جدولتها في تاريخ وساعة محددة.</div>
-//                     </div>
-//                   </div>
-
-//                   <div className="ap-cron-grid">
-//                     {/* ── Donation Reminder Card ── */}
-//                     {(() => {
-//                       const key = 'reminder' as const;
-//                       const inp = schedInputs[key];
-//                       const isScheduled = !!nextRunTimes[key];
-//                       return (
-//                         <div className="ap-cron-card">
-//                           <div className="ap-cron-icon" style={{ background: 'rgba(16,185,129,0.14)' }}>
-//                             <i className="ti ti-bell-ringing" style={{ color: TEAL2 }} />
-//                           </div>
-//                           <div className="ap-cron-title">تذكير التبرعات</div>
-//                           <p className="ap-cron-desc">يرسل تذكيرات للجمعيات بالتبرعات المعلقة التي لم يتم تأكيدها.</p>
-//                           <code className="ap-cron-code" style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.24)', color: TEAL2 }}>
-//                             GET /cron/donationReminder
-//                           </code>
-
-//                           {/* DateTime Picker */}
-//                           <div className="ap-sched-picker">
-//                             <div className="ap-sched-picker-label">
-//                               <i className="ti ti-calendar-clock" style={{ color: TEAL2 }} /> جدولة في تاريخ وساعة محددة
-//                             </div>
-//                             <div className="ap-sched-inputs">
-//                               <div className="ap-sched-field">
-//                                 <label>التاريخ</label>
-//                                 <input
-//                                   type="date"
-//                                   className="ap-sched-input"
-//                                   value={inp.date}
-//                                   min={todayStr}
-//                                   onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: e.target.value } }))}
-//                                 />
-//                               </div>
-//                               <div className="ap-sched-field">
-//                                 <label>الساعة</label>
-//                                 <input
-//                                   type="time"
-//                                   className="ap-sched-input"
-//                                   value={inp.time}
-//                                   onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: e.target.value } }))}
-//                                 />
-//                               </div>
-//                               <div className="ap-sched-field ap-sched-field-sm">
-//                                 <label>الثواني</label>
-//                                 <input
-//                                   type="number"
-//                                   className="ap-sched-input"
-//                                   value={inp.seconds}
-//                                   min="0" max="59"
-//                                   placeholder="00"
-//                                   onChange={e => {
-//                                     const v = Math.max(0, Math.min(59, Number(e.target.value)));
-//                                     setSchedInputs(p => ({ ...p, [key]: { ...p[key], seconds: String(v).padStart(2,'0') } }));
-//                                   }}
-//                                 />
-//                               </div>
-//                             </div>
-//                             {isScheduled ? (
-//                               <div className="ap-sched-status">
-//                                 <div className="ap-sched-next">
-//                                   <i className="ti ti-clock-play" style={{ color: TEAL2 }} />
-//                                   <span>موعد التشغيل: <strong style={{ color: TEAL2 }}>{nextRunTimes[key]}</strong></span>
-//                                 </div>
-//                                 <Countdown targetTs={nextRunTs[key] ?? null} color={TEAL2} />
-//                                 <button className="ap-sched-cancel-btn" onClick={() => cancelSchedule(key)}>
-//                                   <i className="ti ti-x" /> إلغاء الجدولة
-//                                 </button>
-//                               </div>
-//                             ) : (
-//                               <button
-//                                 className="ap-sched-confirm-btn"
-//                                 style={{ borderColor: TEAL2, color: TEAL2 }}
-//                                 onClick={() => {
-//                                   const [h, m] = inp.time.split(':').map(Number);
-//                                   const d = new Date(inp.date);
-//                                   d.setHours(h, m, Number(inp.seconds), 0);
-//                                   scheduleAt(key, runDonationReminder, d);
-//                                 }}
-//                               >
-//                                 <i className="ti ti-calendar-plus" /> تأكيد الجدولة
-//                               </button>
-//                             )}
-//                           </div>
-
-//                           <button
-//                             className="ap-cron-run-btn"
-//                             style={{ background: TEAL2 }}
-//                             disabled={cronLoading.reminder}
-//                             onClick={runDonationReminder}
-//                           >
-//                             {cronLoading.reminder
-//                               ? <><i className="ti ti-loader-2 ti-spin" />جاري التشغيل...</>
-//                               : <><i className="ti ti-player-play" />تشغيل الآن</>
-//                             }
-//                           </button>
-//                         </div>
-//                       );
-//                     })()}
-
-//                     {/* ── Admin Report Card ── */}
-//                     {(() => {
-//                       const key = 'report' as const;
-//                       const inp = schedInputs[key];
-//                       const isScheduled = !!nextRunTimes[key];
-//                       return (
-//                         <div className="ap-cron-card">
-//                           <div className="ap-cron-icon" style={{ background: 'rgba(59,130,246,0.14)' }}>
-//                             <i className="ti ti-report-analytics" style={{ color: '#3b82f6' }} />
-//                           </div>
-//                           <div className="ap-cron-title">تقرير الأدمن</div>
-//                           <p className="ap-cron-desc">يولّد تقريرًا شاملاً عن نشاط المنصة ويرسله لجميع المسؤولين عبر البريد الإلكتروني.</p>
-//                           <code className="ap-cron-code" style={{ background: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.24)', color: '#3b82f6' }}>
-//                             GET /cron/adminReport
-//                           </code>
-
-//                           {/* DateTime Picker */}
-//                           <div className="ap-sched-picker">
-//                             <div className="ap-sched-picker-label">
-//                               <i className="ti ti-calendar-clock" style={{ color: '#3b82f6' }} /> جدولة في تاريخ وساعة محددة
-//                             </div>
-//                             <div className="ap-sched-inputs">
-//                               <div className="ap-sched-field">
-//                                 <label>التاريخ</label>
-//                                 <input
-//                                   type="date"
-//                                   className="ap-sched-input"
-//                                   value={inp.date}
-//                                   min={todayStr}
-//                                   onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: e.target.value } }))}
-//                                 />
-//                               </div>
-//                               <div className="ap-sched-field">
-//                                 <label>الساعة</label>
-//                                 <input
-//                                   type="time"
-//                                   className="ap-sched-input"
-//                                   value={inp.time}
-//                                   onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: e.target.value } }))}
-//                                 />
-//                               </div>
-//                               <div className="ap-sched-field ap-sched-field-sm">
-//                                 <label>الثواني</label>
-//                                 <input
-//                                   type="number"
-//                                   className="ap-sched-input"
-//                                   value={inp.seconds}
-//                                   min="0" max="59"
-//                                   placeholder="00"
-//                                   onChange={e => {
-//                                     const v = Math.max(0, Math.min(59, Number(e.target.value)));
-//                                     setSchedInputs(p => ({ ...p, [key]: { ...p[key], seconds: String(v).padStart(2,'0') } }));
-//                                   }}
-//                                 />
-//                               </div>
-//                             </div>
-//                             {isScheduled ? (
-//                               <div className="ap-sched-status">
-//                                 <div className="ap-sched-next">
-//                                   <i className="ti ti-clock-play" style={{ color: '#3b82f6' }} />
-//                                   <span>موعد التشغيل: <strong style={{ color: '#3b82f6' }}>{nextRunTimes[key]}</strong></span>
-//                                 </div>
-//                                 <Countdown targetTs={nextRunTs[key] ?? null} color="#3b82f6" />
-//                                 <button className="ap-sched-cancel-btn" onClick={() => cancelSchedule(key)}>
-//                                   <i className="ti ti-x" /> إلغاء الجدولة
-//                                 </button>
-//                               </div>
-//                             ) : (
-//                               <button
-//                                 className="ap-sched-confirm-btn"
-//                                 style={{ borderColor: '#3b82f6', color: '#3b82f6' }}
-//                                 onClick={() => {
-//                                   const [h, m] = inp.time.split(':').map(Number);
-//                                   const d = new Date(inp.date);
-//                                   d.setHours(h, m, Number(inp.seconds), 0);
-//                                   scheduleAt(key, runAdminReport, d);
-//                                 }}
-//                               >
-//                                 <i className="ti ti-calendar-plus" /> تأكيد الجدولة
-//                               </button>
-//                             )}
-//                           </div>
-
-//                           <button
-//                             className="ap-cron-run-btn"
-//                             style={{ background: '#3b82f6' }}
-//                             disabled={cronLoading.report}
-//                             onClick={runAdminReport}
-//                           >
-//                             {cronLoading.report
-//                               ? <><i className="ti ti-loader-2 ti-spin" />جاري الإرسال...</>
-//                               : <><i className="ti ti-player-play" />تشغيل الآن</>
-//                             }
-//                           </button>
-//                         </div>
-//                       );
-//                     })()}
-//                   </div>
-
-//                   <div className="ap-cron-stats-row">
-//                     {[
-//                       { icon: 'ti-history', color: TEAL2, value: cronLog.length, label: 'عدد مرات التشغيل' },
-//                       { icon: 'ti-clock',   color: AMBER, value: lastRun ? new Date(lastRun).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '—', label: 'آخر تشغيل' },
-//                       { icon: 'ti-calendar-event', color: '#3b82f6',
-//                         value: (nextRunTimes.reminder || nextRunTimes.report) ? 'مجدول' : 'لا يوجد',
-//                         label: 'جدولة نشطة' },
-//                     ].map((s, i) => (
-//                       <div key={i} className="ap-cron-stat">
-//                         <i className={`ti ${s.icon}`} style={{ color: s.color, fontSize: 22 }} />
-//                         <div>
-//                           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--t1)' }}>{s.value}</div>
-//                           <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{s.label}</div>
-//                         </div>
-//                       </div>
-//                     ))}
-//                   </div>
-
-//                   {cronLog.length > 0 && (
-//                     <div className="ap-cron-log">
-//                       <div className="ap-cron-log-header">
-//                         <SectionTitle icon="ti-list-details" color={TEAL2} title="سجل التنفيذ" badge={cronLog.length} />
-//                         <button className="ap-cron-log-clear" onClick={() => setCronLog([])}><i className="ti ti-trash" />مسح الكل</button>
-//                       </div>
-//                       <div className="ap-cron-log-list">
-//                         {cronLog.map((log, i) => (
-//                           <div key={i} className={`ap-cron-log-item ${log.type}`}>
-//                             <span>{log.type === 'success' ? '✓' : '✗'} {log.text}</span>
-//                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-//                               <span style={{ fontSize: 11, color: 'var(--t4)' }}>{log.time}</span>
-//                               <button
-//                                 onClick={() => setCronLog(p => p.filter((_, j) => j !== i))}
-//                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 12, padding: '2px 4px', borderRadius: 4, lineHeight: 1, transition: 'color 0.15s' }}
-//                                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-//                                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--t4)')}
-//                                 title="حذف هذا السجل"
-//                               >
-//                                 <i className="ti ti-x" />
-//                               </button>
-//                             </div>
-//                           </div>
-//                         ))}
-//                       </div>
-//                     </div>
-//                   )}
-//                 </div>
-//               )}
-
-//               {/* ══ SETTINGS ══════════════════════════════════════════════════ */}
-//               {tab === 'settings' && (
-//                 <div className="ap-tab-pane">
-//                   <div className="ap-section-header" style={{ marginBottom: 20 }}>
-//                     <SectionTitle icon="ti-settings" color={TEAL2} title="الإعدادات" />
-//                   </div>
-
-//                   {/* Mobile: horizontal scrollable tabs */}
-//                   <div className="ap-settings-mobile-tabs">
-//                     {([
-//                       { id: 'account',  icon: 'ti-id',             label: 'الحساب',       color: '#3b82f6' },
-//                       { id: 'profile',  icon: 'ti-user-circle',    label: 'الملف الشخصي', color: TEAL2 },
-//                       { id: 'password', icon: 'ti-shield-lock',    label: 'كلمة المرور',  color: RED },
-//                       { id: 'danger',   icon: 'ti-alert-triangle', label: 'منطقة الخطر',  color: '#ef4444' },
-//                     ] as const).map(item => (
-//                       <button
-//                         key={item.id}
-//                         onClick={() => setSettingsTab(item.id)}
-//                         className={`ap-settings-mobile-tab${settingsTab === item.id ? ' active' : ''}`}
-//                         style={{
-//                           borderBottom: settingsTab === item.id ? `2px solid ${item.color}` : '2px solid transparent',
-//                           color: settingsTab === item.id ? item.color : 'var(--t3)',
-//                         } as React.CSSProperties}
-//                       >
-//                         <i className={`ti ${item.icon}`} />
-//                         <span>{item.label}</span>
-//                       </button>
-//                     ))}
-//                   </div>
-
-//                   <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-
-//                     {/* Desktop: Sidebar Nav */}
-//                     <div className="ap-settings-sidenav">
-//                       {/* Admin Identity Banner */}
-//                       <div className="ap-settings-identity">
-//                         <div className="ap-settings-identity-avatar">
-//                           {userName?.slice(0, 1).toUpperCase()}
-//                         </div>
-//                         <div className="ap-settings-identity-info">
-//                           <div className="ap-settings-identity-name">{userName}</div>
-//                           <div className="ap-settings-identity-role">مسؤول النظام</div>
-//                         </div>
-//                       </div>
-
-//                       {([
-//                         { id: 'account',  icon: 'ti-id',             label: 'بيانات الحساب',  color: '#3b82f6' },
-//                         { id: 'profile',  icon: 'ti-user-circle',    label: 'الملف الشخصي',   color: TEAL2 },
-//                         { id: 'password', icon: 'ti-shield-lock',    label: 'كلمة المرور',    color: RED },
-//                         { id: 'danger',   icon: 'ti-alert-triangle', label: 'منطقة الخطر',   color: '#ef4444' },
-//                       ] as const).map(item => (
-//                         <button
-//                           key={item.id}
-//                           onClick={() => setSettingsTab(item.id)}
-//                           className="ap-settings-sidenav-btn"
-//                           style={{
-//                             background: settingsTab === item.id ? `${item.color}14` : 'transparent',
-//                             color: settingsTab === item.id ? item.color : 'var(--t2)',
-//                             fontWeight: settingsTab === item.id ? 700 : 500,
-//                             borderRight: settingsTab === item.id ? `3px solid ${item.color}` : '3px solid transparent',
-//                           } as React.CSSProperties}
-//                         >
-//                           <i className={`ti ${item.icon}`} style={{ fontSize: 15, color: item.color, flexShrink: 0 }} />
-//                           {item.label}
-//                         </button>
-//                       ))}
-//                     </div>
-
-//                     {/* Settings Content Area */}
-//                     <div style={{ flex: 1, minWidth: 0 }}>
-
-//                       {/* ── Account Card ── */}
-//                       {settingsTab === 'account' && (
-//                         <div className="ap-settings-card">
-//                           <div className="ap-settings-card-title">
-//                             <div className="ap-settings-icon" style={{ background: 'rgba(59,130,246,0.14)', color: '#3b82f6' }}>
-//                               <i className="ti ti-id" />
-//                             </div>
-//                             بيانات الحساب والمعرّف
-//                           </div>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">البريد الإلكتروني الأساسي</label>
-//                               <input className="ap-form-input" value={user?.email ?? ''} disabled style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)' }} />
-//                             </div>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-//                                 الرقم التعريفي الفريد (ID)
-//                                 <span style={{ fontSize: 10.5, color: RED, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-//                                   <i className="ti ti-lock" /> محمي ومقفل
-//                                 </span>
-//                               </label>
-//                               <div style={{ padding: '12px 14px', background: 'rgba(244,63,94,0.03)', border: `1.5px dashed ${RED}`, borderRadius: 'var(--radius-sm)', color: 'var(--t2)', fontFamily: 'monospace', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', userSelect: 'none', pointerEvents: 'none' }}>
-//                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-//                                   <i className="ti ti-secure" style={{ color: RED, fontSize: 16 }} />
-//                                   <span>{user?._id ?? '—'}</span>
-//                                 </div>
-//                               </div>
-//                             </div>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">تاريخ الإنشاء والتسجيل بالمنصة</label>
-//                               <div className="ap-form-input" style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)', display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px' }}>
-//                                 <i className="ti ti-calendar" style={{ fontSize: 14 }} />
-//                                 {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-//                               </div>
-//                             </div>
-//                           </div>
-//                         </div>
-//                       )}
-
-//                       {/* ── Profile Card ── */}
-//                       {settingsTab === 'profile' && (
-//                         <div className="ap-settings-card">
-//                           <div className="ap-settings-card-title">
-//                             <div className="ap-settings-icon" style={{ background: 'rgba(16,185,129,0.14)', color: TEAL2 }}>
-//                               <i className="ti ti-user-circle" />
-//                             </div>
-//                             الملف الشخصي
-//                           </div>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">اسم المستخدم <span style={{ color: RED }}>*</span></label>
-//                               <input
-//                                 className={`ap-form-input${profileErrors.userName ? ' error' : ''}`}
-//                                 value={profileForm.userName}
-//                                 onChange={e => { setProfileForm(f => ({ ...f, userName: e.target.value })); setProfileErrors(er => ({ ...er, userName: '' })); }}
-//                                 placeholder="اسم المستخدم"
-//                               />
-//                               {profileErrors.userName && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.userName}</div>}
-//                             </div>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">رقم الهاتف</label>
-//                               <input
-//                                 className={`ap-form-input${profileErrors.phone ? ' error' : ''}`}
-//                                 value={profileForm.phone}
-//                                 onChange={e => { setProfileForm(f => ({ ...f, phone: e.target.value })); setProfileErrors(er => ({ ...er, phone: '' })); }}
-//                                 placeholder="01xxxxxxxxx"
-//                               />
-//                               {profileErrors.phone && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.phone}</div>}
-//                             </div>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">العنوان</label>
-//                               <input
-//                                 className={`ap-form-input${profileErrors.address ? ' error' : ''}`}
-//                                 value={profileForm.address}
-//                                 onChange={e => { setProfileForm(f => ({ ...f, address: e.target.value })); setProfileErrors(er => ({ ...er, address: '' })); }}
-//                                 placeholder="المدينة أو المنطقة"
-//                               />
-//                               {profileErrors.address && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.address}</div>}
-//                             </div>
-//                             <button
-//                               className="ap-action-btn approve"
-//                               style={{ alignSelf: 'flex-start', padding: '8px 18px', marginTop: 'auto' }}
-//                               disabled={settingsSaving}
-//                               onClick={saveProfile}
-//                             >
-//                               {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-check" /> حفظ التغييرات</>}
-//                             </button>
-//                           </div>
-//                         </div>
-//                       )}
-
-//                       {/* ── Password Card ── */}
-//                       {settingsTab === 'password' && (
-//                         <div className="ap-settings-card">
-//                           <div className="ap-settings-card-title">
-//                             <div className="ap-settings-icon" style={{ background: 'rgba(244,63,94,0.14)', color: RED }}>
-//                               <i className="ti ti-shield-lock" />
-//                             </div>
-//                             تغيير كلمة المرور
-//                           </div>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">كلمة المرور الحالية <span style={{ color: RED }}>*</span></label>
-//                               <div style={{ position: 'relative' }}>
-//                                 <input
-//                                   className={`ap-form-input${passErrors.oldPassword ? ' error' : ''}`}
-//                                   type={showOldPass ? 'text' : 'password'}
-//                                   value={passForm.oldPassword}
-//                                   onChange={e => { setPassForm(f => ({ ...f, oldPassword: e.target.value })); setPassErrors(er => ({ ...er, oldPassword: '' })); }}
-//                                   placeholder="Enter your old password"
-//                                   style={{ paddingLeft: 36 }}
-//                                 />
-//                                 <button type="button" onClick={() => setShowOldPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showOldPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showOldPass ? '-off' : ''}`} /></button>
-//                               </div>
-//                               {passErrors.oldPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.oldPassword}</div>}
-//                             </div>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
-//                               <div style={{ position: 'relative' }}>
-//                                 <input
-//                                   className={`ap-form-input${passErrors.newPassword ? ' error' : ''}`}
-//                                   type={showNewPass ? 'text' : 'password'}
-//                                   value={passForm.newPassword}
-//                                   onChange={e => { setPassForm(f => ({ ...f, newPassword: e.target.value })); setPassErrors(er => ({ ...er, newPassword: '' })); }}
-//                                   placeholder="Enter your new password"
-//                                   style={{ paddingLeft: 36 }}
-//                                 />
-//                                 <button type="button" onClick={() => setShowNewPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showNewPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showNewPass ? '-off' : ''}`} /></button>
-//                               </div>
-//                               {passErrors.newPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.newPassword}</div>}
-//                             </div>
-//                             <div className="ap-form-group">
-//                               <label className="ap-form-label">تأكيد كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
-//                               <div style={{ position: 'relative' }}>
-//                                 <input
-//                                   className={`ap-form-input${passErrors.confirmPassword ? ' error' : ''}`}
-//                                   type={showConfirmPass ? 'text' : 'password'}
-//                                   value={passForm.confirmPassword}
-//                                   onChange={e => { setPassForm(f => ({ ...f, confirmPassword: e.target.value })); setPassErrors(er => ({ ...er, confirmPassword: '' })); }}
-//                                   placeholder="Enter your Confirm Password"
-//                                   style={{ paddingLeft: 36 }}
-//                                 />
-//                                 <button type="button" onClick={() => setShowConfirmPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showConfirmPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showConfirmPass ? '-off' : ''}`} /></button>
-//                               </div>
-//                               {passErrors.confirmPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.confirmPassword}</div>}
-//                             </div>
-//                             <button
-//                               className="ap-action-btn edit"
-//                               style={{ alignSelf: 'flex-start', padding: '8px 18px' }}
-//                               disabled={settingsSaving}
-//                               onClick={savePassword}
-//                             >
-//                               {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-key" /> تغيير كلمة المرور</>}
-//                             </button>
-//                           </div>
-//                         </div>
-//                       )}
-
-//                       {/* ── Danger Zone Card ── */}
-//                       {settingsTab === 'danger' && (
-//                         <div className="ap-settings-card" style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)' }}>
-//                           <div className="ap-settings-card-title">
-//                             <div className="ap-settings-icon" style={{ background: 'rgba(244,63,94,0.14)', color: RED }}>
-//                               <i className="ti ti-alert-triangle" />
-//                             </div>
-//                             <span style={{ color: RED }}>منطقة الخطر والعمليات الحساسة</span>
-//                           </div>
-//                           <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.7, marginBottom: 20 }}>
-//                             تسجيل الخروج من الجلسة الحالية للمسؤول، أو تفعيل حذف الحساب نهائيًا من المنصة. هذه الإجراءات لا يمكن التراجع عنها.
-//                           </p>
-//                           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-//                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-//                               <div>
-//                                 <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)', marginBottom: 2 }}>تسجيل الخروج</div>
-//                                 <div style={{ fontSize: 12, color: 'var(--t3)' }}>إنهاء الجلسة الحالية للمسؤول</div>
-//                               </div>
-//                               <button className="ap-action-btn edit" style={{ padding: '8px 16px', flexShrink: 0, background: 'var(--surface2)', border: '1px solid var(--border)' }} onClick={handleLogout}>
-//                                 <i className="ti ti-logout" /> تسجيل الخروج
-//                               </button>
-//                             </div>
-//                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'rgba(244,63,94,0.04)', borderRadius: 'var(--radius-sm)', border: `1px solid rgba(244,63,94,0.2)` }}>
-//                               <div>
-//                                 <div style={{ fontWeight: 700, fontSize: 13, color: RED, marginBottom: 2 }}>حذف الحساب نهائياً</div>
-//                                 <div style={{ fontSize: 12, color: 'var(--t3)' }}>سيتم حذف جميع بيانات الحساب ولا يمكن التراجع</div>
-//                               </div>
-//                               <button
-//                                 className="ap-action-btn delete"
-//                                 style={{ padding: '8px 16px', flexShrink: 0, background: RED, color: '#fff' }}
-//                                 onClick={() => { setDeleteConfirmText(''); setShowDeleteModal(true); }}
-//                               >
-//                                 <i className="ti ti-user-off" /> حذف الحساب
-//                               </button>
-//                             </div>
-//                           </div>
-//                         </div>
-//                       )}
-
-//                     </div>
-//                   </div>
-//                 </div>
-//               )}
-
-//               {/* ══ AI CHAT ══════════════════════════════════════════════════ */}
-//               {tab === 'ai-chat' && (
-//                 <div className="ap-ai-chat-container">
-//                   <AIChatEmbed />
-//                 </div>
-//               )}
-//             </>
-//           )}
-//         </div>
-//       </main>
-
-//       <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} onLogout={handleLogout} newUsersCount={newUsersCount} newCharitiesCount={newCharitiesCount} newReportsCount={newReportsCount} />
-
-//       <Toast msg={toast} />
-//       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />
-//       <RejectModal target={rejectTarget} loading={rejectLoading} onClose={() => setRejectTarget(null)} onConfirm={handleReject} />
-//       <EditCharityModal target={editCharityTarget} loading={actionLoading} setLoading={setActionLoading} onClose={() => setEditCharityTarget(null)} onSaved={(id, form) => {
-//         setCharities(prev => prev.map(c => c._id === id ? { ...c, ...form } : c));
-//         setAllCharitiesForTrend(prev => prev.map(c => c._id === id ? { ...c, ...form } : c));
-//       }} showMsg={showMsg} />
-
-//       {/* Account Deletion Verification Modal */}
-//       {showDeleteModal && (
-//         <div className="ap-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-//           <div className="ap-modal" onClick={e => e.stopPropagation()}>
-//             <div className="ap-modal-inner">
-//               <div className="ap-secure-modal-icon" style={{ background: RED + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', margin: '0 auto 16px' }}>
-//                 <i className="ti ti-user-off" style={{ color: RED, fontSize: 28 }} />
-//               </div>
-//               <h3 className="ap-modal-title" style={{ color: RED, textAlign: 'center', fontSize: '18px', fontWeight: 800, marginBottom: '10px' }}>تأكيد حذف الحساب نهائياً!</h3>
-//               <p className="ap-modal-msg" style={{ lineHeight: 1.7, fontSize: 13.5, color: 'var(--t3)', textAlign: 'center', marginBottom: '20px' }}>
-//                 تحذير: هذا الإجراء شديد الحساسية ولا يمكن التراجع عنه مطلقاً. سيتم حذف جميع بيانات ملفك الشخصي ومفاتيح الـ API وتفضيلاتك من المنصة نهائياً.
-//               </p>
-              
-//               <div className="ap-form-group" style={{ marginBottom: 20, textAlign: 'right' }}>
-//                 <label className="ap-form-label" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 8, textAlign: 'center' }}>
-//                   لتأكيد الحذف، يرجى كتابة اسم المستخدم الخاص بك <strong style={{ color: RED }}>"{user?.userName}"</strong> أدناه:
-//                 </label>
-//                 <input
-//                   className="ap-form-input"
-//                   value={deleteConfirmText}
-//                   onChange={e => setDeleteConfirmText(e.target.value)}
-//                   placeholder="اكتب اسم المستخدم هنا"
-//                   style={{ border: `1px solid ${deleteConfirmText === user?.userName ? TEAL2 : RED}`, color: 'var(--t1)', fontWeight: 700, textAlign: 'center' }}
-//                 />
-//               </div>
-
-//               <div className="ap-modal-actions" style={{ justifyContent: 'center', gap: '10px' }}>
-//                 <button
-//                   className="ap-modal-cancel"
-//                   onClick={() => setShowDeleteModal(false)}
-//                   disabled={deleteBtnLoading}
-//                   style={{ minWidth: '120px' }}
-//                 >
-//                   إلغاء وتراجع
-//                 </button>
-//                 <button
-//                   className="ap-modal-confirm"
-//                   disabled={deleteBtnLoading || deleteConfirmText !== user?.userName}
-//                   style={{ background: RED, color: '#fff', opacity: deleteConfirmText === user?.userName ? 1 : 0.4, minWidth: '160px' }}
-//                   onClick={handleDeleteAccount}
-//                 >
-//                   {deleteBtnLoading ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحذف...</> : 'نعم، احذف حسابي نهائياً'}
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* User Detail Modal */}
-//       {userDetailModal && (() => {
-//         const verified = userDetailModal.isVerified || userDetailModal.verify;
-//         return (
-//           <div className="ap-modal-overlay" onClick={() => setUserDetailModal(null)}>
-//             <div className="ap-modal ap-modal-wide" onClick={e => e.stopPropagation()}>
-//               <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.04) 100%)', padding: '22px 28px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-//                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-//                   <div className="ap-detail-avatar" style={{ width: 52, height: 52, fontSize: 20 }}>{userDetailModal.userName?.slice(0, 1).toUpperCase() ?? '?'}</div>
-//                   <div>
-//                     <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--t1)', marginBottom: 3 }}>{userDetailModal.userName}</div>
-//                     <div style={{ fontSize: 13, color: 'var(--t3)' }}>{userDetailModal.email}</div>
-//                     <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-//                       <RoleBadge role={userDetailModal.roleType} />
-//                       <span className="ap-badge" style={{ background: verified ? 'rgba(34,197,94,0.14)' : 'rgba(244,63,94,0.14)', color: verified ? '#22c55e' : RED }}>
-//                         <i className={`ti ${verified ? 'ti-circle-check' : 'ti-circle-x'}`} style={{ fontSize: 11 }} />
-//                         {verified ? 'موثق' : 'غير موثق'}
-//                       </span>
-//                     </div>
-//                   </div>
-//                 </div>
-//                 <button className="ap-modal-close-x" onClick={() => setUserDetailModal(null)}><i className="ti ti-x" /></button>
-//               </div>
-//               <div className="ap-modal-inner" style={{ paddingTop: 20 }}>
-//                 <div className="ap-detail-section">
-//                   <DetailRow icon="ti-fingerprint" label="المعرف"       value={userDetailModal._id}                           mono />
-//                   <DetailRow icon="ti-mail"        label="البريد"       value={userDetailModal.email}                               />
-//                   {userDetailModal.phone   && <DetailRow icon="ti-phone"   label="الهاتف"    value={userDetailModal.phone}   />}
-//                   {userDetailModal.address && <DetailRow icon="ti-map-pin" label="العنوان"   value={userDetailModal.address} />}
-//                   <DetailRow icon="ti-calendar"    label="تاريخ الانضمام" value={fmt12(userDetailModal.createdAt)}                    />
-//                   {userDetailModal.updatedAt && <DetailRow icon="ti-clock-edit" label="آخر تحديث" value={fmt12(userDetailModal.updatedAt)} />}
-//                 </div>
-//                 <div className="ap-modal-actions" style={{ marginTop: 18 }}>
-//                   <button className="ap-modal-cancel" onClick={() => setUserDetailModal(null)}>إغلاق</button>
-//                   {userDetailModal.roleType !== 'admin' && (
-//                     <button className="ap-modal-confirm" style={{ background: RED }} onClick={() => { setUserDetailModal(null); handleDeleteUser(userDetailModal._id, userDetailModal.userName); }}>
-//                       <i className="ti ti-trash" />حذف المستخدم
-//                     </button>
-//                   )}
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         );
-//       })()}
-
-//       {/* Charity Detail Modal */}
-//       {charityDetailModal && (
-//         <div className="ap-modal-overlay" onClick={() => setCharityDetailModal(null)}>
-//           <div className="ap-modal ap-modal-wide" onClick={e => e.stopPropagation()}>
-//             <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.04) 100%)', padding: '22px 28px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-//               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-//                 <div className="ap-entity-avatar charity" style={{ width: 52, height: 52, fontSize: 22 }}><i className="ti ti-building-community" /></div>
-//                 <div>
-//                   <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--t1)', marginBottom: 3 }}>{charityDetailModal.charityName}</div>
-//                   <div style={{ fontSize: 13, color: 'var(--t3)' }}>{charityDetailModal.email}</div>
-//                   <div style={{ marginTop: 8 }}><StatusBadge status={charityDetailModal.approvalStatus} /></div>
-//                 </div>
-//               </div>
-//               <button className="ap-modal-close-x" onClick={() => setCharityDetailModal(null)}><i className="ti ti-x" /></button>
-//             </div>
-
-//             <div className="ap-modal-inner" style={{ paddingTop: 20 }}>
-//               <div className="ap-detail-section" style={{ marginBottom: 16 }}>
-//                 <DetailRow icon="ti-fingerprint"  label="المعرف"        value={charityDetailModal._id}                     mono />
-//                 <DetailRow icon="ti-map-pin"      label="العنوان"       value={charityDetailModal.address || '—'}                />
-//                 {charityDetailModal.phone         && <DetailRow icon="ti-phone"       label="الهاتف"       value={charityDetailModal.phone}         />}
-//                 {charityDetailModal.licenseNumber && <DetailRow icon="ti-certificate" label="رقم الترخيص"  value={charityDetailModal.licenseNumber} />}
-//                 <DetailRow icon="ti-calendar" label="تاريخ الانضمام" value={(() => {
-//                   const raw = charityDetailModal.createdAt ?? (charityDetailModal as any).created_at ?? (charityDetailModal as any).registeredAt;
-//                   if (raw) return fmt12(raw);
-//                   // fallback: extract timestamp from MongoDB ObjectId
-//                   try {
-//                     const hex = charityDetailModal._id?.substring(0, 8);
-//                     if (hex) return fmt12(new Date(parseInt(hex, 16) * 1000).toISOString());
-//                   } catch { /* ignore */ }
-//                   return '—';
-//                 })()} />
-//                 {charityDetailModal.userId && <DetailRow icon="ti-user" label="معرف المالك" value={charityDetailModal.userId} mono />}
-//               </div>
-
-//               {charityDetailModal.description && (
-//                 <div style={{ marginBottom: 16 }}>
-//                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-//                     <i className="ti ti-file-description" style={{ fontSize: 14 }} /> الوصف
-//                   </div>
-//                   <div className="ap-report-full-body">{charityDetailModal.description}</div>
-//                 </div>
-//               )}
-
-//               {charityDetailModal.approvalStatus === 'rejected' && charityDetailModal.rejectionReason && (
-//                 <div style={{ marginBottom: 16 }}>
-//                   <div style={{ fontSize: 12, fontWeight: 700, color: RED, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-//                     <i className="ti ti-alert-circle" style={{ fontSize: 14 }} /> سبب الرفض
-//                   </div>
-//                   <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.8, background: 'rgba(244,63,94,0.06)', borderRadius: 'var(--radius-sm)', padding: 14, border: '1px solid rgba(244,63,94,0.18)' }}>
-//                     {charityDetailModal.rejectionReason}
-//                   </div>
-//                 </div>
-//               )}
-
-//               {charityDetailModal.approvalStatus === 'pending' && (
-//                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-//                   <button className="ap-action-btn approve" style={{ flex: 1, justifyContent: 'center' }} disabled={!!actionLoading} onClick={() => { setCharityDetailModal(null); handleApprove(charityDetailModal._id, charityDetailModal.charityName); }}>
-//                     <i className="ti ti-check" />موافقة
-//                   </button>
-//                   <button className="ap-action-btn reject" style={{ flex: 1, justifyContent: 'center' }} disabled={!!actionLoading} onClick={() => { setCharityDetailModal(null); setRejectTarget({ id: charityDetailModal._id, name: charityDetailModal.charityName }); }}>
-//                     <i className="ti ti-x" />رفض
-//                   </button>
-//                 </div>
-//               )}
-//               <div className="ap-modal-actions">
-//                 <button className="ap-modal-cancel" onClick={() => setCharityDetailModal(null)}>إغلاق</button>
-//                 <button className="ap-action-btn edit" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => { setCharityDetailModal(null); setEditCharityTarget(charityDetailModal); }}>
-//                   <i className="ti ti-edit" />تعديل
-//                 </button>
-//                 <button className="ap-modal-confirm" style={{ background: RED }} disabled={!!actionLoading} onClick={() => { setCharityDetailModal(null); handleDeleteCharity(charityDetailModal._id, charityDetailModal.charityName); }}>
-//                   <i className="ti ti-trash" />حذف
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Report Detail Modal */}
-//       {reportModal && (() => {
-//         const isCharity = reportModal.senderType === 'charity';
-//         const senderName = reportModal.userName || reportModal.charityName || '—';
-//         return (
-//           <div className="ap-modal-overlay" onClick={() => setReportModal(null)}>
-//             <div className="ap-modal ap-modal-wide" onClick={e => e.stopPropagation()}>
-//               <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.04) 100%)', padding: '22px 28px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
-//                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-//                   <div style={{ width: 48, height: 48, borderRadius: 13, background: isCharity ? 'rgba(91,148,245,0.14)' : 'rgba(0,212,154,0.14)', color: isCharity ? '#5b94f5' : TEAL2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-//                     <i className={`ti ${isCharity ? 'ti-building-community' : 'ti-user'}`} />
-//                   </div>
-//                   <div>
-//                     <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--t1)', marginBottom: 3 }}>{senderName}</div>
-//                     <div style={{ fontSize: 11, color: isCharity ? '#5b94f5' : TEAL2, fontWeight: 700, marginBottom: 2 }}>{isCharity ? 'جمعية' : (reportModal.senderType === 'donor' ? 'متبرع' : 'مستخدم')}</div>
-//                     <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fmt12(reportModal.createdAt)}</div>
-//                   </div>
-//                 </div>
-//                 <button className="ap-modal-close-x" onClick={() => setReportModal(null)}><i className="ti ti-x" /></button>
-//               </div>
-
-//               <div className="ap-modal-inner" style={{ paddingTop: 20 }}>
-//                 <div className="ap-detail-section" style={{ marginBottom: 16 }}>
-//                   <DetailRow icon="ti-tag" label="النوع" value={isCharity ? 'جمعية' : (reportModal.senderType === 'donor' ? 'متبرع' : 'مستخدم')} />
-//                   <DetailRow icon="ti-calendar" label="التاريخ" value={fmt12(reportModal.createdAt)} />
-//                   {(reportModal.userId || (reportModal as any).senderId) && <DetailRow icon="ti-fingerprint" label="المعرف" value={reportModal.userId || (reportModal as any).senderId} mono />}
-//                 </div>
-
-//                 <div style={{ marginBottom: 16 }}>
-//                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-//                     <i className="ti ti-file-text" style={{ fontSize: 14 }} /> محتوى التقرير
-//                   </div>
-//                   <div className="ap-report-full-body">{reportModal.description}</div>
-//                 </div>
-
-//                 <div className="ap-modal-actions" style={{ marginTop: 16 }}>
-//                   <button className="ap-modal-cancel" onClick={() => setReportModal(null)}>إغلاق</button>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         );
-//       })()}
-//     </div>
-//   );
-// }
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
@@ -3436,7 +11,7 @@ import AIChatEmbed from '../../components/shared/AIChatEmbed';
 import ScrollToTop from '../../components/shared/ScrollToTop';
 import { usersApi } from '../../services';
 import {
-  apiFetch, fetchPage,
+  apiFetch, fetchPage, fetchAll,
   User, Charity, Report, Tab, ApprovalStatus,
   APPROVAL_CFG, ROLE_CFG,
   TEAL2, AMBER, RED,
@@ -3458,17 +33,17 @@ type ViewMode = 'table' | 'cards';
 type ThemeMode = 'dark' | 'light';
 
 const NAV_ITEMS = [
-  { id: 'overview',   label: 'نظرة عامة',       icon: 'ti-layout-dashboard'    },
-  { id: 'users',      label: 'المستخدمون',       icon: 'ti-users'               },
-  { id: 'charities',  label: 'الجمعيات',          icon: 'ti-building-community'  },
-  { id: 'reports',    label: 'التقارير',          icon: 'ti-alert-circle'        },
-  { id: 'automation', label: 'التشغيل التلقائي', icon: 'ti-settings-automation' },
-  { id: 'settings',   label: 'الإعدادات',        icon: 'ti-settings'            },
-  { id: 'ai-chat',    label: 'مساعد الذكاء',     icon: 'ti-brain'               },
+  { id: 'overview',   label: 'نظرة عامة',       short: 'عامة',      icon: 'ti-layout-dashboard'    },
+  { id: 'users',      label: 'المستخدمون',       short: 'المستخدمون', icon: 'ti-users'               },
+  { id: 'charities',  label: 'الجمعيات',          short: 'الجمعيات',  icon: 'ti-building-community'  },
+  { id: 'reports',    label: 'التقارير',          short: 'التقارير',  icon: 'ti-alert-circle'        },
+  { id: 'automation', label: 'التشغيل التلقائي', short: 'تلقائي',    icon: 'ti-settings-automation' },
+  { id: 'settings',   label: 'الإعدادات',        short: 'إعدادات',   icon: 'ti-settings'            },
+  { id: 'ai-chat',    label: 'مساعد الذكاء',     short: 'مساعد',     icon: 'ti-brain'               },
 ];
 
 // ─── Sidebar Component ────────────────────────────────────────────────────────
-function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, collapsed, onToggleCollapse }: {
+function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, collapsed, onToggleCollapse, newUsersCount, newCharitiesCount, newReportsCount }: {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   userName: string;
@@ -3476,6 +51,9 @@ function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, col
   pendingCount: number;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  newUsersCount: number;
+  newCharitiesCount: number;
+  newReportsCount: number;
 }) {
   return (
     <aside className={`ap-sidebar${collapsed ? ' collapsed' : ''}`}>
@@ -3494,23 +72,29 @@ function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, col
       </div>
 
       <nav className="ap-sidebar-nav">
-        {NAV_ITEMS.map(item => (
-          <button
-            key={item.id}
-            className={`ap-nav-item${activeTab === item.id ? ' active' : ''}`}
-            onClick={() => onTabChange(item.id as Tab)}
-            title={collapsed ? item.label : undefined}
-          >
-            <span className="ap-nav-icon-wrap">
-              <i className={`ti ${item.icon}`} />
-              {item.id === 'charities' && pendingCount > 0 && (
-                <span className="ap-nav-badge">{pendingCount}</span>
-              )}
-            </span>
-            {!collapsed && <span className="ap-nav-label">{item.label}</span>}
-            {!collapsed && activeTab === item.id && <span className="ap-nav-active-bar" />}
-          </button>
-        ))}
+        {NAV_ITEMS.map(item => {
+          const badgeCount =
+            item.id === 'users'     ? newUsersCount :
+            item.id === 'charities' ? (newCharitiesCount + pendingCount) :
+            item.id === 'reports'   ? newReportsCount : 0;
+          return (
+            <button
+              key={item.id}
+              className={`ap-nav-item${activeTab === item.id ? ' active' : ''}`}
+              onClick={() => onTabChange(item.id as Tab)}
+              title={collapsed ? item.label : undefined}
+            >
+              <span className="ap-nav-icon-wrap">
+                <i className={`ti ${item.icon}`} />
+                {badgeCount > 0 && (
+                  <span className="ap-nav-badge">{badgeCount > 99 ? '99+' : badgeCount}</span>
+                )}
+              </span>
+              {!collapsed && <span className="ap-nav-label">{item.label}</span>}
+              {!collapsed && activeTab === item.id && <span className="ap-nav-active-bar" />}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="ap-sidebar-footer">
@@ -3546,33 +130,38 @@ function Sidebar({ activeTab, onTabChange, userName, onLogout, pendingCount, col
 }
 
 // ─── Mobile Bottom Nav ────────────────────────────────────────────────────────
-function MobileNav({ activeTab, onTabChange, pendingCount, onLogout }: {
+function MobileNav({ activeTab, onTabChange, pendingCount, onLogout, newUsersCount, newCharitiesCount, newReportsCount }: {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   pendingCount: number;
   onLogout: () => void;
+  newUsersCount: number;
+  newCharitiesCount: number;
+  newReportsCount: number;
 }) {
   return (
     <nav className="ap-mobile-nav">
-      {NAV_ITEMS.map(item => (
-        <button
-          key={item.id}
-          className={`ap-mobile-nav-item${activeTab === item.id ? ' active' : ''}`}
-          onClick={() => onTabChange(item.id as Tab)}
-        >
-          <span className="ap-nav-icon-wrap">
-            <i className={`ti ${item.icon}`} />
-            {item.id === 'charities' && pendingCount > 0 && (
-              <span className="ap-nav-badge">{pendingCount}</span>
-            )}
-          </span>
-          <span>{item.label}</span>
-        </button>
-      ))}
-      <button className="ap-mobile-nav-item ap-mobile-nav-logout" onClick={onLogout}>
-        <span className="ap-nav-icon-wrap"><i className="ti ti-logout" /></span>
-        <span>خروج</span>
-      </button>
+      {NAV_ITEMS.filter(item => item.id !== 'settings').map(item => {
+        const badgeCount =
+          item.id === 'users'     ? newUsersCount :
+          item.id === 'charities' ? (newCharitiesCount + pendingCount) :
+          item.id === 'reports'   ? newReportsCount : 0;
+        return (
+          <button
+            key={item.id}
+            className={`ap-mobile-nav-item${activeTab === item.id ? ' active' : ''}`}
+            onClick={() => onTabChange(item.id as Tab)}
+          >
+            <span className="ap-nav-icon-wrap">
+              <i className={`ti ${item.icon}`} />
+              {badgeCount > 0 && (
+                <span className="ap-nav-badge">{badgeCount > 99 ? '99+' : badgeCount}</span>
+              )}
+            </span>
+            <span>{(item as any).short || item.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -3977,171 +566,6 @@ function SearchBox({ value, onChange, placeholder }: {
   );
 }
 
-// ─── Filter Dialog (Sheet) ─────────────────────────────────────────────────
-// يظهر لما تضغط على زرار "تصفية" — نفس فكرة داشبورد الجمعية
-
-interface FilterDialogConfig {
-  search: string;
-  onSearchChange: (v: string) => void;
-  searchPlaceholder?: string;
-  statusTabs?: { value: string; label: string; badge?: number }[];
-  activeStatus?: string;
-  onStatusChange?: (v: string) => void;
-  sortDir: 'newest' | 'oldest';
-  onSortChange: (v: 'newest' | 'oldest') => void;
-  dateFrom: string;
-  dateTo: string;
-  onDateFromChange: (v: string) => void;
-  onDateToChange: (v: string) => void;
-  onReset: () => void;
-  hasFilters: boolean;
-}
-
-function FilterDialog({
-  open, onClose, cfg,
-}: {
-  open: boolean;
-  onClose: () => void;
-  cfg: FilterDialogConfig;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open, onClose]);
-  useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
-  if (!open) return null;
-  return (
-    <div style={{ position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'flex-end',justifyContent:'center',background:'rgba(0,0,0,0.45)',backdropFilter:'blur(2px)' }}>
-      <div
-        ref={ref}
-        style={{
-          width:'100%',maxWidth:520,background:'var(--surface)',borderRadius:'18px 18px 0 0',
-          padding:'0 0 24px',boxShadow:'0 -8px 40px rgba(0,0,0,0.35)',
-          animation:'ap-sheet-up 0.22s cubic-bezier(0.34,1.56,0.64,1)',
-        }}
-      >
-        {/* Handle */}
-        <div style={{display:'flex',justifyContent:'center',paddingTop:12,marginBottom:4}}>
-          <div style={{width:40,height:4,borderRadius:99,background:'var(--border)'}}/>
-        </div>
-        {/* Header */}
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 20px 16px'}}>
-          <span style={{fontWeight:800,fontSize:16,color:'var(--t1)',display:'flex',alignItems:'center',gap:8}}>
-            <i className="ti ti-adjustments-horizontal" style={{color:TEAL2}}/>
-            خيارات التصفية
-          </span>
-          <div style={{display:'flex',gap:8}}>
-            {cfg.hasFilters && (
-              <button
-                onClick={() => { cfg.onReset(); onClose(); }}
-                style={{fontSize:12,fontWeight:700,color:AMBER,background:'rgba(245,158,11,0.1)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:8,padding:'5px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:5}}
-              >
-                <i className="ti ti-filter-x"/>مسح الكل
-              </button>
-            )}
-            <button onClick={onClose} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--t3)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <i className="ti ti-x"/>
-            </button>
-          </div>
-        </div>
-        <div style={{padding:'0 20px',display:'flex',flexDirection:'column',gap:16}}>
-          {/* Search */}
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>البحث</div>
-            <SearchBox value={cfg.search} onChange={cfg.onSearchChange} placeholder={cfg.searchPlaceholder}/>
-          </div>
-          {/* Status tabs */}
-          {cfg.statusTabs && cfg.onStatusChange && (
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>الحالة</div>
-              <div className="ap-filter-tabs" style={{flexWrap:'wrap',gap:6}}>
-                {cfg.statusTabs.map(t => (
-                  <button
-                    key={t.value}
-                    className={`ap-filter-tab${cfg.activeStatus === t.value ? ' active' : ''}`}
-                    onClick={() => cfg.onStatusChange!(t.value)}
-                    style={{flex:'1 1 auto'}}
-                  >
-                    {t.label}
-                    {t.badge !== undefined && t.badge > 0 && (
-                      <span className="ap-filter-badge">{t.badge}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {/* Sort */}
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>الترتيب</div>
-            <div className="ap-filter-tabs">
-              <button className={`ap-filter-tab${cfg.sortDir==='newest'?' active':''}`} onClick={() => cfg.onSortChange('newest')} style={{flex:1}}>
-                <i className="ti ti-sort-descending"/> الأحدث
-              </button>
-              <button className={`ap-filter-tab${cfg.sortDir==='oldest'?' active':''}`} onClick={() => cfg.onSortChange('oldest')} style={{flex:1}}>
-                <i className="ti ti-sort-ascending"/> الأقدم
-              </button>
-            </div>
-          </div>
-          {/* Date range */}
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',marginBottom:6,textTransform:'uppercase',letterSpacing:0.5}}>نطاق التاريخ</div>
-            <div className="ap-date-range-wrap" style={{gap:8}}>
-              <div className="ap-date-field" style={{flex:1}}>
-                <span className="ap-date-label">من</span>
-                <input type="date" value={cfg.dateFrom} onChange={e => cfg.onDateFromChange(e.target.value)}/>
-              </div>
-              <div className="ap-date-field" style={{flex:1}}>
-                <span className="ap-date-label">إلى</span>
-                <input type="date" value={cfg.dateTo} min={cfg.dateFrom||undefined} onChange={e => cfg.onDateToChange(e.target.value)}/>
-              </div>
-              {(cfg.dateFrom || cfg.dateTo) && (
-                <button className="ap-date-range-clear" onClick={() => { cfg.onDateFromChange(''); cfg.onDateToChange(''); }}><i className="ti ti-x"/></button>
-              )}
-            </div>
-          </div>
-          {/* Apply */}
-          <button
-            onClick={onClose}
-            style={{background:TEAL2,color:'#fff',border:'none',borderRadius:11,padding:'11px',fontWeight:700,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:7}}
-          >
-            <i className="ti ti-check"/> تطبيق التصفية
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FilterTriggerBar({
-  onOpen, hasFilters, activeCount,
-}: {
-  onOpen: () => void;
-  hasFilters: boolean;
-  activeCount: number;
-}) {
-  return (
-    <button
-      onClick={onOpen}
-      className={`ap-filter-trigger-btn${hasFilters ? ' has-filters' : ''}`}
-      title="خيارات التصفية"
-    >
-      <i className="ti ti-adjustments-horizontal"/>
-      تصفية
-      {activeCount > 0 && <span className="ap-filter-active-count">{activeCount}</span>}
-    </button>
-  );
-}
-
 function LoadMoreBtn({ loading, remaining, onClick }: {
   loading: boolean; remaining: number; onClick: () => void;
 }) {
@@ -4153,6 +577,125 @@ function LoadMoreBtn({ loading, remaining, onClick }: {
           : <>تحميل المزيد {remaining > 0 && `(${remaining.toLocaleString('en-US')})`}</>
         }
       </button>
+    </div>
+  );
+}
+
+// ─── Expandable Section — replaces "عرض المزيد" pagination ───────────────────
+function ExpandableSection({ hiddenCount, loading, onLoadMore, label = 'عناصر' }: {
+  hiddenCount: number;
+  loading: boolean;
+  onLoadMore: () => void;
+  label?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleToggle = () => {
+    if (!expanded && hiddenCount > 0) onLoadMore();
+    setExpanded(v => !v);
+  };
+
+  if (hiddenCount <= 0 && !loading) return null;
+
+  return (
+    <div className="ap-expandable-trigger" onClick={handleToggle}>
+      <div className="ap-expandable-line" />
+      <button className={`ap-expandable-btn${expanded ? ' expanded' : ''}`} disabled={loading}>
+        {loading ? (
+          <>
+            <i className="ti ti-loader-2 ti-spin" style={{ fontSize: 13 }} />
+            <span>جاري التحميل...</span>
+          </>
+        ) : expanded ? (
+          <>
+            <i className="ti ti-chevron-up" style={{ fontSize: 13 }} />
+            <span>طي القائمة</span>
+          </>
+        ) : (
+          <>
+            <i className="ti ti-chevron-down" style={{ fontSize: 13 }} />
+            <span>
+              عرض {hiddenCount > 0 ? hiddenCount.toLocaleString('en-US') + ' ' : ''}{label} إضافية
+            </span>
+          </>
+        )}
+      </button>
+      <div className="ap-expandable-line" />
+    </div>
+  );
+}
+
+// ─── Custom RTL Pagination Component ──────────────────────────────────────────
+function AdminPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalItems,
+  itemsPerPage,
+  startIndex,
+  endIndex
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+  totalItems: number;
+  itemsPerPage: number;
+  startIndex: number;
+  endIndex: number;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages: number[] = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pages.push(i);
+  }
+
+  return (
+    <div className="ap-pagination-container">
+      <span className="ap-pagination-info">
+        {endIndex}-{startIndex} من {totalItems}
+      </span>
+      <div className="ap-pagination-buttons">
+        <button
+          className="ap-pagination-btn"
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          title="الصفحة الأولى"
+        >
+          »
+        </button>
+        <button
+          className="ap-pagination-btn prev-next"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          &lt; السابق
+        </button>
+        {pages.map(p => (
+          <button
+            key={p}
+            className={`ap-pagination-btn page-num ${currentPage === p ? 'active' : ''}`}
+            onClick={() => onPageChange(p)}
+          >
+            {p}
+          </button>
+        ))}
+        <button
+          className="ap-pagination-btn prev-next"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          التالي &gt;
+        </button>
+        <button
+          className="ap-pagination-btn"
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          title="الصفحة الأخيرة"
+        >
+          «
+        </button>
+      </div>
     </div>
   );
 }
@@ -4205,19 +748,33 @@ function KpiCard({ icon, label, value, change, changeDir, color }: {
 
 function ChartTooltip({ active, payload, label }: {
   active?: boolean;
-  payload?: { value: number; name: string }[];
+  payload?: { value: number; name: string; stroke?: string; fill?: string; color?: string }[];
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="ap-chart-tooltip">
-      <div className="ap-chart-tooltip-label">{label}</div>
-      {payload.map((p, i) => (
-        <div key={i} className="ap-chart-tooltip-row">
-          <span>{p.name}</span>
-          <span style={{ fontWeight: 700 }}>{p.value.toLocaleString('en-US')}</span>
-        </div>
-      ))}
+    <div className="ap-chart-tooltip" style={{ minWidth: 155, padding: '10px 12px' }}>
+      <div className="ap-chart-tooltip-label" style={{ fontFamily: 'Tajawal', fontWeight: 800, marginBottom: 6 }}>{label}</div>
+      {payload.map((p, i) => {
+        // Dynamic smart series dot color resolver
+        let dotColor = p.color || p.stroke || p.fill || '#4f46e5';
+        if (p.name === 'معلق' || p.name === 'قيد المراجعة' || p.name === 'معلقة') dotColor = '#f59e0b';
+        else if (p.name === 'مقبول' || p.name === 'نشط' || p.name === 'الجمعيات' || p.name === 'موافق عليها') dotColor = '#0ec97f';
+        else if (p.name === 'مرفوض' || p.name === 'محظور' || p.name === 'مرفوضة') dotColor = '#f04370';
+        else if (p.name === 'المستخدمون' || p.name === 'المشرفون') dotColor = '#3b82f6';
+        
+        return (
+          <div key={i} className="ap-chart-tooltip-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
+              <span style={{ color: 'var(--t2)', fontSize: 12 }}>{p.name}</span>
+            </div>
+            <span style={{ color: 'var(--t1)', fontWeight: 700, fontFamily: 'Tajawal' }}>
+              {p.value.toLocaleString('en-US')}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -4307,6 +864,12 @@ export default function AdminPanel() {
   const [charitiesTotal, setCharitiesTotal] = useState(0);
   const [reportsTotal,    setReportsTotal]   = useState(0);
 
+  // States for accurate total statistics / trend charts
+  const [allUsersForTrend, setAllUsersForTrend] = useState<User[]>([]);
+  const [allCharitiesForTrend, setAllCharitiesForTrend] = useState<Charity[]>([]);
+  const [allReportsForTrend, setAllReportsForTrend] = useState<Report[]>([]);
+
+
   const [usersPage,      setUsersPage]     = useState(1);
   const [charitiesPage, setCharitiesPage] = useState(1);
   const [reportsPage,    setReportsPage]   = useState(1);
@@ -4317,11 +880,22 @@ export default function AdminPanel() {
   const [charitiesRemaining, setCharitiesRemaining] = useState(0);
   const [loadingMore,        setLoadingMore]        = useState<string | null>(null);
 
+  // ── Overview cards expanded state ──────────────────────────────────────────
+  const [ovUsersExp,     setOvUsersExp]     = useState(false);
+  const [ovCharExp,      setOvCharExp]      = useState(false);
+  const [ovReportsExp,   setOvReportsExp]   = useState(false);
+
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast,         setToast]         = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // ── تتبع العناصر الجديدة (badge أحمر على الـ sidebar) ──────────────────────
+  const [newUsersCount,     setNewUsersCount]     = useState(0);
+  const [newCharitiesCount, setNewCharitiesCount] = useState(0);
+  const [newReportsCount,   setNewReportsCount]   = useState(0);
   const [confirmOpts,   setConfirmOpts]   = useState<ConfirmState | null>(null);
   const [confirmLoading,setConfirmLoading]= useState(false);
   const [rejectTarget,  setRejectTarget]  = useState<{ id: string; name: string } | null>(null);
@@ -4535,6 +1109,15 @@ export default function AdminPanel() {
   //   setTimeout(() => setToast(null), 3500);
   // }, []);
 
+  // ── helpers لتتبع العناصر الجديدة ──────────────────────────────────────────
+  const calcNew = (key: string, currentTotal: number): number => {
+    const seen = parseInt(localStorage.getItem(key) ?? '0', 10);
+    return Math.max(0, currentTotal - seen);
+  };
+  const markSeen = useCallback((key: string, total: number) => {
+    localStorage.setItem(key, String(total));
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -4543,50 +1126,244 @@ export default function AdminPanel() {
     setReportsPage(1);
 
     try {
-      // ── Fetch page data (first 10 items) + accurate totals via limit=1 ──
-      const [uRes, cRes, rRes, uTotalRes, cTotalRes, rTotalRes] = await Promise.allSettled([
+      const [uRes, cRes, uAll, cAll, cRejected, cPending] = await Promise.allSettled([
         fetchPage<User>('/users', 1, 10),
         fetchPage<Charity>('/charity/charities', 1, 10),
-        fetchPage<Report>('/report/allReports', 1, 10),
-        fetchPage<User>('/users', 1, 1),               // for accurate total only
-        fetchPage<Charity>('/charity/charities', 1, 1), // for accurate total only
-        fetchPage<Report>('/report/allReports', 1, 1),  // for accurate total only
+        fetchAll<User>('/users'),
+        fetchAll<Charity>('/charity/charities'),
+        // جلب المرفوضة بشكل منفصل في حالة الـ endpoint ميجيبهاش افتراضياً
+        fetchAll<Charity>('/charity/charities?status=rejected'),
+        fetchAll<Charity>('/charity/charities?status=pending'),
       ]);
 
       if (uRes.status === 'fulfilled') {
         setUsers(uRes.value.data ?? []);
-        // Prefer total from the limit=1 call (more reliable) then fallback
-        const accurateTotal = uTotalRes.status === 'fulfilled' ? uTotalRes.value.total : null;
-        setUsersTotal(accurateTotal || uRes.value.total || 0);
+        setUsersTotal(uRes.value.total ?? 0);
         setHasMoreUsers(uRes.value.hasMore ?? false);
       }
       if (cRes.status === 'fulfilled') {
         setCharities(cRes.value.data ?? []);
-        const accurateTotal = cTotalRes.status === 'fulfilled' ? cTotalRes.value.total : null;
-        const finalTotal = accurateTotal || cRes.value.total || 0;
-        setCharitiesTotal(finalTotal);
+        setCharitiesTotal(cRes.value.total ?? 0);
         setHasMoreCharities(cRes.value.hasMore ?? false);
         setCharitiesRemaining(
-          Math.max(0, finalTotal - (cRes.value.data?.length ?? 0))
+          Math.max(0, (cRes.value.total ?? 0) - (cRes.value.data?.length ?? 0))
         );
       }
-      if (rRes.status === 'fulfilled') {
-        const reportsData = rRes.value.data ?? [];
-        // ── Normalise senderType: if missing, infer from presence of charityName/userName ──
-        const normalised = reportsData.map(r => ({
-          ...r,
-          senderType: r.senderType
-            ?? ((r as any).role)
-            ?? (r.charityName && !r.userName ? 'charity' : r.userName ? 'user' : undefined),
+
+      if (uAll.status === 'fulfilled') {
+        const allUsers = uAll.value.data ?? [];
+        // لو fetchAll رجع فاضي، استخدم داتا الـ pagination كـ fallback للـ chart
+        const trendUsers = allUsers.length > 0
+          ? allUsers
+          : (uRes.status === 'fulfilled' ? (uRes.value.data ?? []) : []);
+        setAllUsersForTrend(trendUsers);
+        // ── badge: كمية المستخدمين الجدد ──
+        setNewUsersCount(calcNew('ap_seen_users', trendUsers.length));
+        if (allUsers.length > 0) {
+          setUsersTotal(uAll.value.total);
+          setUsers(allUsers.slice(0, 10));
+          setUsersPage(1);
+          setHasMoreUsers(allUsers.length > 10);
+        }
+      } else if (uRes.status === 'fulfilled') {
+        setAllUsersForTrend(uRes.value.data ?? []);
+        setNewUsersCount(calcNew('ap_seen_users', (uRes.value.data ?? []).length));
+      }
+      if (cAll.status === 'fulfilled') {
+        const allCharities = cAll.value.data ?? [];
+        const trendCharities = allCharities.length > 0
+          ? allCharities
+          : (cRes.status === 'fulfilled' ? (cRes.value.data ?? []) : []);
+
+        // ── دمج المرفوضة والمعلقة مع النتائج الأساسية ──
+        const rejectedData = cRejected.status === 'fulfilled' ? (cRejected.value.data ?? []) : [];
+        const pendingData  = cPending.status  === 'fulfilled' ? (cPending.value.data  ?? []) : [];
+
+        // دمج وإزالة التكرار بالـ _id
+        // ترتيب الأولوية: rejectedData/pendingData أولاً، ثم trendCharities تكسب (تـ overwrite)
+        // عشان الـ main endpoint بيكون أدق من الـ filtered endpoints
+        const mergedMap = new Map<string, any>();
+        [...rejectedData, ...pendingData, ...trendCharities].forEach(c => {
+          if (!c._id) return;
+          const existing = mergedMap.get(c._id);
+          if (!existing) {
+            mergedMap.set(c._id, c);
+          } else {
+            // الـ status الصريح (مش undefined) يكسب دايماً
+            const existingStatus = existing.approvalStatus || existing.status;
+            const newStatus = c.approvalStatus || c.status;
+            if (newStatus && !existingStatus) {
+              mergedMap.set(c._id, c);
+            } else if (newStatus && existingStatus) {
+              // لو الاتنين عندهم status، اللي جاي من trendCharities يكسب
+              mergedMap.set(c._id, c);
+            }
+          }
+        });
+        const merged = Array.from(mergedMap.values());
+
+        // ── normalize: الـ API بترجع status بس الكود بيستخدم approvalStatus ──
+        // const normalized = merged.map((c: any) => {
+        //   // نجرب كل الـ field names الممكنة ونتجاهل الـ empty strings
+        //   const rawStatus =
+        //     c.approvalStatus ||
+        //     c.status ||
+        //     c.approval_status ||
+        //     c.charityStatus ||
+        //     c.charity_status ||
+        //     (c.isApproved === true ? 'approved' : c.isApproved === false ? 'rejected' : null);
+        //   // نتأكد إن الـ status مش empty string
+        //   const finalStatus = (rawStatus && rawStatus.toString().trim())
+        //     ? rawStatus.toString().trim()
+        //     : 'pending';
+        //   return {
+        //     ...c,
+        //     approvalStatus: finalStatus,
+        //     createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
+        //   };
+        // });
+        const normalized = merged.map((c: any) => {
+          const rawStatus =
+            c.approvalStatus ||
+            c.status ||
+            c.approval_status ||
+            c.charityStatus ||
+            c.charity_status ||
+            (c.isApproved === true ? 'approved' : c.isApproved === false ? 'rejected' : null);
+          
+          let finalStatus = (rawStatus && rawStatus.toString().trim())
+            ? rawStatus.toString().trim().toLowerCase()
+            : 'pending';
+          
+          // توحيد الحالات لعدم فقدان أي جمعية مقبولة من الباك إند
+          if (finalStatus === 'accepted' || finalStatus === 'active' || finalStatus === 'approved') {
+            finalStatus = 'approved';
+          } else if (finalStatus === 'rejected' || finalStatus === 'refused') {
+            finalStatus = 'rejected';
+          } else {
+            finalStatus = 'pending';
+          }
+
+          return {
+            ...c,
+            approvalStatus: finalStatus,
+            createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
+          };
+        });
+
+        console.log('[Charity Debug] total after merge:', normalized.length,
+          '| approved:', normalized.filter((c:any)=>c.approvalStatus==='approved').length,
+          '| pending:',  normalized.filter((c:any)=>c.approvalStatus==='pending').length,
+          '| rejected:', normalized.filter((c:any)=>c.approvalStatus==='rejected').length,
+        );
+        // debug: كل الجمعيات اللي مش approved — نشوف الـ raw fields بتاعتها
+        const nonApproved = normalized.filter((c:any) => c.approvalStatus !== 'approved');
+        console.log('[Charity NonApproved]', nonApproved.map((c:any) => ({
+          charityName: c.charityName,
+          approvalStatus: c.approvalStatus,
+          rawStatus: c.status,
+          rawApprovalStatus: c.approvalStatus,
+          isApproved: c.isApproved,
+          allFields: JSON.stringify(c).substring(0, 300),
+        })));
+
+        setAllCharitiesForTrend(normalized);
+        setCharitiesTotal(normalized.length);
+        setCharities(normalized.slice(0, 10));
+        setCharitiesPage(1);
+        setHasMoreCharities(normalized.length > 10);
+        setCharitiesRemaining(Math.max(0, normalized.length - 10));
+        // ── badge: كمية الجمعيات الجديدة (يعتمد على الـ total الكلي) ──
+        setNewCharitiesCount(calcNew('ap_seen_charities', normalized.length));
+      } else if (cRes.status === 'fulfilled') {
+        const fallback = (cRes.value.data ?? []).map((c: any) => ({
+          ...c,
+          approvalStatus: c.approvalStatus || c.status || 'pending',
+          createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
         }));
-        setReports(normalised);
-        const accurateTotal = rTotalRes.status === 'fulfilled' ? rTotalRes.value.total : null;
-        setReportsTotal(accurateTotal || rRes.value.total || 0);
-        setHasMoreReports(rRes.value.hasMore ?? false);
+        setAllCharitiesForTrend(fallback);
       }
 
-      const failures = [uRes, cRes, rRes].filter(r => r.status === 'rejected') as PromiseRejectedResult[];
-      if (failures.length === 3) {
+      // Bulletproof direct fetch for reports (without query params to avoid backend failures)
+      let reportsList: Report[] = [];
+      let reportsTotalCount = 0;
+      try {
+        const repRes = await apiFetch('/report/allReports');
+        console.log('[DEBUG AdminPanel] Direct fetch `/report/allReports` response:', repRes);
+        const foundArray = Array.isArray(repRes)
+          ? repRes
+          : (
+              repRes?.data?.Data ||
+              repRes?.data?.data ||
+              repRes?.data?.reports ||
+              repRes?.data?.allReports ||
+              repRes?.Data?.Data ||
+              repRes?.Data?.reports ||
+              repRes?.Data?.allReports ||
+              repRes?.reports ||
+              repRes?.allReports ||
+              repRes?.result?.reports ||
+              repRes?.result ||
+              (Array.isArray(repRes?.Data) ? repRes.Data : null) ||
+              (Array.isArray(repRes?.data) ? repRes.data : null) ||
+              []
+            );
+        console.log('[DEBUG AdminPanel] Extracted reports array:', foundArray);
+        reportsList = Array.isArray(foundArray) ? foundArray : [];
+        reportsTotalCount =
+          repRes?.data?.Total_Items ||
+          repRes?.data?.totalItems ||
+          repRes?.data?.total ||
+          repRes?.Data?.Total_Items ||
+          repRes?.total ||
+          repRes?.totalCount ||
+          repRes?.totalItems ||
+          reportsList.length;
+      } catch (err) {
+        console.error('Failed direct reports fetch from /report/allReports:', err);
+        let fallbackSuccess = false;
+        const alternativeEndpoints = ['/report', '/reports', '/report/all', '/reports/all'];
+        for (const endpoint of alternativeEndpoints) {
+          try {
+            console.log(`[DEBUG AdminPanel] Trying fallback endpoint: ${endpoint}`);
+            const altRes = await apiFetch(endpoint);
+            console.log(`[DEBUG AdminPanel] Fallback endpoint ${endpoint} response:`, altRes);
+            const foundArray = Array.isArray(altRes)
+              ? altRes
+              : (altRes?.reports || altRes?.allReports || altRes?.data?.reports || altRes?.data?.allReports || altRes?.data || altRes?.Data || []);
+            if (foundArray && foundArray.length > 0) {
+              reportsList = foundArray;
+              reportsTotalCount = altRes?.total || altRes?.totalItems || foundArray.length;
+              console.log(`[DEBUG AdminPanel] Successfully recovered reports from: ${endpoint}`);
+              fallbackSuccess = true;
+              break;
+            }
+          } catch (altErr) {
+            console.warn(`[DEBUG AdminPanel] Fallback endpoint ${endpoint} failed:`, altErr);
+          }
+        }
+
+        if (!fallbackSuccess) {
+          // Final fallback to fetchPage
+          try {
+            const pageRes = await fetchPage<Report>('/report/allReports', 1, 1000);
+            reportsList = pageRes.data;
+            reportsTotalCount = pageRes.total;
+          } catch (innerErr) {
+            console.error('Fallback fetchPage reports failed:', innerErr);
+          }
+        }
+      }
+
+      setReports(reportsList.slice(0, 10));
+      setReportsTotal(reportsTotalCount);
+      setHasMoreReports(reportsTotalCount > 10);
+      setAllReportsForTrend(reportsList);
+      // ── badge: كمية التقارير الجديدة ──
+      setNewReportsCount(calcNew('ap_seen_reports', reportsList.length));
+
+      const failures = [uRes, cRes].filter(r => r.status === 'rejected') as PromiseRejectedResult[];
+      if (failures.length === 2) {
         throw new Error((failures[0].reason instanceof Error ? failures[0].reason.message : null) || 'فشل تحميل البيانات');
       }
     } catch (e: unknown) {
@@ -4602,13 +1379,123 @@ export default function AdminPanel() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ── Reset scroll + hide button when tab changes ──
+  // ── مراقبة تلقائية كل 60 ثانية لجلب أي مستخدمين أو جمعيات جديدة ──────────
   useEffect(() => {
-    contentRef.current?.scrollTo({ top: 0 });
-    window.scrollTo({ top: 0 });
+    const id = setInterval(async () => {
+      try {
+        const [uAll, cAll, cRej, cPend] = await Promise.all([
+          fetchAll<User>('/users'),
+          fetchAll<Charity>('/charity/charities'),
+          fetchAll<Charity>('/charity/charities?status=rejected').catch(() => ({ data: [], total: 0, hasMore: false })),
+          fetchAll<Charity>('/charity/charities?status=pending').catch(() => ({ data: [], total: 0, hasMore: false })),
+        ]);
+        const allUsers = uAll.data;
+        // نفس منطق الدمج الذكي: rejected/pending أولاً، main endpoint يكسب
+        const pollingMap = new Map<string, any>();
+        [...(cRej.data ?? []), ...(cPend.data ?? []), ...(cAll.data ?? [])].forEach(c => {
+          if (!c._id) return;
+          const existing = pollingMap.get(c._id);
+          if (!existing) {
+            pollingMap.set(c._id, c);
+          } else {
+            const existingStatus = existing.approvalStatus || existing.status;
+            const newStatus = c.approvalStatus || c.status;
+            if (newStatus && (!existingStatus || newStatus !== 'pending')) {
+              pollingMap.set(c._id, c);
+            }
+          }
+        });
+        const allCharities = Array.from(pollingMap.values());
+        if (allUsers.length > 0) {
+          setAllUsersForTrend(allUsers);
+          setUsersTotal(uAll.total);
+          setUsers(prev => allUsers.slice(0, Math.max(prev.length, 10)));
+          setHasMoreUsers(allUsers.length > Math.max(users.length, 10));
+        }
+        if (allCharities.length > 0) {
+          // const normalizedC = allCharities.map((c: any) => ({
+          //   ...c,
+          //   approvalStatus: c.approvalStatus || c.status || 'pending',
+          //   createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
+          // }));
+                    const normalizedC = allCharities.map((c: any) => {
+            const rawStatus =
+              c.approvalStatus ||
+              c.status ||
+              c.approval_status ||
+              c.charityStatus ||
+              c.charity_status ||
+              (c.isApproved === true ? 'approved' : c.isApproved === false ? 'rejected' : null);
+            
+            let finalStatus = (rawStatus && rawStatus.toString().trim())
+              ? rawStatus.toString().trim().toLowerCase()
+              : 'pending';
+            
+            if (finalStatus === 'accepted' || finalStatus === 'active' || finalStatus === 'approved') {
+              finalStatus = 'approved';
+            } else if (finalStatus === 'rejected' || finalStatus === 'refused') {
+              finalStatus = 'rejected';
+            } else {
+              finalStatus = 'pending';
+            }
+
+            return {
+              ...c,
+              approvalStatus: finalStatus,
+              createdAt: c.createdAt || c.created_at || c.registeredAt || c.updatedAt,
+            };
+          });
+          setAllCharitiesForTrend(normalizedC);
+          setCharitiesTotal(cAll.total || normalizedC.length);
+          setCharities(prev => normalizedC.slice(0, Math.max(prev.length, 10)));
+          setHasMoreCharities(normalizedC.length > Math.max(charities.length, 10));
+          setCharitiesRemaining(Math.max(0, normalizedC.length - Math.max(charities.length, 10)));
+        }
+      } catch { /* silent background refresh */ }
+    }, 5 * 60_000); // كل 5 دقائق بدل 60 ثانية عشان نتجنب 429
+    return () => clearInterval(id);
+  }, [users.length, charities.length]);
+
+  // ── مسح الـ badge لما يدخل الـ tab ──────────────────────────────────────────
+  useEffect(() => {
+    if (tab === 'users') {
+      markSeen('ap_seen_users', allUsersForTrend.length);
+      setNewUsersCount(0);
+    } else if (tab === 'charities') {
+      markSeen('ap_seen_charities', allCharitiesForTrend.length);
+      setNewCharitiesCount(0);
+    } else if (tab === 'reports') {
+      markSeen('ap_seen_reports', allReportsForTrend.length);
+      setNewReportsCount(0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  // ── Scroll-to-top inside admin content ──
+  useEffect(() => {
+    // نقرأ الـ ref داخل الـ effect مباشرة وليس من خارجه
+    const el = contentRef.current;
+    if (!el) return;
+    const onScroll = () => setShowScrollTop(el.scrollTop > 100);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // reset لما يتغير الـ tab
+    setShowScrollTop(el.scrollTop > 100);
+    return () => el.removeEventListener('scroll', onScroll);
   }, [tab]);
 
   const loadMoreUsers = async () => {
+    // استخدم الـ cache أولاً لو موجود
+    if (allUsersForTrend.length > users.length) {
+      const next = usersPage + 1;
+      const nextSlice = allUsersForTrend
+        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+        .slice(0, next * 10);
+      setUsers(nextSlice);
+      setUsersPage(next);
+      setHasMoreUsers(allUsersForTrend.length > next * 10);
+      return;
+    }
+    // fallback: جلب من API
     const next = usersPage + 1;
     setLoadingMore('users');
     try {
@@ -4624,6 +1511,18 @@ export default function AdminPanel() {
   };
 
   const loadMoreCharities = async () => {
+    // استخدم الـ cache أولاً لو موجود
+    if (allCharitiesForTrend.length > charities.length) {
+      const next = charitiesPage + 1;
+      const sorted = [...allCharitiesForTrend].sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+      const nextSlice = sorted.slice(0, next * 10);
+      setCharities(nextSlice);
+      setCharitiesPage(next);
+      setHasMoreCharities(allCharitiesForTrend.length > next * 10);
+      setCharitiesRemaining(Math.max(0, allCharitiesForTrend.length - next * 10));
+      return;
+    }
+    // fallback: جلب من API
     const next = charitiesPage + 1;
     setLoadingMore('charities');
     try {
@@ -4679,17 +1578,18 @@ export default function AdminPanel() {
     const next = reportsPage + 1;
     setLoadingMore('reports');
     try {
+      if (allReportsForTrend.length > 0) {
+        const nextSlice = allReportsForTrend.slice(0, next * 10);
+        setReports(nextSlice);
+        setReportsPage(next);
+        setHasMoreReports(allReportsForTrend.length > next * 10);
+        return;
+      }
       const res = await fetchPage<Report>('/report/allReports', next, 10);
       if (!res.data?.length) { setHasMoreReports(false); return; }
-      const normalised = res.data.map(r => ({
-        ...r,
-        senderType: r.senderType
-          ?? ((r as any).role)
-          ?? (r.charityName && !r.userName ? 'charity' : r.userName ? 'user' : undefined),
-      }));
       setReports(prev => {
         const ids = new Set(prev.map(r => r._id));
-        return [...prev, ...normalised.filter(r => !ids.has(r._id))];
+        return [...prev, ...res.data.filter(r => !ids.has(r._id))];
       });
       setReportsPage(next);
       setHasMoreReports(res.hasMore ?? false);
@@ -4706,6 +1606,7 @@ export default function AdminPanel() {
         try {
           await apiFetch(`/users/${id}`, { method: 'DELETE' });
           setUsers(prev => prev.filter(u => u._id !== id));
+          setAllUsersForTrend(prev => prev.filter(u => u._id !== id));
           showMsg('success', `تم حذف "${name}" بنجاح`);
         } catch (e: unknown) {
           showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الحذف');
@@ -4721,6 +1622,12 @@ export default function AdminPanel() {
       setCharities(prev =>
         prev.map(c => c._id === id ? { ...c, approvalStatus: 'approved' as ApprovalStatus } : c)
       );
+      setAllCharitiesForTrend(prev => {
+        const updated = prev.map(c => c._id === id ? { ...c, approvalStatus: 'approved' as ApprovalStatus } : c);
+        // حدّث الـ badge عشان القبول تغيير في الحالة
+        setNewCharitiesCount(c => c + 1);
+        return updated;
+      });
       showMsg('success', `تمت الموافقة على "${name}"`);
     } catch (e: unknown) {
       showMsg('error', (e instanceof Error ? e.message : null) || 'فشلت الموافقة');
@@ -4740,6 +1647,14 @@ export default function AdminPanel() {
           c._id === rejectTarget.id ? { ...c, approvalStatus: 'rejected' as ApprovalStatus } : c
         )
       );
+      setAllCharitiesForTrend(prev => {
+        const updated = prev.map(c =>
+          c._id === rejectTarget.id ? { ...c, approvalStatus: 'rejected' as ApprovalStatus } : c
+        );
+        // حدّث الـ badge عشان الرفض تغيير في الحالة
+        setNewCharitiesCount(c => c + 1);
+        return updated;
+      });
       showMsg('success', `تم رفض "${rejectTarget.name}"`);
     } catch (e: unknown) {
       showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الرفض');
@@ -4756,6 +1671,7 @@ export default function AdminPanel() {
         try {
           await apiFetch(`/charity/${id}`, { method: 'DELETE' });
           setCharities(prev => prev.filter(c => c._id !== id));
+          setAllCharitiesForTrend(prev => prev.filter(c => c._id !== id));
           showMsg('success', `تم حذف "${name}" بنجاح`);
         } catch (e: unknown) {
           showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الحذف');
@@ -4809,7 +1725,7 @@ export default function AdminPanel() {
         setConfirmLoading(true);
         try {
           logout?.();
-          navigate('/login');
+          navigate('/');
         } finally {
           setConfirmLoading(false);
           setConfirmOpts(null);
@@ -4818,10 +1734,10 @@ export default function AdminPanel() {
     });
   };
 
+  const [settingsTab, setSettingsTab] = useState<'account' | 'profile' | 'password' | 'danger'>('account');
   const [profileForm, setProfileForm] = useState({ userName: '', phone: '', address: '' });
   const [passForm, setPassForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [settingsSaving, setSettingsSaving] = useState(false);
-  const [adminSettingsTab, setAdminSettingsTab] = useState<'account' | 'profile' | 'password' | 'danger'>('account');
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [passErrors, setPassErrors] = useState<Record<string, string>>({});
   const [showOldPass, setShowOldPass] = useState(false);
@@ -4873,7 +1789,7 @@ export default function AdminPanel() {
       showMsg('success', 'تم حذف الحساب بنجاح، سيتم توجيهك الآن');
       setTimeout(() => {
         logout?.();
-        navigate('/login');
+        navigate('/');
       }, 1500);
     } catch (err: unknown) {
       showMsg('error', err instanceof Error ? err.message : 'فشل حذف الحساب');
@@ -4900,7 +1816,8 @@ export default function AdminPanel() {
     } finally { setSettingsSaving(false); }
   };
 
-  const filteredUsers = users
+  // const filteredUsers = users
+    const filteredUsers = allUsersForTrend
     .filter(u => {
       if (usersRoleFilter !== 'all' && u.roleType !== usersRoleFilter) return false;
       if (usersDateFrom && u.createdAt && new Date(u.createdAt) < new Date(usersDateFrom)) return false;
@@ -4910,7 +1827,6 @@ export default function AdminPanel() {
       return (
         u.userName?.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
-        u.roleType?.toLowerCase().includes(q) ||
         u._id?.toLowerCase().includes(q)
       );
     })
@@ -4934,7 +1850,7 @@ export default function AdminPanel() {
     return 0;
   };
 
-  const filteredCharities = charities
+  const filteredCharities = allCharitiesForTrend
     .filter(c => charitiesFilter === 'all' || c.approvalStatus === charitiesFilter)
     .filter(c => {
       const ts = getCharityTimestamp(c);
@@ -4955,7 +1871,8 @@ export default function AdminPanel() {
       return charitiesSort === 'newest' ? tb - ta : ta - tb;
     });
 
-  const filteredReports = reports
+  // const filteredReports = reports
+    const filteredReports = allReportsForTrend
     .filter(r => {
       if (reportsSenderFilter !== 'all') {
         const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
@@ -4980,103 +1897,168 @@ export default function AdminPanel() {
       return reportsSort === 'newest' ? tb - ta : ta - tb;
     });
 
-  const pendingCount = charities.filter(c => c.approvalStatus === 'pending').length;
+  const USERS_PER_PAGE = 10;
+  const CHARITIES_PER_PAGE = 10;
+  const REPORTS_PER_PAGE = 10;
+
+  const paginatedUsers = useMemo(() => {
+    return filteredUsers.slice((usersPage - 1) * USERS_PER_PAGE, usersPage * USERS_PER_PAGE);
+  }, [filteredUsers, usersPage]);
+
+  const paginatedCharities = useMemo(() => {
+    return filteredCharities.slice((charitiesPage - 1) * CHARITIES_PER_PAGE, charitiesPage * CHARITIES_PER_PAGE);
+  }, [filteredCharities, charitiesPage]);
+
+  const paginatedReports = useMemo(() => {
+    return filteredReports.slice((reportsPage - 1) * REPORTS_PER_PAGE, reportsPage * REPORTS_PER_PAGE);
+  }, [filteredReports, reportsPage]);
+
+  // إرجاع مؤشر الترقيم إلى الصفحة الأولى عند استخدام أي بحث أو فلتر جديد
+  useEffect(() => { setUsersPage(1); }, [usersSearch, usersRoleFilter, usersDateFrom, usersDateTo, usersSort]);
+  useEffect(() => { setCharitiesPage(1); }, [charitiesSearch, charitiesFilter, charitiesDateFrom, charitiesDateTo, charitiesSort]);
+  useEffect(() => { setReportsPage(1); }, [reportsSearch, reportsSenderFilter, reportsDateFrom, reportsDateTo, reportsSort]);
+
+  const pendingCount = allCharitiesForTrend.filter(c => c.approvalStatus === 'pending').length;
+
+  const resolveSender = useCallback((userId: string, senderType?: string, userName?: string, charityName?: string) => {
+    // 1. Try to find the user in allUsersForTrend
+    const u = allUsersForTrend.find(x => x._id === userId);
+    
+    // 2. Try to find the charity in allCharitiesForTrend
+    const c = allCharitiesForTrend.find(x => x._id === userId || (u && x.email === u.email));
+    
+    // Smart role detection
+    const role = u?.roleType || (c ? 'charity' : senderType || 'user');
+    const isCharity = role === 'charity';
+    const isDonor = role === 'donor' || role === 'user';
+    
+    // Resolve name
+    const resolvedName = 
+      (isCharity && c?.charityName) ||
+      userName ||
+      charityName ||
+      u?.userName ||
+      (u as any)?.charityName ||
+      c?.charityName ||
+      u?.email ||
+      c?.email ||
+      'مستخدم غير معروف';
+
+    const senderLabel = isCharity ? 'جمعية' : 'متبرع';
+
+    return {
+      isCharity,
+      isDonor,
+      senderLabel,
+      senderIcon: isCharity ? 'ti-building-community' : 'ti-user',
+      senderColor: isCharity ? '#3b82f6' : TEAL2,
+      senderBg: isCharity ? 'rgba(59,130,246,0.14)' : 'rgba(16,185,129,0.14)',
+      senderName: resolvedName,
+    };
+  }, [allUsersForTrend, allCharitiesForTrend]);
 
   const MONTHS_AR = [
     'يناير','فبراير','مارس','أبريل','مايو','يونيو',
     'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'
   ];
 
+  
+  const getDateStr = (obj: any): string | undefined => {
+    if (!obj || typeof obj !== 'object') return undefined;
+    const knownKeys = [
+      'createdAt','created_at','registeredAt','joinedAt','date',
+      'updatedAt','updated_at','approvedAt','approved_at',
+      'dateCreated','dateAdded','timestamp','creationDate',
+    ];
+    for (const k of knownKeys) {
+      const val = obj[k];
+      if (val) {
+        if (typeof val === 'string') return val;
+        if (typeof val === 'number') {
+          // التوافق التام مع التواريخ بصيغة timestamp رقمي
+          const ms = val < 10000000000 ? val * 1000 : val;
+          return new Date(ms).toISOString();
+        }
+        if (val instanceof Date) return val.toISOString();
+      }
+    }
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v;
+      if (v instanceof Date) return v.toISOString();
+    }
+    if (obj._id && typeof obj._id === 'string' && /^[0-9a-f]{24}$/i.test(obj._id)) {
+      const tsSeconds = parseInt(obj._id.substring(0, 8), 16);
+      if (!isNaN(tsSeconds)) return new Date(tsSeconds * 1000).toISOString();
+    }
+    return undefined;
+  };
+
   const trendData = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
+    const months: { year: number; month: number; label: string }[] = [];
+    const now = new Date();
+    
+    // حساب آخر 12 شهراً بطريقة ديناميكية
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        label: `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`,
+      });
+    }
 
-    // Use all loaded records — these are real timestamps from the server
-    const usersByMonth = Array(12).fill(0);
-    users.forEach(u => {
-      if (u.createdAt) {
-        const d = new Date(u.createdAt);
-        if (d.getFullYear() === currentYear)
-          usersByMonth[d.getMonth()]++;
-      }
+    return months.map(({ year, month, label }) => {
+      const users = allUsersForTrend.filter(u => {
+        const ds = getDateStr(u);
+        if (!ds) return false;
+        const d = new Date(ds);
+        return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
+      }).length;
+      const charities = allCharitiesForTrend.filter(c => {
+        const ds = getDateStr(c);
+        if (!ds) return false;
+        const d = new Date(ds);
+        return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
+      }).length;
+      const reports = allReportsForTrend.filter(r => {
+        const ds = getDateStr(r);
+        if (!ds) return false;
+        const d = new Date(ds);
+        return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month;
+      }).length;
+      return { name: label, users, charities, reports };
     });
-
-    const charitiesByMonth = Array(12).fill(0);
-    charities.forEach(c => {
-      const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
-      if (raw) {
-        const d = new Date(raw);
-        if (d.getFullYear() === currentYear)
-          charitiesByMonth[d.getMonth()]++;
-      } else {
-        // fallback: extract from ObjectId
-        try {
-          const hex = c._id?.substring(0, 8);
-          if (hex) {
-            const d = new Date(parseInt(hex, 16) * 1000);
-            if (d.getFullYear() === currentYear)
-              charitiesByMonth[d.getMonth()]++;
-          }
-        } catch { /* ignore */ }
-      }
-    });
-
-    const reportsByMonth = Array(12).fill(0);
-    reports.forEach(r => {
-      if (r.createdAt) {
-        const d = new Date(r.createdAt);
-        if (d.getFullYear() === currentYear)
-          reportsByMonth[d.getMonth()]++;
-      }
-    });
-
-    return Array.from({ length: currentMonth + 1 }, (_, i) => ({
-      name: MONTHS_AR[i],
-      users: usersByMonth[i],
-      charities: charitiesByMonth[i],
-      reports: reportsByMonth[i],
-    }));
-  }, [users, charities, reports]);
-
+  }, [allUsersForTrend, allCharitiesForTrend, allReportsForTrend]);
   // ─── لوجيك حساب نسبة النمو الفعلي ديناميكياً للشهر الحالى ────────────────
   const dynamicTrend = useMemo(() => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
     const currentMonthCount = 
-      users.filter(u => u.createdAt && new Date(u.createdAt).getMonth() === currentMonth && new Date(u.createdAt).getFullYear() === currentYear).length +
-      charities.filter(c => {
-        const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
-        if (!raw) return false;
-        const d = new Date(raw);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      }).length;
+      allUsersForTrend.filter(u => { const ds = getDateStr(u); return ds && new Date(ds).getMonth() === currentMonth && new Date(ds).getFullYear() === currentYear; }).length +
+      allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === currentMonth && new Date(ds).getFullYear() === currentYear; }).length;
 
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
     const lastMonthCount = 
-      users.filter(u => u.createdAt && new Date(u.createdAt).getMonth() === lastMonth && new Date(u.createdAt).getFullYear() === lastMonthYear).length +
-      charities.filter(c => {
-        const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
-        if (!raw) return false;
-        const d = new Date(raw);
-        return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
-      }).length;
+      allUsersForTrend.filter(u => { const ds = getDateStr(u); return ds && new Date(ds).getMonth() === lastMonth && new Date(ds).getFullYear() === lastMonthYear; }).length +
+      allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === lastMonth && new Date(ds).getFullYear() === lastMonthYear; }).length;
 
     let percentage = 0;
     if (lastMonthCount === 0) {
-      percentage = currentMonthCount > 0 ? 100 : 0;
+      percentage = currentMonthCount * 100;
     } else {
-      percentage = parseFloat((((currentMonthCount - lastMonthCount) / lastMonthCount) * 100).toFixed(1));
+      percentage = parseFloat(((currentMonthCount / lastMonthCount) * 100).toFixed(1));
     }
 
     const isUp = currentMonthCount >= lastMonthCount;
     return {
-      label: `${isUp ? '+' : ''}${percentage.toLocaleString('en-US')}%`,
+      label: `${isUp ? '+' : '-'}${percentage.toLocaleString('en-US')}%`,
       isUp
     };
-  }, [users, charities]);
+  }, [allUsersForTrend, allCharitiesForTrend]);
 
   // ─── نمو الجمعيات منفصل ────────────────────────────────────────────────────
   const charityTrend = useMemo(() => {
@@ -5085,32 +2067,37 @@ export default function AdminPanel() {
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    const getTs = (c: Charity) => {
-      const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
-      if (raw) return new Date(raw);
-      try {
-        const hex = c._id?.substring(0, 8);
-        if (hex) return new Date(parseInt(hex, 16) * 1000);
-      } catch { /* ignore */ }
-      return null;
-    };
-
-    const curr = charities.filter(c => { const d = getTs(c); return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear; }).length;
-    const prev = charities.filter(c => { const d = getTs(c); return d && d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear; }).length;
+    const curr = allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === currentMonth && new Date(ds).getFullYear() === currentYear; }).length;
+    const prev = allCharitiesForTrend.filter(c => { const ds = getDateStr(c); return ds && new Date(ds).getMonth() === lastMonth && new Date(ds).getFullYear() === lastMonthYear; }).length;
 
     let pct = 0;
-    if (prev === 0) pct = curr > 0 ? 100 : 0;
-    else pct = parseFloat((((curr - prev) / prev) * 100).toFixed(1));
+    if (prev === 0) pct = curr * 100;
+    else pct = parseFloat(((curr / prev) * 100).toFixed(1));
     const isUp = curr >= prev;
-    return { label: `${isUp ? '+' : ''}${pct.toLocaleString('en-US')}%`, isUp };
-  }, [charities]);
+    return { label: `${isUp ? '+' : '-'}${pct.toLocaleString('en-US')}%`, isUp };
+  }, [allCharitiesForTrend]);
 
   const approvalPieData = [
-    { name: 'موافق عليها', value: charities.filter(c => c.approvalStatus === 'approved').length },
-    { name: 'معلقة',       value: charities.filter(c => c.approvalStatus === 'pending').length  },
-    { name: 'مرفوضة',     value: charities.filter(c => c.approvalStatus === 'rejected').length  },
+    { name: 'موافق عليها', value: allCharitiesForTrend.filter(c => c.approvalStatus === 'approved').length },
+    { name: 'معلقة',       value: allCharitiesForTrend.filter(c => c.approvalStatus === 'pending').length  },
+    { name: 'مرفوضة',     value: allCharitiesForTrend.filter(c => c.approvalStatus === 'rejected').length  },
   ].filter(d => d.value > 0);
   const PIE_COLORS = [TEAL2, AMBER, RED];
+
+  // ─── أرقام الشهر الحالي للـ chart stats ──────────────────────────────────
+  const currentMonthStats = useMemo(() => {
+    const m = new Date().getMonth();
+    const y = new Date().getFullYear();
+    const matchDate = (dateStr?: string) => {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return !isNaN(d.getTime()) && d.getMonth() === m && d.getFullYear() === y;
+    };
+    const users     = allUsersForTrend.filter(u => matchDate(getDateStr(u))).length;
+    const charities = allCharitiesForTrend.filter(c => matchDate(getDateStr(c))).length;
+    const reports   = allReportsForTrend.filter(r => matchDate(getDateStr(r))).length;
+    return { users, charities, reports };
+  }, [allUsersForTrend, allCharitiesForTrend, allReportsForTrend]);
 
   const userName = user?.userName ?? user?.email?.split('@')[0] ?? 'مسؤول';
 
@@ -5124,6 +2111,9 @@ export default function AdminPanel() {
         pendingCount={pendingCount}
         collapsed={sidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
+        newUsersCount={newUsersCount}
+        newCharitiesCount={newCharitiesCount}
+        newReportsCount={newReportsCount}
       />
 
       <main className={`ap-main${tab === 'ai-chat' ? ' ap-main--ai' : ''}`}>
@@ -5164,9 +2154,6 @@ export default function AdminPanel() {
           </header>
         )}
 
-        {/* ── زر العودة للأعلى — fixed خارج ap-content ── */}
-        {tab !== 'ai-chat' && <ScrollToTop />}
-
         <div ref={contentRef} className={`ap-content${tab === 'ai-chat' ? ' ap-content--ai' : ''}`}>
           {error && !loading && <ErrorBanner msg={error} onRetry={loadData} />}
 
@@ -5174,217 +2161,234 @@ export default function AdminPanel() {
             <>
               {/* ══ OVERVIEW ══════════════════════════════════════════════════ */}
               {tab === 'overview' && (
-                <div className="ap-tab-pane">
+                <div className="ap-tab-pane" style={{ height: 'fit-content', gap: 12 }}>
+
+                  {/* ── KPI Cards ─────────────────────────────────────────── */}
                   <div className="ap-kpi-grid">
-                    <KpiCard icon="ti-users" label="إجمالي المستخدمين" value={(usersTotal).toLocaleString('en-US')} change={dynamicTrend.label + ' هذا الشهر'} changeDir={dynamicTrend.isUp ? 'up' : 'down'} color={TEAL2} />
-                    <KpiCard icon="ti-building-community" label="الجمعيات المسجلة" value={(charitiesTotal).toLocaleString('en-US')} change={charityTrend.label + ' هذا الشهر'} changeDir={charityTrend.isUp ? 'up' : 'down'} color="#3b82f6" />
-                    <KpiCard icon="ti-alert-circle" label="التقارير الواردة" value={(reportsTotal).toLocaleString('en-US')} change={pendingCount > 0 ? `${pendingCount} معلق` : 'لا يوجد معلق'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={AMBER} />
+                    <KpiCard icon="ti-users" label="إجمالي المستخدمين" value={(usersTotal || allUsersForTrend.length).toLocaleString('en-US')} change={dynamicTrend.label + ' هذا الشهر'} changeDir={dynamicTrend.isUp ? 'up' : 'down'} color={TEAL2} />
+                    <KpiCard icon="ti-building-community" label="الجمعيات المسجلة" value={(charitiesTotal || allCharitiesForTrend.length).toLocaleString('en-US')} change={charityTrend.label + ' هذا الشهر'} changeDir={charityTrend.isUp ? 'up' : 'down'} color="#3b82f6" />
+                    <KpiCard icon="ti-alert-circle" label="التقارير الواردة" value={(reportsTotal || allReportsForTrend.length).toLocaleString('en-US')} 
+                    change={pendingCount > 0 ? `${pendingCount} معلق` : 'لا يوجد معلق'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={AMBER} />
                     <KpiCard icon="ti-clock-pause" label="جمعيات معلقة" value={pendingCount.toLocaleString('en-US')} change={pendingCount > 0 ? 'تحتاج مراجعة' : 'الكل جاهز'} changeDir={pendingCount > 0 ? 'down' : 'neutral'} color={RED} />
                   </div>
 
-                  <div className="ap-charts-row">
-                    <div className="ap-pro-chart-card ap-chart-card--wide">
-  {/* Header */}
-  <div className="ap-pro-chart-header">
-    <div className="ap-pro-chart-meta">
-      <div className="ap-pro-chart-value">
-        {(usersTotal + charitiesTotal).toLocaleString('en-US')}
-      </div>
-      <div className="ap-pro-chart-label">
-        <i className="ti ti-trending-up" style={{color:TEAL2,marginLeft:4}}/>
-        نمو المستخدمين والجمعيات
-      </div>
-      {(usersTotal + charitiesTotal) > (users.length + charities.length) && (
-        <div style={{fontSize:10,color:'var(--t4)',marginTop:2,display:'flex',alignItems:'center',gap:4}}>
-          <i className="ti ti-info-circle" style={{fontSize:11}}/>
-          يعرض {users.length + charities.length} سجل محمّل من {usersTotal + charitiesTotal} إجمالي
-        </div>
-      )}
-    </div>
-    <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <span className={`ap-chart-trend ${dynamicTrend.isUp?'up':'down'}`}>
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-          {dynamicTrend.isUp
-            ?<path d="M1 11 L5 4 L8 7 L12 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            :<path d="M1 2 L5 9 L8 6 L12 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
-        </svg>
-        {dynamicTrend.label}
-      </span>
-      <div className="ap-pro-chart-period">
-        <i className="ti ti-calendar" style={{fontSize:11}}/>
-        {new Date().getFullYear()}
-      </div>
-    </div>
-  </div>
-
-  {/* Mini stats — show totals */}
-  <div className="ap-chart-stats-row">
-    <div className="ap-chart-stat-mini">
-      <div className="ap-chart-stat-mini-val" style={{color:TEAL2}}>{usersTotal.toLocaleString('en-US')}</div>
-      <div className="ap-chart-stat-mini-lbl">مستخدمون</div>
-      <div className={`ap-chart-stat-mini-badge ${dynamicTrend.isUp?'up':'down'}`}>{dynamicTrend.label}</div>
-    </div>
-    <div className="ap-chart-stat-mini">
-      <div className="ap-chart-stat-mini-val" style={{color:'#3b82f6'}}>{charitiesTotal.toLocaleString('en-US')}</div>
-      <div className="ap-chart-stat-mini-lbl">جمعيات</div>
-      <div className={`ap-chart-stat-mini-badge ${charityTrend.isUp?'up':'down'}`}>{charityTrend.label}</div>
-    </div>
-    <div className="ap-chart-stat-mini">
-      <div className="ap-chart-stat-mini-val" style={{color:AMBER}}>{reportsTotal.toLocaleString('en-US')}</div>
-      <div className="ap-chart-stat-mini-lbl">تقارير</div>
-      {pendingCount>0&&<div className="ap-chart-stat-mini-badge down">{pendingCount} معلق</div>}
-    </div>
-  </div>
-
-  {/* Legend */}
-  <div className="ap-pro-chart-legend">
-    <div className="ap-pro-legend-item">
-      <div className="ap-pro-legend-line" style={{background:TEAL2}}>
-        <div className="ap-pro-legend-dot" style={{background:TEAL2}}/>
-      </div>
-      المستخدمون
-    </div>
-    <div className="ap-pro-legend-item">
-      <div className="ap-pro-legend-line" style={{background:'#4f8ef7'}}>
-        <div className="ap-pro-legend-dot" style={{background:'#4f8ef7'}}/>
-      </div>
-      الجمعيات
-    </div>
-    <div className="ap-pro-legend-item">
-      <div className="ap-pro-legend-line" style={{background:AMBER}}>
-        <div className="ap-pro-legend-dot" style={{background:AMBER}}/>
-      </div>
-      التقارير
-    </div>
-  </div>
-
-  {/* Chart — type="linear" = أسهم مائلة diagonal */}
-  <ResponsiveContainer width="100%" height={200}>
-    <AreaChart data={trendData} margin={{top:4,right:4,left:-24,bottom:0}}>
-      <defs>
-        <linearGradient id="gradU2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={TEAL2}   stopOpacity={0.30}/>
-          <stop offset="100%" stopColor={TEAL2}   stopOpacity={0.02}/>
-        </linearGradient>
-        <linearGradient id="gradC2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#4f8ef7" stopOpacity={0.26}/>
-          <stop offset="100%" stopColor="#4f8ef7" stopOpacity={0.02}/>
-        </linearGradient>
-        <linearGradient id="gradR2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={AMBER}   stopOpacity={0.22}/>
-          <stop offset="100%" stopColor={AMBER}   stopOpacity={0.02}/>
-        </linearGradient>
-      </defs>
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
-      <XAxis dataKey="name" tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false}/>
-      <YAxis tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
-      <Tooltip content={<ChartTooltip/>}/>
-      <Area type="monotone" dataKey="users"     name="المستخدمون" stroke={TEAL2}    strokeWidth={2.5} fill="url(#gradU2)" dot={{fill:TEAL2,strokeWidth:0,r:3}}    activeDot={{r:5,fill:TEAL2,stroke:'var(--surface)',strokeWidth:2}}/>
-      <Area type="monotone" dataKey="charities" name="الجمعيات"   stroke="#4f8ef7" strokeWidth={2.5} fill="url(#gradC2)" dot={{fill:'#4f8ef7',strokeWidth:0,r:3}} activeDot={{r:5,fill:'#4f8ef7',stroke:'var(--surface)',strokeWidth:2}}/>
-      <Area type="monotone" dataKey="reports"   name="التقارير"   stroke={AMBER}   strokeWidth={2.5} fill="url(#gradR2)" dot={{fill:AMBER,strokeWidth:0,r:3}}    activeDot={{r:5,fill:AMBER,stroke:'var(--surface)',strokeWidth:2}}/>
-    </AreaChart>
-  </ResponsiveContainer>
-</div>
-
-
-                    {charities.length > 0 && (
-                      <div className="ap-chart-card">
-                        <div className="ap-chart-header">
-                          <span className="ap-chart-title"><i className="ti ti-calendar-event" style={{ color: AMBER }} />آخر تسجيلات الجمعيات</span>
+                  {/* ── Chart — full width ────────────────────────────────── */}
+                  <div className="ap-pro-chart-card" style={{ width: '100%' }}>
+                    <div className="ap-pro-chart-header">
+                      <div className="ap-pro-chart-meta">
+                        <div className="ap-pro-chart-value">
+                          {(currentMonthStats.users + currentMonthStats.charities).toLocaleString('en-US')}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                          {[...charities]
-                            .sort((a, b) => getCharityTimestamp(b) - getCharityTimestamp(a))
-                            .slice(0, 5)
-                            .map((c, i) => {
-                              const ts = getCharityTimestamp(c);
-                              const dateStr = ts ? new Date(ts).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-                              const approvalColors: Record<string, string> = { approved: TEAL2, pending: AMBER, rejected: RED };
+                        <div className="ap-pro-chart-label">
+                          <i className="ti ti-trending-up" style={{color:TEAL2,marginLeft:4}}/>
+                          تسجيلات هذا الشهر
+                        </div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span className={`ap-chart-trend ${dynamicTrend.isUp?'up':'down'}`}>
+                          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                            {dynamicTrend.isUp
+                              ?<path d="M1 11 L5 4 L8 7 L12 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              :<path d="M1 2 L5 9 L8 6 L12 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>}
+                          </svg>
+                          {dynamicTrend.label}
+                        </span>
+                        <div className="ap-pro-chart-period">
+                          <i className="ti ti-calendar" style={{fontSize:11}}/>
+                          آخر 12 شهراً
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="ap-chart-stats-row">
+                      <div className="ap-chart-stat-mini">
+                        <div className="ap-chart-stat-mini-val" style={{color:TEAL2}}>{currentMonthStats.users.toLocaleString('en-US')}</div>
+                        <div className="ap-chart-stat-mini-lbl">مستخدمون هذا الشهر</div>
+                        <div className={`ap-chart-stat-mini-badge ${dynamicTrend.isUp?'up':'down'}`}>{dynamicTrend.label}</div>
+                      </div>
+                      <div className="ap-chart-stat-mini">
+                        <div className="ap-chart-stat-mini-val" style={{color:'#3b82f6'}}>{currentMonthStats.charities.toLocaleString('en-US')}</div>
+                        <div className="ap-chart-stat-mini-lbl">جمعيات هذا الشهر</div>
+                        <div className={`ap-chart-stat-mini-badge ${charityTrend.isUp?'up':'down'}`}>{charityTrend.label}</div>
+                      </div>
+                      <div className="ap-chart-stat-mini">
+                        <div className="ap-chart-stat-mini-val" style={{color:AMBER}}>{currentMonthStats.reports.toLocaleString('en-US')}</div>
+                        <div className="ap-chart-stat-mini-lbl">تقارير هذا الشهر</div>
+                        {pendingCount>0&&<div className="ap-chart-stat-mini-badge down">{pendingCount} معلق</div>}
+                      </div>
+                    </div>
+
+                    <div className="ap-pro-chart-legend">
+                      <div className="ap-pro-legend-item"><div className="ap-pro-legend-line" style={{background:TEAL2}}><div className="ap-pro-legend-dot" style={{background:TEAL2}}/></div>المستخدمون</div>
+                      <div className="ap-pro-legend-item"><div className="ap-pro-legend-line" style={{background:'#4f8ef7'}}><div className="ap-pro-legend-dot" style={{background:'#4f8ef7'}}/></div>الجمعيات</div>
+                      <div className="ap-pro-legend-item"><div className="ap-pro-legend-line" style={{background:AMBER}}><div className="ap-pro-legend-dot" style={{background:AMBER}}/></div>التقارير</div>
+                    </div>
+
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={trendData} margin={{top:4,right:4,left:-24,bottom:0}}>
+                        <defs>
+                          <linearGradient id="gradU2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%"   stopColor={TEAL2}   stopOpacity={0.30}/>
+                            <stop offset="100%" stopColor={TEAL2}   stopOpacity={0.02}/>
+                          </linearGradient>
+                          <linearGradient id="gradC2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%"   stopColor="#4f8ef7" stopOpacity={0.26}/>
+                            <stop offset="100%" stopColor="#4f8ef7" stopOpacity={0.02}/>
+                          </linearGradient>
+                          <linearGradient id="gradR2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%"   stopColor={AMBER}   stopOpacity={0.26}/>
+                            <stop offset="100%" stopColor={AMBER}   stopOpacity={0.02}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false}/>
+                        <XAxis dataKey="name" tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false}/>
+                        <YAxis tick={{fill:'var(--t3)',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
+                        <Tooltip content={<ChartTooltip/>}/>
+                        <Area type="monotone" dataKey="users"     name="المستخدمون" stroke={TEAL2}    strokeWidth={2.5} fill="url(#gradU2)" dot={{fill:TEAL2,strokeWidth:0,r:3}}    activeDot={{r:5,fill:TEAL2,stroke:'var(--surface)',strokeWidth:2}}/>
+                        <Area type="monotone" dataKey="charities" name="الجمعيات"   stroke="#4f8ef7" strokeWidth={2.5} fill="url(#gradC2)" dot={{fill:'#4f8ef7',strokeWidth:0,r:3}} activeDot={{r:5,fill:'#4f8ef7',stroke:'var(--surface)',strokeWidth:2}}/>
+                        <Area type="monotone" dataKey="reports"   name="التقارير"   stroke={AMBER}   strokeWidth={2.5} fill="url(#gradR2)" dot={{fill:AMBER,strokeWidth:0,r:3}}   activeDot={{r:5,fill:AMBER,stroke:'var(--surface)',strokeWidth:2}}/>
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* ── Three-column list grid ─────────────────────────────── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, alignItems: 'start' }}>
+
+                    {/* ── آخر تسجيلات المستخدمين ── */}
+                    {allUsersForTrend.length > 0 && (() => {
+                      const sorted = [...allUsersForTrend].sort((a,b) => new Date(b.createdAt??0).getTime() - new Date(a.createdAt??0).getTime());
+                      const visible = sorted.slice(0, 5);
+                      return (
+                        <div className="ap-chart-card">
+                          <div className="ap-chart-header">
+                            <span className="ap-chart-title">
+                              <i className="ti ti-users" style={{ color: TEAL2 }} />
+                              آخر تسجيلات المستخدمين
+                            </span>
+                            <button className="ap-card-eye-btn" style={{ fontSize: 12 }} onClick={() => setTab('users')}>
+                              <i className="ti ti-eye" />عرض الكل
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                            {visible.map((u, i) => {
+                              const d = u.createdAt ? new Date(u.createdAt) : null;
+                              const dateStr = d ? d.toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' }) : '—';
+                              const roleColors: Record<string,string> = { admin:'#a78bfa', charity:'#3b82f6', user:TEAL2 };
+                              const color = roleColors[u.roleType] ?? 'var(--t4)';
+                              const roleLabel = u.roleType==='admin'?'أدمن':u.roleType==='charity'?'جمعية':'متبرع';
+                              return (
+                                <div key={u._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i < visible.length-1 ? '1px solid var(--border)' : 'none', background: i%2===0 ? 'var(--surface2)' : 'transparent' }}>
+                                  <div style={{ width:28, height:28, borderRadius:'50%', background:`${color}1a`, color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 }}>
+                                    {u.userName?.slice(0,1).toUpperCase()??'?'}
+                                  </div>
+                                  <div style={{ flex:1, minWidth:0 }}>
+                                    <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.userName}</div>
+                                    <div style={{ fontSize:10.5, color:'var(--t4)', marginTop:1 }}><i className="ti ti-calendar" style={{fontSize:10}}/> {dateStr}</div>
+                                  </div>
+                                  <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:20, background:`${color}18`, color, flexShrink:0 }}>{roleLabel}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{ marginTop:8, display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--t4)' }}>
+                            <span>الإجمالي: <strong style={{color:'var(--t2)'}}>{usersTotal||allUsersForTrend.length}</strong> مستخدم</span>
+                            <span>موثق: <strong style={{color:TEAL2}}>{allUsersForTrend.filter(u=>u.isVerified||u.verify).length}</strong></span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* ── آخر تسجيلات الجمعيات ── */}
+                    {allCharitiesForTrend.length > 0 && (() => {
+                      const sorted = [...allCharitiesForTrend].sort((a,b) => new Date(b.createdAt??0).getTime() - new Date(a.createdAt??0).getTime());
+                      const visible = sorted.slice(0, 5);
+                      return (
+                        <div className="ap-chart-card">
+                          <div className="ap-chart-header">
+                            <span className="ap-chart-title">
+                              <i className="ti ti-building-community" style={{ color: '#3b82f6' }} />
+                              آخر تسجيلات الجمعيات
+                            </span>
+                            <button className="ap-card-eye-btn" style={{ fontSize: 12 }} onClick={() => setTab('charities')}>
+                              <i className="ti ti-eye" />عرض الكل
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                            {visible.map((c, i) => {
+                              const d = c.createdAt ? new Date(c.createdAt) : null;
+                              const dateStr = d ? d.toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' }) : '—';
+                              const approvalColors: Record<string,string> = { approved:TEAL2, pending:AMBER, rejected:RED };
                               const color = approvalColors[c.approvalStatus] ?? 'var(--t4)';
                               return (
-                                <div key={c._id} style={{
-                                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-                                  borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
-                                  background: i % 2 === 0 ? 'var(--surface2)' : 'transparent',
-                                }}>
-                                  <div style={{ width: 28, height: 28, borderRadius: 7, background: `${color}1a`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
-                                    <i className="ti ti-building-community" />
+                                <div key={c._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i < visible.length-1 ? '1px solid var(--border)' : 'none', background: i%2===0 ? 'var(--surface2)' : 'transparent' }}>
+                                  <div style={{ width:28, height:28, borderRadius:7, background:`${color}1a`, color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
+                                    <i className="ti ti-building-community"/>
                                   </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.charityName}</div>
-                                    <div style={{ fontSize: 10.5, color: 'var(--t4)', marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                      <i className="ti ti-calendar" style={{ fontSize: 10 }} />{dateStr}
-                                    </div>
+                                  <div style={{ flex:1, minWidth:0 }}>
+                                    <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.charityName}</div>
+                                    <div style={{ fontSize:10.5, color:'var(--t4)', marginTop:1 }}><i className="ti ti-calendar" style={{fontSize:10}}/> {dateStr}</div>
                                   </div>
-                                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: `${color}18`, color, flexShrink: 0 }}>
-                                    {c.approvalStatus === 'approved' ? 'مقبول' : c.approvalStatus === 'pending' ? 'معلق' : 'مرفوض'}
+                                  <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:20, background:`${color}18`, color, flexShrink:0 }}>
+                                    {c.approvalStatus==='approved'?'مقبول':c.approvalStatus==='pending'?'معلق':'مرفوض'}
                                   </span>
                                 </div>
                               );
                             })}
+                          </div>
+                          <div style={{ marginTop:8, display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--t4)' }}>
+                            <span>الإجمالي: <strong style={{color:'var(--t2)'}}>{charitiesTotal||allCharitiesForTrend.length}</strong> جمعية</span>
+                            <span>معلق: <strong style={{color:AMBER}}>{pendingCount}</strong></span>
+                          </div>
                         </div>
-                        <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--t4)', padding: '0 2px' }}>
-                          <span>إجمالي: <strong style={{ color: 'var(--t2)' }}>{charitiesTotal || charities.length}</strong> جمعية</span>
-                          <span>معلق: <strong style={{ color: AMBER }}>{pendingCount}</strong></span>
+                      );
+                    })()}
+
+                    {/* ── آخر التقارير الواردة ── */}
+                    {allReportsForTrend.length > 0 && (() => {
+                      const sorted = [...allReportsForTrend].sort((a,b) => new Date(b.createdAt??0).getTime() - new Date(a.createdAt??0).getTime());
+                      const visible = sorted.slice(0, 5);
+                      return (
+                        <div className="ap-chart-card">
+                          <div className="ap-chart-header">
+                            <span className="ap-chart-title">
+                              <i className="ti ti-alert-circle" style={{ color: AMBER }} />
+                              آخر التقارير الواردة
+                            </span>
+                            <button className="ap-card-eye-btn" style={{ fontSize: 12 }} onClick={() => setTab('reports')}>
+                              <i className="ti ti-eye" />عرض الكل
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                            {visible.map((r, i) => {
+                              const d = r.createdAt ? new Date(r.createdAt) : null;
+                              const dateStr = d ? d.toLocaleDateString('ar-EG', { year:'numeric', month:'short', day:'numeric' }) : '—';
+                              const senderName = r.userName || r.charityName || 'مستخدم غير معروف';
+                              const isCharity = r.senderType==='charity' || (!r.senderType && !!r.charityName && !r.userName);
+                              return (
+                                <div key={r._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', borderBottom: i < visible.length-1 ? '1px solid var(--border)' : 'none', background: i%2===0 ? 'var(--surface2)' : 'transparent' }}>
+                                  <div style={{ width:28, height:28, borderRadius:7, background:'rgba(245,158,11,0.1)', color:AMBER, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>
+                                    <i className={isCharity?"ti ti-building":"ti ti-user"}/>
+                                  </div>
+                                  <div style={{ flex:1, minWidth:0 }}>
+                                    <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.description}</div>
+                                    <div style={{ fontSize:10.5, color:'var(--t4)', marginTop:1, display:'flex', alignItems:'center', gap:4 }}>
+                                      <span style={{fontWeight:600,color:'var(--t2)'}}>{senderName}</span>
+                                      <span>•</span>
+                                      <i className="ti ti-calendar" style={{fontSize:10}}/>{dateStr}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{ marginTop:8, fontSize:11, color:'var(--t4)' }}>
+                            الإجمالي: <strong style={{color:'var(--t2)'}}>{reportsTotal||allReportsForTrend.length}</strong> تقرير
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
+
                   </div>
-
-                  {/* ── Recent Reports Row ── */}
-                  {reports.length > 0 && (
-                    <div className="ap-chart-card">
-                      <div className="ap-chart-header">
-                        <span className="ap-chart-title">
-                          <i className="ti ti-alert-circle" style={{ color: AMBER }} />
-                          آخر التقارير الواردة
-                        </span>
-                        <button
-                          style={{ fontSize: 11, color: TEAL2, background: 'var(--teal-dim)', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontWeight: 700, fontFamily: 'Tajawal, sans-serif' }}
-                          onClick={() => setTab('reports')}
-                        >
-                          عرض الكل <i className="ti ti-arrow-left" style={{ fontSize: 11 }} />
-                        </button>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                        {[...reports]
-                          .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
-                          .slice(0, 5)
-                          .map((r, i) => {
-                            const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
-                            const senderName = r.userName || r.charityName || '—';
-                            const senderColor = isCharity ? '#3b82f6' : TEAL2;
-                            const senderBg = isCharity ? 'rgba(59,130,246,0.12)' : 'rgba(0,212,154,0.12)';
-                            const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }) : '—';
-                            return (
-                              <div
-                                key={r._id}
-                                onClick={() => setReportModal(r)}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-                                  borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
-                                  background: i % 2 === 0 ? 'var(--surface2)' : 'transparent',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <div style={{ width: 28, height: 28, borderRadius: 7, background: senderBg, color: senderColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
-                                  <i className={`ti ${isCharity ? 'ti-building-community' : 'ti-user'}`} />
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{senderName}</div>
-                                  <div style={{ fontSize: 10.5, color: 'var(--t4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{r.description}</div>
-                                </div>
-                                <span style={{ fontSize: 10.5, color: 'var(--t4)', flexShrink: 0, fontFamily: 'IBM Plex Mono, monospace' }}>{dateStr}</span>
-                              </div>
-                            );
-                          })}
-                      </div>
-                      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--t4)', padding: '0 2px' }}>
-                        إجمالي التقارير: <strong style={{ color: 'var(--t2)' }}>{reportsTotal || reports.length}</strong>
-                      </div>
-                    </div>
-                  )}
-
                 </div>
               )}
 
@@ -5396,16 +2400,14 @@ export default function AdminPanel() {
                       <SectionTitle icon="ti-users" color={TEAL2} title="المستخدمون" badge={usersTotal || users.length} />
                       <ViewToggle mode={usersViewMode} onChange={setUsersViewMode} />
                     </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                  </div>
+
+                  <div className="ap-filters-bar">
+                    <div className="ap-filters-group">
+                      <SearchBox value={usersSearch} onChange={setUsersSearch} placeholder="بحث بالمعرف أو الاسم" />
+                    </div>
+
+                    <div className="ap-filters-group">
                       {/* Date Range */}
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
@@ -5420,10 +2422,26 @@ export default function AdminPanel() {
                           <button className="ap-date-range-clear" onClick={() => { setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
-                      <SearchBox value={usersSearch} onChange={setUsersSearch} placeholder="بحث بالاسم أو البريد أو الـ ID..." />
-                      {(usersSearch || usersRoleFilter !== 'all' || usersDateFrom || usersDateTo) && (
-                        <button className="ap-filter-reset-btn" onClick={() => { setUsersSearch(''); setUsersRoleFilter('all'); setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح كل التصفية">
-                          <i className="ti ti-filter-x" /> مسح
+
+                      {/* Sort */}
+                      <div className="ap-filter-tabs">
+                        <button className={`ap-filter-tab ap-filter-tab--sort${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
+                          <i className="ti ti-sort-descending" /> الأحدث
+                        </button>
+                        <button className={`ap-filter-tab ap-filter-tab--sort${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
+                          <i className="ti ti-sort-ascending" /> الأقدم
+                        </button>
+                      </div>
+
+                      {/* Clear Filters Button */}
+                      {(usersSearch !== '' || usersRoleFilter !== 'all' || usersDateFrom !== '' || usersDateTo !== '') && (
+                        <button className="ap-filter-reset-btn" onClick={() => {
+                          setUsersSearch('');
+                          setUsersRoleFilter('all');
+                          setUsersDateFrom('');
+                          setUsersDateTo('');
+                        }}>
+                          <i className="ti ti-filter-off" /> مسح التصفية
                         </button>
                       )}
                     </div>
@@ -5433,7 +2451,7 @@ export default function AdminPanel() {
                     <EmptyState icon="ti-user-off" title="لا يوجد مستخدمون" desc="لم يتم العثور على مستخدمين مطابقين للبحث" />
                   ) : usersViewMode === 'table' ? (
                     <div className="ap-table-wrap">
-                      <table className="ap-table">
+                      <table className="ap-table ap-users-table">
                         <thead>
                           <tr>
                             <th>المستخدم</th>
@@ -5445,11 +2463,11 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredUsers.map(u => {
+                          {paginatedUsers.map(u => {
                             const verified = u.isVerified || u.verify;
                             return (
                               <tr key={u._id} className="ap-table-row-clickable" onClick={() => setUserDetailModal(u)}>
-                                <td>
+                                <td data-label="المستخدم">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div className="ap-table-avatar">
                                       {u.userName?.slice(0, 1).toUpperCase() ?? '?'}
@@ -5457,16 +2475,16 @@ export default function AdminPanel() {
                                     <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{u.userName}</span>
                                   </div>
                                 </td>
-                                <td className="ap-table-mono ap-col-hide-sm">{u.email}</td>
-                                <td><RoleBadge role={u.roleType} /></td>
-                                <td className="ap-col-hide-xs">
+                                <td data-label="البريد الإلكتروني" className="ap-table-mono ap-col-hide-sm">{u.email}</td>
+                                <td data-label="الدور"><RoleBadge role={u.roleType} /></td>
+                                <td data-label="موثق" className="ap-col-hide-xs">
                                   <span className="ap-badge" style={{ background: verified ? 'rgba(34,197,94,0.14)' : 'rgba(244,63,94,0.14)', color: verified ? '#22c55e' : RED }}>
                                     <i className={`ti ${verified ? 'ti-circle-check' : 'ti-circle-x'}`} style={{ fontSize: 12 }} />
                                     {verified ? 'موثق' : 'غير موثق'}
                                   </span>
                                 </td>
-                                <td className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{fmt12(u.createdAt)}</td>
-                                <td onClick={e => e.stopPropagation()}>
+                                <td data-label="تاريخ الانضمام" className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{fmt12(u.createdAt)}</td>
+                                <td data-label="إجراء" onClick={e => e.stopPropagation()}>
                                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                     <button className="ap-eye-btn" onClick={() => setUserDetailModal(u)} title="عرض التفاصيل">
                                       <i className="ti ti-eye" />
@@ -5486,7 +2504,7 @@ export default function AdminPanel() {
                     </div>
                   ) : (
                     <div className="ap-card-grid">
-                      {filteredUsers.map(u => {
+                      {paginatedUsers.map(u => {
                         const verified = u.isVerified || u.verify;
                         return (
                           <div key={u._id} className="ap-entity-card" onClick={() => setUserDetailModal(u)}>
@@ -5520,9 +2538,18 @@ export default function AdminPanel() {
                     </div>
                   )}
 
-                  {hasMoreUsers && !usersSearch && usersRoleFilter === 'all' && !usersDateFrom && !usersDateTo && (
-                    <LoadMoreBtn loading={loadingMore === 'users'} remaining={Math.max(0, usersTotal - users.length)} onClick={loadMoreUsers} />
-                  )}
+                  <AdminPagination
+                    currentPage={usersPage}
+                    totalPages={Math.ceil(filteredUsers.length / USERS_PER_PAGE)}
+                    onPageChange={(p) => {
+                      setUsersPage(p);
+                      contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    totalItems={filteredUsers.length}
+                    itemsPerPage={USERS_PER_PAGE}
+                    startIndex={(usersPage - 1) * USERS_PER_PAGE + 1}
+                    endIndex={Math.min(usersPage * USERS_PER_PAGE, filteredUsers.length)}
+                  />
                 </div>
               )}
 
@@ -5531,34 +2558,62 @@ export default function AdminPanel() {
                 <div className="ap-tab-pane">
                   <div className="ap-section-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <SectionTitle icon="ti-building-community" color="#3b82f6" title="الجمعيات" badge={charitiesTotal || charities.length} />
+                      <SectionTitle icon="ti-building-community" color="#3b82f6" title="الجمعيات" badge={allCharitiesForTrend.length || charitiesTotal} />
                       <ViewToggle mode={charitiesViewMode} onChange={setCharitiesViewMode} />
                     </div>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  </div>
+
+                  <div className="ap-filters-bar">
+                    <div className="ap-filters-group">
+                      <SearchBox value={charitiesSearch} onChange={setCharitiesSearch} placeholder="بحث بالمعرف او الاسم" />
                       <div className="ap-filter-tabs">
-                        {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
-                          <button key={f} className={`ap-filter-tab${charitiesFilter === f ? ' active' : ''}`} onClick={() => handleCharitiesFilterChange(f)}>
-                            {f === 'all' ? 'الكل' : f === 'pending' ? 'معلق' : f === 'approved' ? 'موافق' : 'مرفوض'}
-                            {f === 'pending' && pendingCount > 0 && (
-                              <span className="ap-filter-badge">{pendingCount}</span>
-                            )}
-                          </button>
-                        ))}
+                        {(['all', 'pending', 'approved', 'rejected'] as const).map(f => {
+                            const count = f === 'all'
+                              ? allCharitiesForTrend.length
+                              : allCharitiesForTrend.filter(c => c.approvalStatus === f).length;
+                            const cfgMap = {
+                              all: { label: 'الكل', icon: 'ti-layout-grid', color: 'var(--teal)', dim: 'var(--teal-dim)' },
+                              pending: { label: 'قيد المراجعة', icon: 'ti-clock', color: '#f59e0b', dim: 'rgba(245,158,11,0.12)' },
+                              approved: { label: 'مقبول', icon: 'ti-circle-check', color: '#10b981', dim: 'rgba(16,185,129,0.12)' },
+                              rejected: { label: 'مرفوض', icon: 'ti-circle-x', color: '#ef4444', dim: 'rgba(239,68,68,0.12)' }
+                            };
+                            const cfg = cfgMap[f];
+                            return (
+                              <button
+                                key={f}
+                                className={`ap-filter-tab ap-filter-tab--${f}${charitiesFilter === f ? ' active' : ''}`}
+                                onClick={() => handleCharitiesFilterChange(f)}
+                                style={{
+                                  color: charitiesFilter === f ? cfg.color : 'var(--t3)',
+                                  background: charitiesFilter === f ? cfg.dim : 'transparent',
+                                } as any}
+                              >
+                                <i className={`ti ${cfg.icon}`} style={{ fontSize: 13 }} />
+                                <span>{cfg.label}</span>
+                                {count > 0 && (
+                                  <span
+                                    className="ap-filter-badge"
+                                    style={{
+                                      marginRight: 4,
+                                      background: charitiesFilter === f ? cfg.color : cfg.dim,
+                                      color: charitiesFilter === f ? '#fff' : cfg.color,
+                                    }}
+                                  >
+                                    {count}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         {loadingAllCharities && (
-                          <span style={{ fontSize: 11, color: 'var(--t4)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 11, color: 'var(--t4)', display: 'flex', alignItems: 'center', gap: 4, marginRight: 8 }}>
                             <i className="ti ti-loader-2 ti-spin" style={{ fontSize: 12 }} /> جاري التحميل...
                           </span>
                         )}
                       </div>
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab${charitiesSort === 'newest' ? ' active' : ''}`} onClick={() => setCharitiesSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab${charitiesSort === 'oldest' ? ' active' : ''}`} onClick={() => setCharitiesSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                    </div>
+
+                    <div className="ap-filters-group">
                       {/* Date Range */}
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
@@ -5573,10 +2628,26 @@ export default function AdminPanel() {
                           <button className="ap-date-range-clear" onClick={() => { setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
-                      <SearchBox value={charitiesSearch} onChange={setCharitiesSearch} placeholder="بحث بالاسم أو البريد أو الـ ID..." />
-                      {(charitiesSearch || charitiesFilter !== 'all' || charitiesDateFrom || charitiesDateTo) && (
-                        <button className="ap-filter-reset-btn" onClick={() => { setCharitiesSearch(''); setCharitiesFilter('all'); setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح كل التصفية">
-                          <i className="ti ti-filter-x" /> مسح التصفية
+
+                      {/* Sort */}
+                      <div className="ap-filter-tabs">
+                        <button className={`ap-filter-tab ap-filter-tab--sort${charitiesSort === 'newest' ? ' active' : ''}`} onClick={() => setCharitiesSort('newest')}>
+                          <i className="ti ti-sort-descending" /> الأحدث
+                        </button>
+                        <button className={`ap-filter-tab ap-filter-tab--sort${charitiesSort === 'oldest' ? ' active' : ''}`} onClick={() => setCharitiesSort('oldest')}>
+                          <i className="ti ti-sort-ascending" /> الأقدم
+                        </button>
+                      </div>
+
+                      {/* Clear Filters Button */}
+                      {(charitiesSearch !== '' || charitiesFilter !== 'all' || charitiesDateFrom !== '' || charitiesDateTo !== '') && (
+                        <button className="ap-filter-reset-btn" onClick={() => {
+                          setCharitiesSearch('');
+                          setCharitiesFilter('all');
+                          setCharitiesDateFrom('');
+                          setCharitiesDateTo('');
+                        }}>
+                          <i className="ti ti-filter-off" /> مسح التصفية
                         </button>
                       )}
                     </div>
@@ -5586,7 +2657,7 @@ export default function AdminPanel() {
                     <EmptyState icon="ti-building-off" title="لا توجد جمعيات" desc="لم يتم العثور على جمعيات مطابقة" />
                   ) : charitiesViewMode === 'table' ? (
                     <div className="ap-table-wrap">
-                      <table className="ap-table">
+                      <table className="ap-table ap-charities-table">
                         <thead>
                           <tr>
                             <th>الجمعية</th>
@@ -5598,9 +2669,9 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredCharities.map(c => (
+                          {paginatedCharities.map(c => (
                             <tr key={c._id} className="ap-table-row-clickable" onClick={() => setCharityDetailModal(c)}>
-                              <td>
+                              <td data-label="الجمعية">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                   <div className="ap-table-avatar" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>
                                     <i className="ti ti-building-community" />
@@ -5608,10 +2679,10 @@ export default function AdminPanel() {
                                   <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{c.charityName}</span>
                                 </div>
                               </td>
-                              <td className="ap-table-mono ap-col-hide-sm">{c.email}</td>
-                              <td className="ap-col-hide-xs">{c.address || '—'}</td>
-                              <td><StatusBadge status={c.approvalStatus} /></td>
-                              <td className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{(() => {
+                              <td data-label="البريد الإلكتروني" className="ap-table-mono ap-col-hide-sm">{c.email}</td>
+                              <td data-label="العنوان" className="ap-col-hide-xs">{c.address || '—'}</td>
+                              <td data-label="الحالة"><StatusBadge status={c.approvalStatus} /></td>
+                              <td data-label="تاريخ الانضمام" className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{(() => {
                                 const raw = c.createdAt ?? (c as any).created_at ?? (c as any).registeredAt;
                                 if (raw) return fmt12(raw);
                                 try {
@@ -5620,7 +2691,7 @@ export default function AdminPanel() {
                                 } catch { /* ignore */ }
                                 return '—';
                               })()}</td>
-                              <td onClick={e => e.stopPropagation()}>
+                              <td data-label="إجراء" onClick={e => e.stopPropagation()}>
                                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                   <button className="ap-eye-btn" onClick={() => setCharityDetailModal(c)}>
                                     <i className="ti ti-eye" />
@@ -5650,7 +2721,7 @@ export default function AdminPanel() {
                     </div>
                   ) : (
                     <div className="ap-card-grid">
-                      {filteredCharities.map(c => (
+                      {paginatedCharities.map(c => (
                         <div key={c._id} className="ap-entity-card" onClick={() => setCharityDetailModal(c)}>
                           <div className="ap-entity-card-header">
                             <div className="ap-entity-avatar charity"><i className="ti ti-building-community" /></div>
@@ -5698,9 +2769,18 @@ export default function AdminPanel() {
                     </div>
                   )}
 
-                  {hasMoreCharities && !charitiesSearch && charitiesFilter === 'all' && !charitiesDateFrom && !charitiesDateTo && (
-                    <LoadMoreBtn loading={loadingMore === 'charities'} remaining={charitiesRemaining} onClick={loadMoreCharities} />
-                  )}
+                  <AdminPagination
+                    currentPage={charitiesPage}
+                    totalPages={Math.ceil(filteredCharities.length / CHARITIES_PER_PAGE)}
+                    onPageChange={(p) => {
+                      setCharitiesPage(p);
+                      contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    totalItems={filteredCharities.length}
+                    itemsPerPage={CHARITIES_PER_PAGE}
+                    startIndex={(charitiesPage - 1) * CHARITIES_PER_PAGE + 1}
+                    endIndex={Math.min(charitiesPage * CHARITIES_PER_PAGE, filteredCharities.length)}
+                  />
                 </div>
               )}
 
@@ -5712,24 +2792,38 @@ export default function AdminPanel() {
                       <SectionTitle icon="ti-alert-circle" color={AMBER} title="التقارير" badge={reportsTotal || reports.length} />
                       <ViewToggle mode={reportsViewMode} onChange={setReportsViewMode} />
                     </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {/* Sender filter */}
+                  </div>
+
+                  <div className="ap-filters-bar">
+                    <div className="ap-filters-group">
+                      <SearchBox value={reportsSearch} onChange={setReportsSearch} placeholder="بحث بالمعرف او الاسم" />
                       <div className="ap-filter-tabs">
-                        {(['all', 'user', 'charity'] as const).map(f => (
-                          <button key={f} className={`ap-filter-tab${reportsSenderFilter === f ? ' active' : ''}`} onClick={() => setReportsSenderFilter(f)}>
-                            {f === 'all' ? 'الكل' : f === 'user' ? 'مستخدمون' : 'جمعيات'}
-                          </button>
-                        ))}
+                        {(['all', 'user', 'charity'] as const).map(f => {
+                            const cfgMap = {
+                              all: { label: `الكل (${reportsTotal || allReportsForTrend.length})`, icon: 'ti-layout-grid', color: 'var(--teal)', dim: 'var(--teal-dim)' },
+                              user: { label: 'مستخدمون', icon: 'ti-user', color: '#8b5cf6', dim: 'rgba(139,92,246,0.12)' },
+                              charity: { label: 'جمعيات', icon: 'ti-building-community', color: '#3b82f6', dim: 'rgba(59,130,246,0.12)' }
+                            };
+                            const cfg = cfgMap[f];
+                            return (
+                              <button
+                                key={f}
+                                className={`ap-filter-tab ap-filter-tab--${f}${reportsSenderFilter === f ? ' active' : ''}`}
+                                onClick={() => setReportsSenderFilter(f)}
+                                style={{
+                                  color: reportsSenderFilter === f ? cfg.color : 'var(--t3)',
+                                  background: reportsSenderFilter === f ? cfg.dim : 'transparent',
+                                } as any}
+                              >
+                                <i className={`ti ${cfg.icon}`} style={{ fontSize: 13 }} />
+                                <span>{cfg.label}</span>
+                              </button>
+                            );
+                          })}
                       </div>
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab${reportsSort === 'newest' ? ' active' : ''}`} onClick={() => setReportsSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab${reportsSort === 'oldest' ? ' active' : ''}`} onClick={() => setReportsSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                    </div>
+
+                    <div className="ap-filters-group">
                       {/* Date Range */}
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
@@ -5744,10 +2838,26 @@ export default function AdminPanel() {
                           <button className="ap-date-range-clear" onClick={() => { setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
-                      <SearchBox value={reportsSearch} onChange={setReportsSearch} placeholder="بحث في التقارير أو الـ ID..." />
-                      {(reportsSearch || reportsSenderFilter !== 'all' || reportsDateFrom || reportsDateTo) && (
-                        <button className="ap-filter-reset-btn" onClick={() => { setReportsSearch(''); setReportsSenderFilter('all'); setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح كل التصفية">
-                          <i className="ti ti-filter-x" /> مسح التصفية
+
+                      {/* Sort */}
+                      <div className="ap-filter-tabs">
+                        <button className={`ap-filter-tab ap-filter-tab--sort${reportsSort === 'newest' ? ' active' : ''}`} onClick={() => setReportsSort('newest')}>
+                          <i className="ti ti-sort-descending" /> الأحدث
+                        </button>
+                        <button className={`ap-filter-tab ap-filter-tab--sort${reportsSort === 'oldest' ? ' active' : ''}`} onClick={() => setReportsSort('oldest')}>
+                          <i className="ti ti-sort-ascending" /> الأقدم
+                        </button>
+                      </div>
+
+                      {/* Clear Filters Button */}
+                      {(reportsSearch !== '' || reportsSenderFilter !== 'all' || reportsDateFrom !== '' || reportsDateTo !== '') && (
+                        <button className="ap-filter-reset-btn" onClick={() => {
+                          setReportsSearch('');
+                          setReportsSenderFilter('all');
+                          setReportsDateFrom('');
+                          setReportsDateTo('');
+                        }}>
+                          <i className="ti ti-filter-off" /> مسح التصفية
                         </button>
                       )}
                     </div>
@@ -5757,7 +2867,7 @@ export default function AdminPanel() {
                     <EmptyState icon="ti-mood-happy" title="لا توجد تقارير حتى الآن" desc="كل شيء يسير على ما يرام!" />
                   ) : reportsViewMode === 'table' ? (
                     <div className="ap-table-wrap">
-                      <table className="ap-table">
+                      <table className="ap-table ap-reports-table">
                         <thead>
                           <tr>
                             <th className="ap-col-hide-sm">#</th>
@@ -5768,29 +2878,25 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredReports.map((r, i) => {
-                            // Smart detection: prefer senderType from API, fallback to field presence
-                            const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
-                            const isDonor   = !isCharity && (r.senderType === 'user' || r.senderType === 'donor' || !!r.userName);
-                            const senderLabel = isCharity ? 'جمعية' : isDonor ? 'متبرع' : 'مستخدم';
-                            const senderIcon  = isCharity ? 'ti-building' : 'ti-user';
-                            const senderColor = isCharity ? '#3b82f6' : TEAL2;
-                            const senderBg    = isCharity ? 'rgba(59,130,246,0.14)' : 'rgba(16,185,129,0.14)';
-                            const senderName  = r.userName || r.charityName || '—';
+                          {paginatedReports.map((r, i) => {
+                            const sender = resolveSender(r.userId || '', r.senderType, r.userName, r.charityName);
                             return (
                               <tr key={r._id} className="ap-table-row-clickable" onClick={() => setReportModal(r)}>
-                                <td className="ap-col-hide-sm" style={{ fontWeight: 700, color: 'var(--amber)' }}>#{i + 1}</td>
-                                <td>
+                                <td data-label="#" className="ap-col-hide-sm" style={{ fontWeight: 700, color: 'var(--amber)' }}>#{(reportsPage - 1) * REPORTS_PER_PAGE + i + 1}</td>
+                                <td data-label="المُرسِل">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 28, height: 28, borderRadius: 7, background: senderBg, color: senderColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
-                                      <i className={`ti ${senderIcon}`} />
+                                    <div style={{ width: 28, height: 28, borderRadius: 7, background: sender.senderBg, color: sender.senderColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
+                                      <i className={`ti ${sender.senderIcon}`} />
                                     </div>
-                                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: senderBg, color: senderColor }}>{senderLabel}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                      <span style={{ fontWeight: 600, color: 'var(--t1)', fontSize: 12.5 }}>{sender.senderName}</span>
+                                      <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: sender.senderBg, color: sender.senderColor, width: 'fit-content' }}>{sender.senderLabel}</span>
+                                    </div>
                                   </div>
                                 </td>
-                                <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</td>
-                                <td className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{fmt12(r.createdAt)}</td>
-                                <td onClick={e => e.stopPropagation()}>
+                                <td data-label="الوصف" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</td>
+                                <td data-label="التاريخ" className="ap-col-hide-sm" style={{ color: 'var(--t3)', fontSize: 12 }}>{fmt12(r.createdAt)}</td>
+                                <td data-label="إجراء" onClick={e => e.stopPropagation()}>
                                   <button className="ap-eye-btn" onClick={() => setReportModal(r)}>
                                     <i className="ti ti-eye" />
                                   </button>
@@ -5803,26 +2909,21 @@ export default function AdminPanel() {
                     </div>
                   ) : (
                     <div className="ap-card-grid">
-                      {filteredReports.map((r, i) => {
-                        const isCharity = r.senderType === 'charity' || (!r.senderType && !!r.charityName && !r.userName);
-                        const senderLabel = isCharity ? 'جمعية' : r.senderType === 'donor' ? 'متبرع' : 'مستخدم';
-                        const senderIcon  = isCharity ? 'ti-building' : 'ti-user';
-                        const senderColor = isCharity ? '#3b82f6' : TEAL2;
-                        const senderBg    = isCharity ? 'rgba(59,130,246,0.14)' : 'rgba(16,185,129,0.14)';
-                        const senderName  = r.userName || r.charityName || '—';
+                      {paginatedReports.map((r, i) => {
+                        const sender = resolveSender(r.userId || '', r.senderType, r.userName, r.charityName);
                         return (
                           <div key={r._id} className="ap-report-card" onClick={() => setReportModal(r)}>
                             <div className="ap-report-card-top">
-                              <span className="ap-report-num"><i className="ti ti-alert-triangle" />تقرير #{i + 1}</span>
+                              <span className="ap-report-num"><i className="ti ti-alert-triangle" />تقرير #{(reportsPage - 1) * REPORTS_PER_PAGE + i + 1}</span>
                               <span className="ap-report-date"><i className="ti ti-calendar" />{fmt12(r.createdAt)}</span>
                             </div>
                             <div className="ap-report-sender">
-                              <div className="ap-report-sender-icon" style={{ background: senderBg, color: senderColor }}>
-                                <i className={`ti ${senderIcon}`} />
+                              <div className="ap-report-sender-icon" style={{ background: sender.senderBg, color: sender.senderColor }}>
+                                <i className={`ti ${sender.senderIcon}`} />
                               </div>
                               <div>
-                                <div style={{ fontWeight: 700, color: 'var(--t1)', fontSize: 13 }}>{senderName}</div>
-                                <div style={{ fontSize: 11, color: senderColor, marginTop: 1, fontWeight: 700 }}>{senderLabel}</div>
+                                <div style={{ fontWeight: 700, color: 'var(--t1)', fontSize: 13 }}>{sender.senderName}</div>
+                                <div style={{ fontSize: 11, color: sender.senderColor, marginTop: 1, fontWeight: 700 }}>{sender.senderLabel}</div>
                               </div>
                             </div>
                             <p className="ap-report-body">{r.description}</p>
@@ -5837,9 +2938,18 @@ export default function AdminPanel() {
                     </div>
                   )}
 
-                  {hasMoreReports && !reportsSearch && reportsSenderFilter === 'all' && !reportsDateFrom && !reportsDateTo && (
-                    <LoadMoreBtn loading={loadingMore === 'reports'} remaining={Math.max(0, reportsTotal - reports.length)} onClick={loadMoreReports} />
-                  )}
+                  <AdminPagination
+                    currentPage={reportsPage}
+                    totalPages={Math.ceil(filteredReports.length / REPORTS_PER_PAGE)}
+                    onPageChange={(p) => {
+                      setReportsPage(p);
+                      contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    totalItems={filteredReports.length}
+                    itemsPerPage={REPORTS_PER_PAGE}
+                    startIndex={(reportsPage - 1) * REPORTS_PER_PAGE + 1}
+                    endIndex={Math.min(reportsPage * REPORTS_PER_PAGE, filteredReports.length)}
+                  />
                 </div>
               )}
 
@@ -6103,258 +3213,273 @@ export default function AdminPanel() {
               {/* ══ SETTINGS ══════════════════════════════════════════════════ */}
               {tab === 'settings' && (
                 <div className="ap-tab-pane">
-                  <div className="ap-section-header">
+                  <div className="ap-section-header" style={{ marginBottom: 20 }}>
                     <SectionTitle icon="ti-settings" color={TEAL2} title="الإعدادات" />
                   </div>
 
-                  {/* Mobile tabs */}
-                  <div className="cd-settings-mobile-tabs">
+                  {/* Mobile: horizontal scrollable tabs */}
+                  <div className="ap-settings-mobile-tabs">
                     {([
-                      { id:'account',  icon:'ti-id',           label:'الحساب',       color:'#3b82f6' },
-                      { id:'profile',  icon:'ti-user-circle',  label:'الملف الشخصي', color:TEAL2     },
-                      { id:'password', icon:'ti-shield-lock',  label:'كلمة المرور',  color:RED       },
-                      { id:'danger',   icon:'ti-alert-triangle',label:'الخطر',       color:RED       },
+                      { id: 'account',  icon: 'ti-id',             label: 'الحساب',       color: '#3b82f6' },
+                      { id: 'profile',  icon: 'ti-user-circle',    label: 'الملف الشخصي', color: TEAL2 },
+                      { id: 'password', icon: 'ti-shield-lock',    label: 'كلمة المرور',  color: RED },
+                      { id: 'danger',   icon: 'ti-alert-triangle', label: 'منطقة الخطر',  color: '#ef4444' },
                     ] as const).map(item => (
                       <button
                         key={item.id}
-                        onClick={() => setAdminSettingsTab(item.id)}
-                        className={`cd-settings-mobile-tab${adminSettingsTab===item.id?' active':''}`}
+                        onClick={() => setSettingsTab(item.id)}
+                        className={`ap-settings-mobile-tab${settingsTab === item.id ? ' active' : ''}`}
                         style={{
-                          borderBottom: adminSettingsTab===item.id ? `2px solid ${item.color}` : '2px solid transparent',
-                          color: adminSettingsTab===item.id ? item.color : 'var(--t3)',
-                        }}
+                          borderBottom: settingsTab === item.id ? `2px solid ${item.color}` : '2px solid transparent',
+                          color: settingsTab === item.id ? item.color : 'var(--t3)',
+                        } as React.CSSProperties}
                       >
-                        <i className={`ti ${item.icon}`}/>
+                        <i className={`ti ${item.icon}`} />
                         <span>{item.label}</span>
                       </button>
                     ))}
                   </div>
 
-                  <div style={{display:'flex',gap:20,alignItems:'flex-start'}}>
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
 
-                    {/* Desktop sidebar */}
-                    <div className="cd-settings-sidebar">
+                    {/* Desktop: Sidebar Nav */}
+                    <div className="ap-settings-sidenav">
+                      {/* Admin Identity Banner */}
+                      <div className="ap-settings-identity">
+                        <div className="ap-settings-identity-avatar">
+                          {userName?.slice(0, 1).toUpperCase()}
+                        </div>
+                        <div className="ap-settings-identity-info">
+                          <div className="ap-settings-identity-name">{userName}</div>
+                          <div className="ap-settings-identity-role">مسؤول النظام</div>
+                        </div>
+                      </div>
+
                       {([
-                        { id:'account',  icon:'ti-id',           label:'بيانات الحساب',  color:'#3b82f6' },
-                        { id:'profile',  icon:'ti-user-circle',  label:'الملف الشخصي',   color:TEAL2     },
-                        { id:'password', icon:'ti-shield-lock',  label:'كلمة المرور',     color:RED       },
-                        { id:'danger',   icon:'ti-alert-triangle',label:'منطقة الخطر',   color:RED       },
+                        { id: 'account',  icon: 'ti-id',             label: 'بيانات الحساب',  color: '#3b82f6' },
+                        { id: 'profile',  icon: 'ti-user-circle',    label: 'الملف الشخصي',   color: TEAL2 },
+                        { id: 'password', icon: 'ti-shield-lock',    label: 'كلمة المرور',    color: RED },
+                        { id: 'danger',   icon: 'ti-alert-triangle', label: 'منطقة الخطر',   color: '#ef4444' },
                       ] as const).map(item => (
                         <button
                           key={item.id}
-                          onClick={() => setAdminSettingsTab(item.id)}
+                          onClick={() => setSettingsTab(item.id)}
+                          className="ap-settings-sidenav-btn"
                           style={{
-                            width:'100%',display:'flex',alignItems:'center',gap:9,padding:'10px 12px',
-                            borderRadius:8,border:'none',cursor:'pointer',textAlign:'right' as const,
-                            background: adminSettingsTab===item.id ? `${item.color}14` : 'transparent',
-                            color: adminSettingsTab===item.id ? item.color : 'var(--t2)',
-                            fontFamily:'Tajawal',fontSize:13,fontWeight: adminSettingsTab===item.id ? 700 : 500,
-                            transition:'all 0.18s',marginBottom:2,
-                            borderRight: adminSettingsTab===item.id ? `3px solid ${item.color}` : '3px solid transparent',
-                          }}
+                            background: settingsTab === item.id ? `${item.color}14` : 'transparent',
+                            color: settingsTab === item.id ? item.color : 'var(--t2)',
+                            fontWeight: settingsTab === item.id ? 700 : 500,
+                            borderRight: settingsTab === item.id ? `3px solid ${item.color}` : '3px solid transparent',
+                          } as React.CSSProperties}
                         >
-                          <i className={`ti ${item.icon}`} style={{fontSize:15,color:item.color,flexShrink:0}}/>
+                          <i className={`ti ${item.icon}`} style={{ fontSize: 15, color: item.color, flexShrink: 0 }} />
                           {item.label}
                         </button>
                       ))}
                     </div>
 
-                    {/* Content area */}
-                    <div style={{flex:1,minWidth:0}}>
+                    {/* Settings Content Area */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
 
-                  {adminSettingsTab === 'account' && <div className="ap-settings-card">
-                      <div className="ap-settings-card-title">
-                        <div className="ap-settings-icon" style={{ background: 'rgba(59,130,246,0.14)', color: '#3b82f6' }}>
-                          <i className="ti ti-id" />
-                        </div>
-                        بيانات الحساب والمعرّف
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">البريد الإلكتروني الأساسي</label>
-                          <input className="ap-form-input" value={user?.email ?? ''} disabled style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)' }} />
-                        </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            الرقم التعريفي الفريد (ID)
-                            <span style={{ fontSize: 10.5, color: RED, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              <i className="ti ti-lock" /> محمي ومقفل
-                            </span>
-                          </label>
-                          <div
-                            className="ap-secure-id-block"
-                            style={{
-                              padding: '12px 14px',
-                              background: 'rgba(244,63,94,0.03)',
-                              border: `1.5px dashed ${RED}`,
-                              borderRadius: 'var(--radius-sm)',
-                              color: 'var(--t2)',
-                              fontFamily: 'monospace',
-                              fontSize: '13px',
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              userSelect: 'none',
-                              pointerEvents: 'none',
-                              WebkitUserSelect: 'none',
-                              msUserSelect: 'none',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <i className="ti ti-secure" style={{ color: RED, fontSize: 16 }} />
-                              <span>{user?._id ?? '—'}</span>
+                      {/* ── Account Card ── */}
+                      {settingsTab === 'account' && (
+                        <div className="ap-settings-card">
+                          <div className="ap-settings-card-title">
+                            <div className="ap-settings-icon" style={{ background: 'rgba(59,130,246,0.14)', color: '#3b82f6' }}>
+                              <i className="ti ti-id" />
+                            </div>
+                            بيانات الحساب والمعرّف
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">البريد الإلكتروني الأساسي</label>
+                              <input className="ap-form-input" value={user?.email ?? ''} disabled style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)' }} />
+                            </div>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                الرقم التعريفي الفريد (ID)
+                                <span style={{ fontSize: 10.5, color: RED, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                  <i className="ti ti-lock" /> محمي ومقفل
+                                </span>
+                              </label>
+                              <div style={{ padding: '12px 14px', background: 'rgba(244,63,94,0.03)', border: `1.5px dashed ${RED}`, borderRadius: 'var(--radius-sm)', color: 'var(--t2)', fontFamily: 'monospace', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', userSelect: 'none', pointerEvents: 'none' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <i className="ti ti-secure" style={{ color: RED, fontSize: 16 }} />
+                                  <span>{user?._id ?? '—'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">تاريخ الإنشاء والتسجيل بالمنصة</label>
+                              <div className="ap-form-input" style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)', display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px' }}>
+                                <i className="ti ti-calendar" style={{ fontSize: 14 }} />
+                                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">تاريخ الإنشاء والتسجيل بالمنصة</label>
-                          <div className="ap-form-input" style={{ opacity: 0.65, cursor: 'not-allowed', background: 'var(--surface2)', display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px' }}>
-                            <i className="ti ti-calendar" style={{ fontSize: 14 }} />
-                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                          </div>
-                        </div>
-                      </div>
-                  </div>}
+                      )}
 
-                  {adminSettingsTab === 'profile' && <div className="ap-settings-card">
-                      <div className="ap-settings-card-title">
-                        <div className="ap-settings-icon" style={{ background: 'rgba(16,185,129,0.14)', color: TEAL2 }}>
-                          <i className="ti ti-user-circle" />
+                      {/* ── Profile Card ── */}
+                      {settingsTab === 'profile' && (
+                        <div className="ap-settings-card">
+                          <div className="ap-settings-card-title">
+                            <div className="ap-settings-icon" style={{ background: 'rgba(16,185,129,0.14)', color: TEAL2 }}>
+                              <i className="ti ti-user-circle" />
+                            </div>
+                            الملف الشخصي
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">اسم المستخدم <span style={{ color: RED }}>*</span></label>
+                              <input
+                                className={`ap-form-input${profileErrors.userName ? ' error' : ''}`}
+                                value={profileForm.userName}
+                                onChange={e => { setProfileForm(f => ({ ...f, userName: e.target.value })); setProfileErrors(er => ({ ...er, userName: '' })); }}
+                                placeholder="اسم المستخدم"
+                              />
+                              {profileErrors.userName && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.userName}</div>}
+                            </div>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">رقم الهاتف</label>
+                              <input
+                                className={`ap-form-input${profileErrors.phone ? ' error' : ''}`}
+                                value={profileForm.phone}
+                                onChange={e => { setProfileForm(f => ({ ...f, phone: e.target.value })); setProfileErrors(er => ({ ...er, phone: '' })); }}
+                                placeholder="01xxxxxxxxx"
+                              />
+                              {profileErrors.phone && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.phone}</div>}
+                            </div>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">العنوان</label>
+                              <input
+                                className={`ap-form-input${profileErrors.address ? ' error' : ''}`}
+                                value={profileForm.address}
+                                onChange={e => { setProfileForm(f => ({ ...f, address: e.target.value })); setProfileErrors(er => ({ ...er, address: '' })); }}
+                                placeholder="المدينة أو المنطقة"
+                              />
+                              {profileErrors.address && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.address}</div>}
+                            </div>
+                            <button
+                              className="ap-action-btn approve"
+                              style={{ alignSelf: 'flex-start', padding: '8px 18px', marginTop: 'auto' }}
+                              disabled={settingsSaving}
+                              onClick={saveProfile}
+                            >
+                              {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-check" /> حفظ التغييرات</>}
+                            </button>
+                          </div>
                         </div>
-                        الملف الشخصي
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">اسم المستخدم <span style={{ color: RED }}>*</span></label>
-                          <input
-                            className={`ap-form-input${profileErrors.userName ? ' error' : ''}`}
-                            value={profileForm.userName}
-                            onChange={e => { setProfileForm(f => ({ ...f, userName: e.target.value })); setProfileErrors(er => ({ ...er, userName: '' })); }}
-                            placeholder="اسم المستخدم"
-                          />
-                          {profileErrors.userName && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.userName}</div>}
-                        </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">رقم الهاتف</label>
-                          <input
-                            className={`ap-form-input${profileErrors.phone ? ' error' : ''}`}
-                            value={profileForm.phone}
-                            onChange={e => { setProfileForm(f => ({ ...f, phone: e.target.value })); setProfileErrors(er => ({ ...er, phone: '' })); }}
-                            placeholder="01xxxxxxxxx"
-                          />
-                          {profileErrors.phone && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.phone}</div>}
-                        </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">العنوان</label>
-                          <input
-                            className={`ap-form-input${profileErrors.address ? ' error' : ''}`}
-                            value={profileForm.address}
-                            onChange={e => { setProfileForm(f => ({ ...f, address: e.target.value })); setProfileErrors(er => ({ ...er, address: '' })); }}
-                            placeholder="المدينة أو المنطقة"
-                          />
-                          {profileErrors.address && <div className="ap-form-err"><i className="ti ti-alert-circle" />{profileErrors.address}</div>}
-                        </div>
-                        <button
-                          className="ap-action-btn approve"
-                          style={{ alignSelf: 'flex-start', padding: '8px 18px', marginTop: 'auto' }}
-                          disabled={settingsSaving}
-                          onClick={saveProfile}
-                        >
-                          {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-check" /> حفظ التغييرات</>}
-                        </button>
-                      </div>
-                  </div>}
+                      )}
 
-                  {adminSettingsTab === 'password' && <div className="ap-settings-card">
-                      <div className="ap-settings-card-title">
-                        <div className="ap-settings-icon" style={{ background: 'rgba(244,63,94,0.14)', color: RED }}>
-                          <i className="ti ti-shield-lock" />
-                        </div>
-                        تغيير كلمة المرور
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">كلمة المرور الحالية <span style={{ color: RED }}>*</span></label>
-                          <div style={{ position: 'relative' }}>
-                            <input
-                              className={`ap-form-input${passErrors.oldPassword ? ' error' : ''}`}
-                              type={showOldPass ? 'text' : 'password'}
-                              value={passForm.oldPassword}
-                              onChange={e => { setPassForm(f => ({ ...f, oldPassword: e.target.value })); setPassErrors(er => ({ ...er, oldPassword: '' })); }}
-                              placeholder="Enter your old password"
-                              style={{ paddingLeft: 36 }}
-                            />
-                            <button type="button" onClick={() => setShowOldPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showOldPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showOldPass ? '-off' : ''}`} /></button>
+                      {/* ── Password Card ── */}
+                      {settingsTab === 'password' && (
+                        <div className="ap-settings-card">
+                          <div className="ap-settings-card-title">
+                            <div className="ap-settings-icon" style={{ background: 'rgba(244,63,94,0.14)', color: RED }}>
+                              <i className="ti ti-shield-lock" />
+                            </div>
+                            تغيير كلمة المرور
                           </div>
-                          {passErrors.oldPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.oldPassword}</div>}
-                        </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
-                          <div style={{ position: 'relative' }}>
-                            <input
-                              className={`ap-form-input${passErrors.newPassword ? ' error' : ''}`}
-                              type={showNewPass ? 'text' : 'password'}
-                              value={passForm.newPassword}
-                              onChange={e => { setPassForm(f => ({ ...f, newPassword: e.target.value })); setPassErrors(er => ({ ...er, newPassword: '' })); }}
-                              placeholder="Enter your new password"
-                              style={{ paddingLeft: 36 }}
-                            />
-                            <button type="button" onClick={() => setShowNewPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showNewPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showNewPass ? '-off' : ''}`} /></button>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">كلمة المرور الحالية <span style={{ color: RED }}>*</span></label>
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  className={`ap-form-input${passErrors.oldPassword ? ' error' : ''}`}
+                                  type={showOldPass ? 'text' : 'password'}
+                                  value={passForm.oldPassword}
+                                  onChange={e => { setPassForm(f => ({ ...f, oldPassword: e.target.value })); setPassErrors(er => ({ ...er, oldPassword: '' })); }}
+                                  placeholder="Enter your old password"
+                                  style={{ paddingLeft: 36 }}
+                                />
+                                <button type="button" onClick={() => setShowOldPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showOldPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showOldPass ? '-off' : ''}`} /></button>
+                              </div>
+                              {passErrors.oldPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.oldPassword}</div>}
+                            </div>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  className={`ap-form-input${passErrors.newPassword ? ' error' : ''}`}
+                                  type={showNewPass ? 'text' : 'password'}
+                                  value={passForm.newPassword}
+                                  onChange={e => { setPassForm(f => ({ ...f, newPassword: e.target.value })); setPassErrors(er => ({ ...er, newPassword: '' })); }}
+                                  placeholder="Enter your new password"
+                                  style={{ paddingLeft: 36 }}
+                                />
+                                <button type="button" onClick={() => setShowNewPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showNewPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showNewPass ? '-off' : ''}`} /></button>
+                              </div>
+                              {passErrors.newPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.newPassword}</div>}
+                            </div>
+                            <div className="ap-form-group">
+                              <label className="ap-form-label">تأكيد كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  className={`ap-form-input${passErrors.confirmPassword ? ' error' : ''}`}
+                                  type={showConfirmPass ? 'text' : 'password'}
+                                  value={passForm.confirmPassword}
+                                  onChange={e => { setPassForm(f => ({ ...f, confirmPassword: e.target.value })); setPassErrors(er => ({ ...er, confirmPassword: '' })); }}
+                                  placeholder="Enter your Confirm Password"
+                                  style={{ paddingLeft: 36 }}
+                                />
+                                <button type="button" onClick={() => setShowConfirmPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showConfirmPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showConfirmPass ? '-off' : ''}`} /></button>
+                              </div>
+                              {passErrors.confirmPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.confirmPassword}</div>}
+                            </div>
+                            <button
+                              className="ap-action-btn edit"
+                              style={{ alignSelf: 'flex-start', padding: '8px 18px' }}
+                              disabled={settingsSaving}
+                              onClick={savePassword}
+                            >
+                              {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-key" /> تغيير كلمة المرور</>}
+                            </button>
                           </div>
-                          {passErrors.newPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.newPassword}</div>}
                         </div>
-                        <div className="ap-form-group">
-                          <label className="ap-form-label">تأكيد كلمة المرور الجديدة <span style={{ color: RED }}>*</span></label>
-                          <div style={{ position: 'relative' }}>
-                            <input
-                              className={`ap-form-input${passErrors.confirmPassword ? ' error' : ''}`}
-                              type={showConfirmPass ? 'text' : 'password'}
-                              value={passForm.confirmPassword}
-                              onChange={e => { setPassForm(f => ({ ...f, confirmPassword: e.target.value })); setPassErrors(er => ({ ...er, confirmPassword: '' })); }}
-                              placeholder="Enter your Confirm Password"
-                              style={{ paddingLeft: 36 }}
-                            />
-                            <button type="button" onClick={() => setShowConfirmPass(v => !v)} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', fontSize: 13, padding: 4, lineHeight: 1 }} title={showConfirmPass ? 'إخفاء' : 'إظهار'}><i className={`ti ti-eye${showConfirmPass ? '-off' : ''}`} /></button>
-                          </div>
-                          {passErrors.confirmPassword && <div className="ap-form-err"><i className="ti ti-alert-circle" />{passErrors.confirmPassword}</div>}
-                        </div>
-                        <button
-                          className="ap-action-btn edit"
-                          style={{ alignSelf: 'flex-start', padding: '8px 18px' }}
-                          disabled={settingsSaving}
-                          onClick={savePassword}
-                        >
-                          {settingsSaving ? <><i className="ti ti-loader-2 ti-spin" /> جاري الحفظ...</> : <><i className="ti ti-key" /> تغيير كلمة المرور</>}
-                        </button>
-                      </div>
-                  </div>}
+                      )}
 
-                  {adminSettingsTab === 'danger' && <div className="ap-settings-card" style={{ borderColor:'rgba(244,63,94,0.22)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, color: RED, marginBottom: 4, fontSize: 14 }}>منطقة الخطر والعمليات الحساسة</div>
-                        <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>تسجيل الخروج من الجلسة الحالية للمسؤول، أو تفعيل حذف الحساب نهائيًا من المنصة.</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="ap-action-btn edit" style={{ padding: '9px 18px', flexShrink: 0, background: 'var(--surface)', border: '1px solid var(--border)' }} onClick={handleLogout}>
-                          <i className="ti ti-logout" /> تسجيل الخروج
-                        </button>
-                        <button
-                          className="ap-action-btn delete"
-                          style={{ padding: '9px 18px', flexShrink: 0, background: RED, color: '#fff' }}
-                          onClick={() => {
-                            setDeleteConfirmText('');
-                            setShowDeleteModal(true);
-                          }}
-                        >
-                          <i className="ti ti-user-off" /> حذف الحساب نهائياً
-                        </button>
-                      </div>
+                      {/* ── Danger Zone Card ── */}
+                      {settingsTab === 'danger' && (
+                        <div className="ap-settings-card" style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)' }}>
+                          <div className="ap-settings-card-title">
+                            <div className="ap-settings-icon" style={{ background: 'rgba(244,63,94,0.14)', color: RED }}>
+                              <i className="ti ti-alert-triangle" />
+                            </div>
+                            <span style={{ color: RED }}>منطقة الخطر والعمليات الحساسة</span>
+                          </div>
+                          <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.7, marginBottom: 20 }}>
+                            تسجيل الخروج من الجلسة الحالية للمسؤول، أو تفعيل حذف الحساب نهائيًا من المنصة. هذه الإجراءات لا يمكن التراجع عنها.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)', marginBottom: 2 }}>تسجيل الخروج</div>
+                                <div style={{ fontSize: 12, color: 'var(--t3)' }}>إنهاء الجلسة الحالية للمسؤول</div>
+                              </div>
+                              <button className="ap-action-btn edit" style={{ padding: '8px 16px', flexShrink: 0, background: 'var(--surface2)', border: '1px solid var(--border)' }} onClick={handleLogout}>
+                                <i className="ti ti-logout" /> تسجيل الخروج
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'rgba(244,63,94,0.04)', borderRadius: 'var(--radius-sm)', border: `1px solid rgba(244,63,94,0.2)` }}>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 13, color: RED, marginBottom: 2 }}>حذف الحساب نهائياً</div>
+                                <div style={{ fontSize: 12, color: 'var(--t3)' }}>سيتم حذف جميع بيانات الحساب ولا يمكن التراجع</div>
+                              </div>
+                              <button
+                                className="ap-action-btn delete"
+                                style={{ padding: '8px 16px', flexShrink: 0, background: RED, color: '#fff' }}
+                                onClick={() => { setDeleteConfirmText(''); setShowDeleteModal(true); }}
+                              >
+                                <i className="ti ti-user-off" /> حذف الحساب
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
-                  </div>}
-
-                    </div>{/* end content area */}
-                  </div>{/* end settings layout */}
+                  </div>
                 </div>
               )}
 
@@ -6369,12 +3494,17 @@ export default function AdminPanel() {
         </div>
       </main>
 
-      <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} onLogout={handleLogout} />
+      <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} onLogout={handleLogout} newUsersCount={newUsersCount} newCharitiesCount={newCharitiesCount} newReportsCount={newReportsCount} />
+
+      <ScrollToTop containerRef={contentRef} />
 
       <Toast msg={toast} />
       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />
       <RejectModal target={rejectTarget} loading={rejectLoading} onClose={() => setRejectTarget(null)} onConfirm={handleReject} />
-      <EditCharityModal target={editCharityTarget} loading={actionLoading} setLoading={setActionLoading} onClose={() => setEditCharityTarget(null)} onSaved={(id, form) => setCharities(prev => prev.map(c => c._id === id ? { ...c, ...form } : c))} showMsg={showMsg} />
+      <EditCharityModal target={editCharityTarget} loading={actionLoading} setLoading={setActionLoading} onClose={() => setEditCharityTarget(null)} onSaved={(id, form) => {
+        setCharities(prev => prev.map(c => c._id === id ? { ...c, ...form } : c));
+        setAllCharitiesForTrend(prev => prev.map(c => c._id === id ? { ...c, ...form } : c));
+      }} showMsg={showMsg} />
 
       {/* Account Deletion Verification Modal */}
       {showDeleteModal && (
@@ -6552,19 +3682,18 @@ export default function AdminPanel() {
 
       {/* Report Detail Modal */}
       {reportModal && (() => {
-        const isCharity = reportModal.senderType === 'charity';
-        const senderName = reportModal.userName || reportModal.charityName || '—';
+        const sender = resolveSender(reportModal.userId || '', reportModal.senderType, reportModal.userName, reportModal.charityName);
         return (
           <div className="ap-modal-overlay" onClick={() => setReportModal(null)}>
             <div className="ap-modal ap-modal-wide" onClick={e => e.stopPropagation()}>
               <div style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.04) 100%)', padding: '22px 28px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 13, background: isCharity ? 'rgba(91,148,245,0.14)' : 'rgba(0,212,154,0.14)', color: isCharity ? '#5b94f5' : TEAL2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-                    <i className={`ti ${isCharity ? 'ti-building-community' : 'ti-user'}`} />
+                  <div style={{ width: 48, height: 48, borderRadius: 13, background: sender.senderBg, color: sender.senderColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                    <i className={`ti ${sender.senderIcon}`} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--t1)', marginBottom: 3 }}>{senderName}</div>
-                    <div style={{ fontSize: 11, color: isCharity ? '#5b94f5' : TEAL2, fontWeight: 700, marginBottom: 2 }}>{isCharity ? 'جمعية' : (reportModal.senderType === 'donor' ? 'متبرع' : 'مستخدم')}</div>
+                    <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--t1)', marginBottom: 3 }}>{sender.senderName}</div>
+                    <div style={{ fontSize: 11, color: sender.senderColor, fontWeight: 700, marginBottom: 2 }}>{sender.senderLabel}</div>
                     <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fmt12(reportModal.createdAt)}</div>
                   </div>
                 </div>
@@ -6573,7 +3702,7 @@ export default function AdminPanel() {
 
               <div className="ap-modal-inner" style={{ paddingTop: 20 }}>
                 <div className="ap-detail-section" style={{ marginBottom: 16 }}>
-                  <DetailRow icon="ti-tag" label="النوع" value={isCharity ? 'جمعية' : (reportModal.senderType === 'donor' ? 'متبرع' : 'مستخدم')} />
+                  <DetailRow icon="ti-tag" label="النوع" value={sender.senderLabel} />
                   <DetailRow icon="ti-calendar" label="التاريخ" value={fmt12(reportModal.createdAt)} />
                   {(reportModal.userId || (reportModal as any).senderId) && <DetailRow icon="ti-fingerprint" label="المعرف" value={reportModal.userId || (reportModal as any).senderId} mono />}
                 </div>

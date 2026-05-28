@@ -15,7 +15,7 @@ import {
   APPROVAL_CFG, ROLE_CFG,
   TEAL2, AMBER, RED,
   fmt,
-} from './adminTypes';
+} from '../../pages/admin/adminTypes';
 
 // 12-hour datetime formatter for display
 const fmt12 = (val?: string | null): string => {
@@ -1061,8 +1061,8 @@ export default function AdminPanel() {
       const res = await fetchPage<User>('/users', next, 10);
       if (!res.data?.length) { setHasMoreUsers(false); return; }
       setUsers(prev => {
-        const ids = new Set(prev.map(u => u._id));
-        return [...prev, ...res.data.filter(u => !ids.has(u._id))];
+        const ids = new Set(prev.map((u: any) => u._id));
+        return [...prev, ...res.data.filter((u: any) => !ids.has(u._id))];
       });
       setUsersPage(next);
       setHasMoreUsers(res.hasMore ?? false);
@@ -1076,8 +1076,8 @@ export default function AdminPanel() {
       const res = await fetchPage<Charity>('/charity/charities', next, 10);
       if (!res.data?.length) { setHasMoreCharities(false); return; }
       setCharities(prev => {
-        const ids = new Set(prev.map(c => c._id));
-        return [...prev, ...res.data.filter(c => !ids.has(c._id))];
+        const ids = new Set(prev.map((c: any) => c._id));
+        return [...prev, ...res.data.filter((c: any) => !ids.has(c._id))];
       });
       setCharitiesPage(next);
       setHasMoreCharities(res.hasMore ?? false);
@@ -1099,8 +1099,8 @@ export default function AdminPanel() {
         const res = await fetchPage<Charity>('/charity/charities', page, 50);
         if (!res.data?.length) break;
         setCharities(prev => {
-          const ids = new Set(prev.map(c => c._id));
-          return [...prev, ...res.data.filter(c => !ids.has(c._id))];
+          const ids = new Set(prev.map((c: any) => c._id));
+          return [...prev, ...res.data.filter((c: any) => !ids.has(c._id))];
         });
         more = res.hasMore ?? false;
         page++;
@@ -1135,8 +1135,8 @@ export default function AdminPanel() {
       const res = await fetchPage<Report>('/report/allReports', next, 10);
       if (!res.data?.length) { setHasMoreReports(false); return; }
       setReports(prev => {
-        const ids = new Set(prev.map(r => r._id));
-        return [...prev, ...res.data.filter(r => !ids.has(r._id))];
+        const ids = new Set(prev.map((r: any) => r._id));
+        return [...prev, ...res.data.filter((r: any) => !ids.has(r._id))];
       });
       setReportsPage(next);
       setHasMoreReports(res.hasMore ?? false);
