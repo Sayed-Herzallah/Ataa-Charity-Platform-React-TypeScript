@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
 import '../../styles/css/AdminPanel.css';
 import '@tabler/icons-webfont/dist/tabler-icons.css';
-import '../../styles/css/mobile-fix.css'; 
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
