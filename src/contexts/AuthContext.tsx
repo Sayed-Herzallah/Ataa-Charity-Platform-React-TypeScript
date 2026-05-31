@@ -82,9 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ✅ عند أول تحميل — لو في توكن محفوظ جيب بيانات المستخدم
   useEffect(() => {
     const initAuth = async () => {
+      const startTime = Date.now();
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        setIsLoading(false);
+        const elapsed = Date.now() - startTime;
+        setTimeout(() => setIsLoading(false), Math.max(0, 3000 - elapsed));
         return;
       }
       
@@ -109,7 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       } finally {
-        setIsLoading(false);
+        const elapsed = Date.now() - startTime;
+        setTimeout(() => setIsLoading(false), Math.max(0, 3000 - elapsed));
       }
     };
     

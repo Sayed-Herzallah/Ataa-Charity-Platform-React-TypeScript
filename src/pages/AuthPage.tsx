@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../services';
 import ForgotPasswordModal from '../features/auth/ForgotPasswordModal';
 import { getRedirectByRole } from '../utils/getRedirectByRole';
+import { translateError } from '../utils/translateError';
 import '../styles/css/AuthPage.css';
 import VerifyEmailPage from './Auth/VerifyEmail';
+import PageLoader from '../components/ui/Pageloader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +35,8 @@ interface RegisterForm {
 
 // ─── Validation Rules ─────────────────────────────────────────────────────────
 
+const EMAIL_ADMIN = import.meta.env.ADMIN_EMAIL || '';
+
 const rules = {
   userName:      { re: /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/, msg: 'اسم المستخدم: يبدأ بحرف، 3-30 حرف، بدون رموز خاصة',              ok: 'اسم المستخدم مقبول ✓' },
   email:         { re: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+\.(com|net|edu|org|io)$/, msg: 'صيغة البريد غير صحيحة — يجب أن ينتهي بـ .com أو .net أو .edu', ok: 'البريد الإلكتروني صالح ✓' },
@@ -44,8 +48,10 @@ const rules = {
   nationalID:    { re: /^\d{14}$/, msg: 'الرقم القومي غير صالح — تأكد من إدخال 14 رقماً صحيحاً',                                             ok: 'الرقم القومي صالح ✓' },
 };
 
-const isValidRule = (value: string, rule: { re?: RegExp; fn?: (v: string) => boolean }): boolean =>
-  rule.fn ? rule.fn(value) : (rule.re?.test(value) ?? false);
+const isValidRule = (value: string, rule: { re?: RegExp; fn?: (v: string) => boolean }, field?: string): boolean => {
+  if (field === 'email' && EMAIL_ADMIN && value.toLowerCase() === EMAIL_ADMIN.toLowerCase()) return true;
+  return rule.fn ? rule.fn(value) : (rule.re?.test(value) ?? false);
+};
 
 // ─── Password Strength ────────────────────────────────────────────────────────
 
@@ -144,7 +150,32 @@ function WelcomeScreen({ userName, roleType, onDone }: WelcomeScreenProps) {
     ? 'جاهز لإدارة جمعيتك...'
     : 'سيتم تسجيل دخولك الآن...';
 
-  useEffect(() => { const t = setTimeout(onDone, 2200); return () => clearTimeout(t); }, [onDone]);
+  const [showLoader, setShowLoader] = useState(false);
+
+  useEffect(() => {
+    document.body.classList.add('lp-hiding-layout');
+    
+    // Switch to premium fullscreen 3-dot PageLoader after 1.0s of elegant welcome screen card
+    const loaderTimer = setTimeout(() => {
+      setShowLoader(true);
+    }, 1000);
+
+    // End welcome screen and call redirect after 1.0s (card) + 2.0s (loader) = 3.0s total
+    const doneTimer = setTimeout(() => {
+      document.body.classList.remove('lp-hiding-layout');
+      onDone();
+    }, 3000);
+
+    return () => {
+      document.body.classList.remove('lp-hiding-layout');
+      clearTimeout(loaderTimer);
+      clearTimeout(doneTimer);
+    };
+  }, [onDone]);
+
+  if (showLoader) {
+    return <PageLoader text="جاري الانتقال بأمان..." />;
+  }
 
   return (
     <div className="lp-welcome-screen">
@@ -170,6 +201,7 @@ function WelcomeScreen({ userName, roleType, onDone }: WelcomeScreenProps) {
     </div>
   );
 }
+
 
 // ─── Shared UI Atoms ──────────────────────────────────────────────────────────
 
@@ -295,11 +327,13 @@ function RoleSelector({ selected, onSelect }: { selected: RoleType | ''; onSelec
 function LoginSection({
   onForgot,
   onToast,
+  setIsTransitioning,
 }: {
   onForgot: () => void;
   onToast: (msg: string, type?: ToastType) => void;
+  setIsTransitioning: (v: boolean) => void;
 }) {
-  const { login }    = useAuth();
+  const { login, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -310,7 +344,7 @@ function LoginSection({
   const [welcome, setWelcome]       = useState<{ name: string; role: string } | null>(null);
   const [pendingRedirect, setPendingRedirect] = useState('');
 
-  const validateEmailFn = (v: string) => isValidRule(v, rules.email);
+  const validateEmailFn = (v: string) => isValidRule(v, rules.email, 'email');
   const validatePw      = (v: string) => isValidRule(v, rules.password);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,24 +355,46 @@ function LoginSection({
     setPwState(pwOk ? 'valid' : 'invalid');
     if (!emailOk) { onToast(rules.email.msg, 'error'); return; }
     if (!pwOk)    { onToast(rules.password.msg, 'error'); return; }
+    
     setLoading(true);
     try {
+      const trimmedEmail = email.trim().toLowerCase();
+      const adminEmail = import.meta.env.ADMIN_EMAIL?.trim().toLowerCase();
+      const adminPassword = import.meta.env.ADMIN_PASSWORD;
+
+      // 1. Pre-login secure checks: if the email matches the ADMIN_EMAIL, the password must match the ADMIN_PASSWORD
+      if (adminEmail && trimmedEmail === adminEmail) {
+        if (password !== adminPassword) {
+          throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+        }
+      }
+
       const res = await authApi.login({ email: email.trim(), password });
       if (!res.tokens?.accessToken) throw new Error('بيانات التوكن غير مكتملة');
+      
       const loggedUser = await login(res.tokens.accessToken, res.tokens.refreshToken, res.user);
       const role       = loggedUser?.roleType || res.user?.roleType || 'user';
+
+      // 2. Post-login secure checks: double check if the user role is admin
+      if (role === 'admin' || trimmedEmail === adminEmail) {
+        if (!adminEmail || trimmedEmail !== adminEmail || password !== adminPassword) {
+          // Force logout and clean up tokens to block unauthorized logins
+          logout();
+          throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+        }
+      }
+
       const name       = loggedUser?.userName || res.user?.userName || loggedUser?.charityName || '';
       const redirect   = getRedirectByRole(role);
       setPendingRedirect(redirect);
       setWelcome({ name, role });
+      setIsTransitioning(true);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'خطأ في البيانات';
-      if (/pending|قيد الانتظار|not approved/i.test(msg)) {
-        onToast('حسابك قيد المراجعة. سيتم إعلامك عبر البريد عند الموافقة.', 'warn');
-      } else if (/reject|مرفوض|refused/i.test(msg)) {
-        onToast('تم رفض حسابك. تواصل مع الإدارة للاستفسار.', 'error');
+      const errMsg = translateError(err);
+      if (errMsg.includes('قيد المراجعة')) {
+        onToast(errMsg, 'warn');
       } else {
-        onToast(msg, 'error');
+        onToast(errMsg, 'error');
       }
     } finally { setLoading(false); }
   };
@@ -512,7 +568,7 @@ function RegisterSection({ onToast, form, setForm, currentStep, setCurrentStep }
       }
       setLocation('/verify-email');
     } catch (err: unknown) {
-      onToast(err instanceof Error ? err.message : 'حدث خطأ، حاول مرة أخرى', 'error');
+      onToast(translateError(err), 'error');
     } finally {
       setLoading(false);
     }
@@ -731,9 +787,7 @@ export default function AuthPage() {
 const initialMode = (): 'login' | 'signup' => {
   const params = new URLSearchParams(window.location.search);
   return params.get('mode') === 'login' ? 'signup' : 'login';
-}
-  ;
-
+};
   const [mode, setMode]         = useState<'login' | 'signup'>(initialMode);
   const [showForgot, setShowForgot] = useState(false);
   const [toast, setToast]           = useState<ToastState | null>(null);
@@ -742,6 +796,7 @@ const initialMode = (): 'login' | 'signup' => {
   // بالتالي Toast re-render مش بيأثر عليهم
   const [registerForm, setRegisterForm]     = useState<RegisterForm>(INITIAL_FORM);
   const [registerStep, setRegisterStep]     = useState(1);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const showToast  = useCallback((msg: string, type: ToastType = 'error') => setToast({ message: msg, type }), []);
   const closeToast = useCallback(() => setToast(null), []);
@@ -770,10 +825,12 @@ const initialMode = (): 'login' | 'signup' => {
     <div className="lp-body">
       <Toast toast={toast} onClose={closeToast} />
 
-      <button className="lp-home-btn" onClick={() => setLocation('/')}>
-        <i className="fa-solid fa-house" />
-        <span className="lp-home-btn-text">الرئيسية</span>
-      </button>
+      {!isTransitioning && (
+        <button className="lp-home-btn" onClick={() => setLocation('/')}>
+          <i className="fa-solid fa-house" />
+          <span className="lp-home-btn-text">الرئيسية</span>
+        </button>
+      )}
 
       <div className={`lp-container${isSignup ? ' active' : ''}`}>
         <div className="lp-forms-container">
@@ -788,6 +845,7 @@ const initialMode = (): 'login' | 'signup' => {
               : <LoginSection
                   onForgot={() => setShowForgot(true)}
                   onToast={showToast}
+                  setIsTransitioning={setIsTransitioning}
                 />
             }
           </div>

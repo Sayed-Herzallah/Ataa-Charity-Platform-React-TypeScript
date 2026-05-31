@@ -84,13 +84,15 @@
   direction: rtl;
   position: relative;
 }
+
+/* الدوائر مثبتة وتنبض بنعومة وهدوء بالكامل */
 .lp-body::before {
   content: '';
   width: 100%; height: 100%;
   position: absolute;
   background: linear-gradient(to right, var(--lp-teal-900), var(--lp-teal-100));
   clip-path: circle(30% at left top);
-  animation: lp-sca 2s infinite;
+  animation: lp-scale-left 8s ease-in-out infinite;
   pointer-events: none;
 }
 .lp-body::after {
@@ -99,9 +101,27 @@
   position: absolute;
   background-color: var(--lp-teal-600);
   clip-path: circle(30% at right bottom);
-  animation: lp-scar 2s infinite;
+  animation: lp-scale-right 8s ease-in-out infinite;
   z-index: 0;
   pointer-events: none;
+}
+
+/* أنيميشن التوسيع والتقلص الهادئ والثابت بالزوايا */
+@keyframes lp-scale-left {
+  0%, 100% {
+    clip-path: circle(30% at left top);
+  }
+  50% {
+    clip-path: circle(40% at left top);
+  }
+}
+@keyframes lp-scale-right {
+  0%, 100% {
+    clip-path: circle(30% at right bottom);
+  }
+  50% {
+    clip-path: circle(40% at right bottom);
+  }
 }
 
 /* ─── Home Button ────────────────────────────────────────────────────────────── */
@@ -443,30 +463,103 @@
 
 /* ─── Welcome Screen ─────────────────────────────────────────────────────────── */
 .lp-welcome-screen {
-  width: 100%; display: flex; flex-direction: column;
-  align-items: center; gap: 14px; padding: 20px 8px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 8px;
   animation: lp-slideIn 0.4s ease forwards;
 }
+
 .lp-welcome-avatar {
-  position: relative; width: 72px; height: 72px; border-radius: 50%;
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
   background: var(--lp-neutral-100);
-  display: flex; align-items: center; justify-content: center; font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
 }
+
+body.ap-light-theme .lp-welcome-avatar {
+  background: rgba(15, 23, 42, 0.06);
+}
+
 .lp-welcome-pulse {
-  position: absolute; inset: -8px; border-radius: 50%;
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
   animation: lp-pulse 1.5s ease-in-out infinite;
 }
-.lp-welcome-text     { text-align: center; }
-.lp-welcome-greeting { display: block; font-size: 0.85em; color: var(--lp-neutral-500); margin-bottom: 4px; }
-.lp-welcome-name     { font-size: 1.5em; font-weight: 800; color: var(--lp-teal-800); margin: 0; }
-.lp-welcome-role-chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1.5px solid; border-radius: var(--lp-r-full);
-  padding: 7px 18px; font-size: 0.88em; font-weight: 700;
+
+.lp-welcome-text {
+  text-align: center;
 }
-.lp-welcome-msg      { font-size: 0.85em; color: var(--lp-neutral-500); margin: 0; }
-.lp-welcome-bar-track { width: 100%; height: 4px; background: var(--lp-neutral-200); border-radius: var(--lp-r-full); overflow: hidden; }
-.lp-welcome-bar-fill  { height: 100%; border-radius: var(--lp-r-full); animation: lp-barFill 2.2s linear forwards; }
+
+.lp-welcome-greeting {
+  display: block;
+  font-size: 0.85em;
+  color: var(--lp-neutral-500);
+  margin-bottom: 4px;
+}
+
+body.ap-light-theme .lp-welcome-greeting {
+  color: #64748b;
+}
+
+.lp-welcome-name {
+  font-size: 1.5em;
+  font-weight: 800;
+  color: var(--lp-teal-800);
+  margin: 0;
+}
+
+body.ap-light-theme .lp-welcome-name {
+  color: #0d3d3f;
+}
+
+.lp-welcome-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid;
+  border-radius: var(--lp-r-full);
+  padding: 7px 18px;
+  font-size: 0.88em;
+  font-weight: 700;
+}
+
+.lp-welcome-msg {
+  font-size: 0.85em;
+  color: var(--lp-neutral-500);
+  margin: 0;
+}
+
+body.ap-light-theme .lp-welcome-msg {
+  color: #64748b;
+}
+
+.lp-welcome-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--lp-neutral-200);
+  border-radius: var(--lp-r-full);
+  overflow: hidden;
+}
+
+body.ap-light-theme .lp-welcome-bar-track {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.lp-welcome-bar-fill {
+  height: 100%;
+  border-radius: var(--lp-r-full);
+  animation: lp-barFill 2.2s linear forwards;
+}
+
 
 /* ─── Side Panel ─────────────────────────────────────────────────────────────── */
 .lp-side-panel {

@@ -210,13 +210,18 @@ export default function Charities() {
   const [search, setSearch]       = useState('');
   const [region, setRegion]       = useState('الكل');
   const [viewMode, setViewMode]   = useState<'grid' | 'list'>('grid');
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    charityApi.getAll()
-      .then(res => setCharities((res as any).result?.Data || res.charities || []))
+    // limit=1000 يضمن جيب كل الجمعيات مهما زاد عددها
+    charityApi.getAll({ limit: 9999 })
+      .then(res => {
+        const data: Charity[] = (res as any).result?.Data || (res as any).charities || (res as any).data || [];
+        setCharities(data);
+      })
       .catch(() => setError('تعذّر تحميل الجمعيات، يرجى المحاولة لاحقاً'))
       .finally(() => setLoading(false));
   }, []);
@@ -236,7 +241,7 @@ export default function Charities() {
   }, [charities, search, region]);
 
   // reset pagination when filters change
-  useEffect(() => { setVisibleCount(10); }, [search, region]);
+  useEffect(() => { setCurrentPage(1); }, [search, region]);
 
   return (
     <div className="ch-page">
@@ -361,30 +366,54 @@ export default function Charities() {
         ) : viewMode === 'grid' ? (
           <>
             <div className="ch-grid">
-              {filtered.slice(0, visibleCount).map((c, i) => <CharityCard key={c._id} charity={c} index={i} />)}
+              {filtered.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map((c,i) => (
+                <CharityCard key={c._id} charity={c} index={(currentPage-1)*ITEMS_PER_PAGE+i} />
+              ))}
             </div>
-            {visibleCount < filtered.length && (
-              <div className="ch-loadmore-wrap">
-                <button className="ch-loadmore-btn" onClick={() => setVisibleCount(v => v + 10)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                  عرض المزيد
-                  <span className="ch-loadmore-badge">{filtered.length - visibleCount}</span>
-                </button>
+            {Math.ceil(filtered.length/ITEMS_PER_PAGE) > 1 && (
+              <div className="ch-pagination-container">
+                <span className="ch-pagination-info">
+                  {(currentPage-1)*ITEMS_PER_PAGE+1}{'–'}{Math.min(currentPage*ITEMS_PER_PAGE, filtered.length)} من {filtered.length}
+                </span>
+                <div className="ch-pagination-buttons">
+                  <button className="ch-pagination-btn" onClick={()=>setCurrentPage(1)} disabled={currentPage===1} title="الأولى">&raquo;</button>
+                  <button className="ch-pagination-btn ch-pagination-btn--nav" onClick={()=>setCurrentPage(p=>p-1)} disabled={currentPage===1}>‹ السابق</button>
+                  {Array.from({length:Math.min(5,Math.ceil(filtered.length/ITEMS_PER_PAGE))},(_,i)=>{
+                    const tp=Math.ceil(filtered.length/ITEMS_PER_PAGE);
+                    let p=currentPage<=3?i+1:currentPage>=tp-2?tp-4+i:currentPage-2+i;
+                    if(tp<=5)p=i+1;
+                    return <button key={p} className={`ch-pagination-btn ch-pagination-btn--num${currentPage===p?' active':''}`} onClick={()=>setCurrentPage(p)}>{p}</button>;
+                  })}
+                  <button className="ch-pagination-btn ch-pagination-btn--nav" onClick={()=>setCurrentPage(p=>p+1)} disabled={currentPage===Math.ceil(filtered.length/ITEMS_PER_PAGE)}>التالي ›</button>
+                  <button className="ch-pagination-btn" onClick={()=>setCurrentPage(Math.ceil(filtered.length/ITEMS_PER_PAGE))} disabled={currentPage===Math.ceil(filtered.length/ITEMS_PER_PAGE)} title="الأخيرة">&laquo;</button>
+                </div>
               </div>
             )}
           </>
         ) : (
           <>
             <div className="ch-list">
-              {filtered.slice(0, visibleCount).map((c, i) => <CharityListCard key={c._id} charity={c} index={i} />)}
+              {filtered.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map((c,i) => (
+                <CharityListCard key={c._id} charity={c} index={(currentPage-1)*ITEMS_PER_PAGE+i} />
+              ))}
             </div>
-            {visibleCount < filtered.length && (
-              <div className="ch-loadmore-wrap">
-                <button className="ch-loadmore-btn" onClick={() => setVisibleCount(v => v + 10)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                  عرض المزيد
-                  <span className="ch-loadmore-badge">{filtered.length - visibleCount}</span>
-                </button>
+            {Math.ceil(filtered.length/ITEMS_PER_PAGE) > 1 && (
+              <div className="ch-pagination-container">
+                <span className="ch-pagination-info">
+                  {(currentPage-1)*ITEMS_PER_PAGE+1}{'–'}{Math.min(currentPage*ITEMS_PER_PAGE, filtered.length)} من {filtered.length}
+                </span>
+                <div className="ch-pagination-buttons">
+                  <button className="ch-pagination-btn" onClick={()=>setCurrentPage(1)} disabled={currentPage===1} title="الأولى">&raquo;</button>
+                  <button className="ch-pagination-btn ch-pagination-btn--nav" onClick={()=>setCurrentPage(p=>p-1)} disabled={currentPage===1}>‹ السابق</button>
+                  {Array.from({length:Math.min(5,Math.ceil(filtered.length/ITEMS_PER_PAGE))},(_,i)=>{
+                    const tp=Math.ceil(filtered.length/ITEMS_PER_PAGE);
+                    let p=currentPage<=3?i+1:currentPage>=tp-2?tp-4+i:currentPage-2+i;
+                    if(tp<=5)p=i+1;
+                    return <button key={p} className={`ch-pagination-btn ch-pagination-btn--num${currentPage===p?' active':''}`} onClick={()=>setCurrentPage(p)}>{p}</button>;
+                  })}
+                  <button className="ch-pagination-btn ch-pagination-btn--nav" onClick={()=>setCurrentPage(p=>p+1)} disabled={currentPage===Math.ceil(filtered.length/ITEMS_PER_PAGE)}>التالي ›</button>
+                  <button className="ch-pagination-btn" onClick={()=>setCurrentPage(Math.ceil(filtered.length/ITEMS_PER_PAGE))} disabled={currentPage===Math.ceil(filtered.length/ITEMS_PER_PAGE)} title="الأخيرة">&laquo;</button>
+                </div>
               </div>
             )}
           </>
@@ -769,45 +798,29 @@ export default function Charities() {
         }
         .ch-retry-btn:hover { background: #1a6b78; }
 
-        /* ══ Load more ══ */
-        .ch-loadmore-wrap {
-          display: flex; justify-content: center;
-          margin-top: 36px;
+        /* ══ Pagination ══ */
+        .ch-pagination-container {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-top: 40px; gap: 16px; flex-wrap: wrap;
         }
-        .ch-loadmore-btn {
-          display: flex; align-items: center; gap: 8px;
-          padding: 12px 28px;
-          background: #fff;
-          border: 2px solid #267880;
-          color: #267880;
-          border-radius: 999px;
-          font-size: 15px; font-weight: 700;
-          cursor: pointer; font-family: 'Cairo', sans-serif;
-          transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 2px 12px rgba(38,120,128,0.1);
+        .ch-pagination-info { font-size: 13px; color: #6b7280; font-weight: 600; }
+        .ch-pagination-buttons { display: flex; align-items: center; gap: 6px; }
+        .ch-pagination-btn {
+          display: flex; align-items: center; justify-content: center; gap: 4px;
+          padding: 8px 12px; min-width: 38px; height: 38px;
+          background: #fff; border: 1.5px solid #e5e7eb; color: #374151;
+          border-radius: 10px; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: 'Cairo', sans-serif; transition: all 0.18s;
         }
-        .ch-loadmore-btn:hover {
-          background: #267880; color: #fff;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(38,120,128,0.25);
-        }
-        .ch-loadmore-badge {
-          background: #267880; color: #fff;
-          border-radius: 999px;
-          font-size: 12px; font-weight: 800;
-          padding: 1px 9px; min-width: 26px;
-          text-align: center;
-          transition: background 0.2s, color 0.2s;
-        }
-        .ch-loadmore-btn:hover .ch-loadmore-badge {
-          background: rgba(255,255,255,0.25); color: #fff;
-        }
-        [data-theme="dark"] .ch-loadmore-btn, .dark .ch-loadmore-btn {
-          background: #1a1f2e; border-color: #267880; color: #5eabb3;
-        }
-        [data-theme="dark"] .ch-loadmore-btn:hover, .dark .ch-loadmore-btn:hover {
-          background: #267880; color: #fff;
-        }
+        .ch-pagination-btn:hover:not(:disabled) { border-color: #267880; color: #267880; background: #f0fafb; }
+        .ch-pagination-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .ch-pagination-btn--num.active { background: #267880; border-color: #267880; color: #fff; box-shadow: 0 3px 10px rgba(38,120,128,0.3); }
+        .ch-pagination-btn--nav { padding: 8px 14px; }
+        [data-theme="dark"] .ch-pagination-btn, .dark .ch-pagination-btn { background: #1a1f2e; border-color: #2d3748; color: #cbd5e1; }
+        [data-theme="dark"] .ch-pagination-btn:hover:not(:disabled), .dark .ch-pagination-btn:hover:not(:disabled) { border-color: #267880; color: #5eabb3; background: #1e2a35; }
+        [data-theme="dark"] .ch-pagination-btn--num.active, .dark .ch-pagination-btn--num.active { background: #267880; border-color: #267880; color: #fff; }
+        [data-theme="dark"] .ch-pagination-info, .dark .ch-pagination-info { color: #64748b; }
+        @media (max-width: 560px) { .ch-pagination-container { justify-content: center; } .ch-pagination-info { display: none; } }
 
         /* ══ Dark mode ══ */
         [data-theme="dark"] .ch-page, .dark .ch-page { background: #0f172a; }

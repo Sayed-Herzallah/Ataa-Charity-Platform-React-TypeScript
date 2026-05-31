@@ -67,6 +67,17 @@ const NO_FOOTER_PATHS: string[] = [
 
 export default function AppLayout({ children, showFooter }: AppLayoutProps) {
   const [location] = useLocation();
+  const [hidingLayout, setHidingLayout] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkClass = () => {
+      setHidingLayout(document.body.classList.contains('lp-hiding-layout'));
+    };
+    checkClass();
+    const observer = new MutationObserver(checkClass);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Show Navbar on non-dashboard routes
   const shouldShowNavbar = !NO_NAVBAR_PATHS.some(p => location === p || location.startsWith(p + '/'));
@@ -75,13 +86,16 @@ export default function AppLayout({ children, showFooter }: AppLayoutProps) {
       ? showFooter
       : !NO_FOOTER_PATHS.some(p => location === p || location.startsWith(p + '/'));
 
+  const showNav = shouldShowNavbar && !hidingLayout;
+  const showFoot = shouldShowFooter && !hidingLayout;
+
   return (
     <>
-      {shouldShowNavbar && <Navbar />}
+      {showNav && <Navbar />}
       <main className="main-content">
         {children}
       </main>
-      {shouldShowFooter && <Footer />}
+      {showFoot && <Footer />}
       <ScrollToTop />
     </>
   );

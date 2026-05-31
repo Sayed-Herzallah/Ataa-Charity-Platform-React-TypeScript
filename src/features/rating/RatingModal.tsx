@@ -90,16 +90,15 @@ export default function RatingModal({ donationId, donationType, charityName, onC
                   </button>
                 ))}
               </div>
-              {active > 0 && (
-                <span style={{
-                  fontSize: 14, fontWeight: 700,
-                  color: COLORS[active],
-                  display: 'block', minHeight: 22,
-                  transition: 'color .2s',
-                }}>
-                  {LABELS[active]}
-                </span>
-              )}
+              <span style={{
+                fontSize: 14, fontWeight: 700,
+                color: COLORS[active] || 'transparent',
+                display: 'block', minHeight: 22,
+                transition: 'color .2s',
+                visibility: active > 0 ? 'visible' : 'hidden'
+              }}>
+                {LABELS[active] || '\u00A0'}
+              </span>
             </div>
 
             {/* Comment */}

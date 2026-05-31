@@ -8,6 +8,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import AIChatEmbed from '../../components/shared/AIChatEmbed';
+import { PremiumDatePicker, PremiumTimePicker } from '../ui/PremiumDatePicker';
 import { usersApi } from '../../services';
 import {
   apiFetch, fetchPage,
@@ -1567,15 +1568,15 @@ export default function AdminPanel() {
               </div>
             </div>
             <div className="ap-page-header-right">
+              <button className="ap-header-icon-btn" onClick={loadData} title="تحديث البيانات">
+                <i className="ti ti-refresh" />
+              </button>
               <button 
                 className="ap-header-icon-btn ap-theme-btn" 
                 onClick={toggleTheme} 
                 title={theme === 'dark' ? 'تفعيل الوضع النهارى' : 'تفعيل الوضع الليلي'}
               >
                 <i className={`ti ${theme === 'dark' ? 'ti-sun' : 'ti-moon'}`} />
-              </button>
-              <button className="ap-header-icon-btn" onClick={loadData} title="تحديث البيانات">
-                <i className="ti ti-refresh" />
               </button>
               <div className="ap-header-user" onClick={() => setTab('settings')} title="الإعدادات">
                 <div className="ap-header-avatar">{userName.slice(0, 1).toUpperCase()}</div>
@@ -1832,37 +1833,47 @@ export default function AdminPanel() {
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
                           <span className="ap-date-label">من</span>
-                          <input type="date" value={usersDateFrom} onChange={e => setUsersDateFrom(e.target.value)} title="من تاريخ" />
+                          <PremiumDatePicker
+                            value={usersDateFrom}
+                            onChange={setUsersDateFrom}
+                            placeholder="تاريخ البدء"
+                          />
                         </div>
                         <div className="ap-date-field">
                           <span className="ap-date-label">إلى</span>
-                          <input type="date" value={usersDateTo} onChange={e => setUsersDateTo(e.target.value)} title="إلى تاريخ" />
+                          <PremiumDatePicker
+                            value={usersDateTo}
+                            min={usersDateFrom || undefined}
+                            onChange={setUsersDateTo}
+                            placeholder="تاريخ الانتهاء"
+                          />
                         </div>
                         {(usersDateFrom || usersDateTo) && (
                           <button className="ap-date-range-clear" onClick={() => { setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
 
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                      {/* Sort & Reset grouped */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="ap-filter-tabs">
+                          <button className={`ap-filter-tab${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
+                            <i className="ti ti-sort-descending" /> الأحدث
+                          </button>
+                          <button className={`ap-filter-tab${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
+                            <i className="ti ti-sort-ascending" /> الأقدم
+                          </button>
+                        </div>
 
-                      {/* Clear Filters Button */}
-                      {(usersSearch !== '' || usersDateFrom !== '' || usersDateTo !== '') && (
-                        <button className="ap-filter-reset-btn" onClick={() => {
-                          setUsersSearch('');
-                          setUsersDateFrom('');
-                          setUsersDateTo('');
-                        }}>
-                          <i className="ti ti-filter-off" /> مسح التصفية
-                        </button>
-                      )}
+                        {(usersSearch !== '' || usersDateFrom !== '' || usersDateTo !== '') && (
+                          <button className="ap-filter-reset-btn" onClick={() => {
+                            setUsersSearch('');
+                            setUsersDateFrom('');
+                            setUsersDateTo('');
+                          }}>
+                            <i className="ti ti-filter-off" /> مسح التصفية
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1946,8 +1957,8 @@ export default function AdminPanel() {
                                 <i className="ti ti-eye" /> التفاصيل
                               </button>
                               {u.roleType !== 'admin' && (
-                                <button className="ap-action-btn delete" onClick={() => handleDeleteUser(u._id, u.userName)}>
-                                  <i className="ti ti-trash" /> حذف
+                                <button className="ap-action-btn delete" onClick={() => handleDeleteUser(u._id, u.userName)} title="حذف المستخدم">
+                                  <i className="ti ti-trash" />
                                 </button>
                               )}
                             </div>
@@ -1998,11 +2009,20 @@ export default function AdminPanel() {
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
                           <span className="ap-date-label">من</span>
-                          <input type="date" value={charitiesDateFrom} onChange={e => setCharitiesDateFrom(e.target.value)} title="من تاريخ" />
+                          <PremiumDatePicker
+                            value={charitiesDateFrom}
+                            onChange={setCharitiesDateFrom}
+                            placeholder="تاريخ البدء"
+                          />
                         </div>
                         <div className="ap-date-field">
                           <span className="ap-date-label">إلى</span>
-                          <input type="date" value={charitiesDateTo} onChange={e => setCharitiesDateTo(e.target.value)} title="إلى تاريخ" />
+                          <PremiumDatePicker
+                            value={charitiesDateTo}
+                            min={charitiesDateFrom || undefined}
+                            onChange={setCharitiesDateTo}
+                            placeholder="تاريخ الانتهاء"
+                          />
                         </div>
                         {(charitiesDateFrom || charitiesDateTo) && (
                           <button className="ap-date-range-clear" onClick={() => { setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
@@ -2182,11 +2202,20 @@ export default function AdminPanel() {
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
                           <span className="ap-date-label">من</span>
-                          <input type="date" value={reportsDateFrom} onChange={e => setReportsDateFrom(e.target.value)} title="من تاريخ" />
+                          <PremiumDatePicker
+                            value={reportsDateFrom}
+                            onChange={setReportsDateFrom}
+                            placeholder="تاريخ البدء"
+                          />
                         </div>
                         <div className="ap-date-field">
                           <span className="ap-date-label">إلى</span>
-                          <input type="date" value={reportsDateTo} onChange={e => setReportsDateTo(e.target.value)} title="إلى تاريخ" />
+                          <PremiumDatePicker
+                            value={reportsDateTo}
+                            min={reportsDateFrom || undefined}
+                            onChange={setReportsDateTo}
+                            placeholder="تاريخ الانتهاء"
+                          />
                         </div>
                         {(reportsDateFrom || reportsDateTo) && (
                           <button className="ap-date-range-clear" onClick={() => { setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
@@ -2343,21 +2372,16 @@ export default function AdminPanel() {
                             <div className="ap-sched-inputs">
                               <div className="ap-sched-field">
                                 <label>التاريخ</label>
-                                <input
-                                  type="date"
-                                  className="ap-sched-input"
+                                <PremiumDatePicker
                                   value={inp.date}
-                                  min={todayStr}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field">
                                 <label>الساعة</label>
-                                <input
-                                  type="time"
-                                  className="ap-sched-input"
+                                <PremiumTimePicker
                                   value={inp.time}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field ap-sched-field-sm">
@@ -2441,21 +2465,16 @@ export default function AdminPanel() {
                             <div className="ap-sched-inputs">
                               <div className="ap-sched-field">
                                 <label>التاريخ</label>
-                                <input
-                                  type="date"
-                                  className="ap-sched-input"
+                                <PremiumDatePicker
                                   value={inp.date}
-                                  min={todayStr}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field">
                                 <label>الساعة</label>
-                                <input
-                                  type="time"
-                                  className="ap-sched-input"
+                                <PremiumTimePicker
                                   value={inp.time}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field ap-sched-field-sm">

@@ -3,6 +3,7 @@ import { RouteProps } from 'wouter';
 import { useAuth } from '../contexts/AuthContext';
 import { isRoleAllowed } from '../utils/getRedirectByRole';
 import { useLocation } from 'wouter';
+import PageLoader from '../components/ui/Pageloader';
 
 interface ProtectedRouteProps extends RouteProps {
   allowedRoles?: Array<'user' | 'charity' | 'admin'>;
@@ -17,11 +18,7 @@ export default function ProtectedRoute({
   const [, setLocation] = useLocation();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <i className="fas fa-spinner fa-spin text-3xl text-primary" />
-      </div>
-    );
+    return null;
   }
 
   if (!user) {

@@ -2,31 +2,128 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { aiApi } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/css/AiChat.css';
-import '@tabler/icons-webfont/dist/tabler-icons.css';
 
-// ─── نفس Types بتاعة AIChat.tsx ─────────────────────────────────────────────
+// ─── Inline Premium Lucide SVGs ─────────────────────────────────────────────
+const BotIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 8V4H8" />
+    <rect width="16" height="12" x="4" y="8" rx="2" />
+    <path d="M2 14h2" />
+    <path d="M20 14h2" />
+    <path d="M15 13v2" />
+    <path d="M9 13v2" />
+  </svg>
+);
 
+const UserIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const ReplyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 17 4 12 9 7" />
+    <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const ShareIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+    <polyline points="16 6 12 2 8 6" />
+    <line x1="12" x2="12" y1="2" y2="15" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" x2="6" y1="6" y2="18" />
+    <line x1="6" x2="18" y1="6" y2="18" />
+  </svg>
+);
+
+const ImageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+    <circle cx="9" cy="9" r="2" />
+    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+  </svg>
+);
+
+const SendIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" x2="11" y1="2" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </svg>
+);
+
+// ─── Interfaces ─────────────────────────────────────────────────────────────
 interface Message {
+  id?: string;
   role: 'user' | 'bot';
   text?: string;
   imageUrls?: string[];
   isAnalysis?: boolean;
+  timestamp?: number;
+  quoteText?: string;
+  quoteSender?: 'bot' | 'user';
+  isQueued?: boolean;
 }
+
 
 interface PendingImage {
   file: File;
   preview: string;
 }
 
-// ─── نفس الثوابت بتاعة AIChat.tsx ───────────────────────────────────────────
-
+// ─── Constants ──────────────────────────────────────────────────────────────
 const MAX_IMAGES = 5;
 
+
 const SUGGESTION_CARDS = [
-  { icon: 'ti-shirt',         title: 'الملابس المقبولة للتبرع',  sub: 'ما هي أنواع الملابس المناسبة؟'  },
-  { icon: 'ti-map-pin',       title: 'أقرب جمعية خيرية',          sub: 'ابحث عن جمعية بالقرب منك'        },
-  { icon: 'ti-checklist',     title: 'حالة الملابس المطلوبة',     sub: 'ما هي المواصفات المقبولة؟'       },
-  { icon: 'ti-baby-carriage', title: 'تبرع بملابس الأطفال',       sub: 'هل يمكن التبرع بملابس الأطفال؟' },
+  {
+    icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width:18, height:18 }}><path d="M20.38 3.46 16 2a1 1 0 0 0-.8.38L12 6 8.8 2.38A1 1 0 0 0 8 2L3.62 3.46a1 1 0 0 0-.62.94V8l3 1v11a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9l3-1V4.4a1 1 0 0 0-.62-.94z"/></svg>,
+    title: 'الملابس المقبولة للتبرع',
+    sub: 'ما هي أنواع الملابس المناسبة؟',
+  },
+  {
+    icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width:18, height:18 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+    title: 'أقرب جمعية خيرية',
+    sub: 'ابحث عن جمعية بالقرب منك',
+  },
+  {
+    icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width:18, height:18 }}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+    title: 'حالة الملابس المطلوبة',
+    sub: 'ما هي المواصفات المقبولة؟',
+  },
+  {
+    icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width:18, height:18 }}><path d="M9 12h.01M15 12h.01M12 17c2 0 3-1 3-1H9s1 1 3 1z"/><path d="M12 2a5 5 0 0 0-5 5v2a7 7 0 0 0 14 0V7a5 5 0 0 0-5-5z"/><path d="M8 9V7"/><path d="M16 9V7"/></svg>,
+    title: 'تبرع بملابس الأطفال',
+    sub: 'هل يمكن التبرع بملابس الأطفال؟',
+  },
 ];
 
 const QUICK_REPLIES = [
@@ -36,14 +133,20 @@ const QUICK_REPLIES = [
   'كيف أتابع حالة تبرعي؟',
 ];
 
-// ─── AIChatEmbed ─────────────────────────────────────────────────────────────
-
 export default function AIChatEmbed() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput]               = useState('');
-  const [loading, setLoading]           = useState(false);
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [input, setInput]                     = useState('');
+  const [loading, setLoading]                 = useState(false);
+  const [isStreaming, setIsStreaming]         = useState(false);
+  const [pendingImages, setPendingImages]     = useState<PendingImage[]>([]);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [replyingTo, setReplyingTo]           = useState<Message | null>(null);
+  const [pendingQueue, setPendingQueue]       = useState<Array<{ id: string; text: string; images?: PendingImage[]; quote?: Message | null }>>([]);
+
+  // Feedback states
+  const [copiedIdx, setCopiedIdx]             = useState<number | null>(null);
+  const [sharedIdx, setSharedIdx]             = useState<number | null>(null);
+  const [copiedCodeContent, setCopiedCodeContent] = useState<string | null>(null);
 
   const msgsRef    = useRef<HTMLDivElement>(null);
   const msgsEndRef = useRef<HTMLDivElement>(null);
@@ -51,79 +154,65 @@ export default function AIChatEmbed() {
   const textRef    = useRef<HTMLTextAreaElement>(null);
 
   const { user } = useAuth();
-
-  const userInitial = (
-    user?.userName?.[0] ||
-    user?.name?.[0] ||
-    user?.email?.[0] ||
-    'أ'
-  ).toUpperCase();
-
-  // ── Scroll ──────────────────────────────────────────────────────────────────
+  const userName = user?.userName || user?.name || 'المستخدم';
 
   const userScrolledUp = useRef(false);
+  const isMouseOver = useRef(false);
+  const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // مباشر على container بدل scrollIntoView عشان أسرع
   const scrollToBottom = useCallback((force = false) => {
+    // If the user has scrolled up or has their mouse over the messages, don't force scroll down.
+    if (isMouseOver.current) return;
     if (!force && userScrolledUp.current) return;
     const container = msgsRef.current;
     if (!container) return;
     container.scrollTop = container.scrollHeight;
   }, []);
 
+  const handleStopStreaming = useCallback(() => {
+    if (streamTimerRef.current) {
+      clearTimeout(streamTimerRef.current);
+      streamTimerRef.current = null;
+    }
+    setIsStreaming(false);
+    setLoading(false);
+  }, []);
+
+  // Cleanup streaming timer on unmount
+  useEffect(() => {
+    return () => {
+      if (streamTimerRef.current) {
+        clearTimeout(streamTimerRef.current);
+      }
+    };
+  }, []);
+
   // detect لو المستخدم سكرول لفوق يدوياً
   useEffect(() => {
     const container = msgsRef.current;
     if (!container) return;
-    const handle = () => {
+    const handleScroll = () => {
       const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
       userScrolledUp.current = distFromBottom > 120;
     };
-    container.addEventListener('scroll', handle, { passive: true });
-    return () => container.removeEventListener('scroll', handle);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // رسالة جديدة — reset ولو bot أرسل
+  // scroll directly triggered on message or quick replies visibility changes
   useEffect(() => {
-    const last = messages[messages.length - 1];
-    if (last?.role === 'bot') userScrolledUp.current = false;
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
-
-  // أثناء loading: scroll تلقائي كل 80ms عشان الـ typing indicator يتابع
-  useEffect(() => {
-    if (!loading) { scrollToBottom(true); return; }
-    userScrolledUp.current = false;
-    const id = setInterval(() => scrollToBottom(true), 80);
-    return () => clearInterval(id);
-  }, [loading, scrollToBottom]);
+    scrollToBottom(true);
+    const timer = setTimeout(() => scrollToBottom(true), 80);
+    return () => clearTimeout(timer);
+  }, [messages, showQuickReplies, scrollToBottom]);
 
   useEffect(() => {
-    setShowQuickReplies(messages.some(m => m.role === 'bot') && !loading);
-  }, [messages, loading]);
+    setShowQuickReplies(messages.some(m => m.role === 'bot') && !loading && !isStreaming);
+  }, [messages, loading, isStreaming]);
 
-  // ── Send ────────────────────────────────────────────────────────────────────
-
-  const sendMessage = async (text: string, images?: PendingImage[]) => {
-    if ((!text.trim() && !images?.length) || loading) return;
-
-    const imageUrls = images?.map(img => img.preview) || [];
-
-    setMessages(prev => [
-      ...prev,
-      {
-        role: 'user',
-        text: text.trim() || undefined,
-        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-        isAnalysis: images && images.length > 0,
-      }
-    ]);
-
-    setInput('');
-    setPendingImages([]);
-    if (textRef.current) textRef.current.style.height = 'auto';
+  // ── Send Message ────────────────────────────────────────────────────────────
+  const sendDirect = async (messageId: string, text: string, images?: PendingImage[], quote?: Message | null) => {
     setLoading(true);
-
     try {
       let reply: string;
 
@@ -138,23 +227,26 @@ export default function AIChatEmbed() {
         reply = (res as any).reply || (res as any).message || (res as any).data || (res as any).result || (res as any).response || 'تم إرسال رسالتك.';
       }
 
-      setMessages(prev => [...prev, { role: 'bot', text: reply }]);
+      setMessages(prev => [...prev, { role: 'bot', text: reply, timestamp: Date.now() }]);
 
-      // ── Streaming simulation: reveal text word-by-word ──
-      // نعرض الرد بشكل تدريجي عشان يحس بالـ live typing
+      // ── Streaming simulation ──
       const words = reply.split(' ');
       if (words.length > 4) {
         setLoading(false);
-        // أضف رسالة bot فارغة وابدأ تملّها
+        setIsStreaming(true);
         setMessages(prev => {
           const msgs = [...prev];
           msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: '' };
           return msgs;
         });
+
         let built = '';
         let i = 0;
         const step = () => {
-          if (i >= words.length) return;
+          if (i >= words.length) {
+            setIsStreaming(false);
+            return;
+          }
           built += (i === 0 ? '' : ' ') + words[i];
           i++;
           setMessages(prev => {
@@ -162,32 +254,85 @@ export default function AIChatEmbed() {
             msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], text: built };
             return msgs;
           });
-          scrollToBottom(true);
-          // سرعة متغيرة حسب طول الكلمة
-          const delay = words[i - 1].length > 6 ? 55 : 35;
-          setTimeout(step, delay);
+          scrollToBottom(false); // Preserve user scroll position if scrolled up
+          const delay = words[i - 1].length > 6 ? 50 : 30;
+          streamTimerRef.current = setTimeout(step, delay);
         };
         step();
-        return; // setLoading(false) اتعمل فوق
+        return;
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
-      setMessages(prev => [...prev, { role: 'bot', text: `⚠️ ${errMsg}` }]);
+      setMessages(prev => [
+        ...prev,
+        { role: 'bot', text: `⚠️ ${errMsg}`, timestamp: Date.now() }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const sendMessage = async (text: string, images?: PendingImage[]) => {
+    if (!text.trim() && !images?.length) return;
+
+    const imageUrls = images?.map(img => img.preview) || [];
+    const currentReplyQuote = replyingTo;
+
+    // Clear reply bar
+    setReplyingTo(null);
+
+    const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const newMessage: Message = {
+      id: messageId,
+      role: 'user',
+      text: text.trim() || undefined,
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      isAnalysis: images && images.length > 0,
+      timestamp: Date.now(),
+      quoteText: currentReplyQuote ? currentReplyQuote.text : undefined,
+      quoteSender: currentReplyQuote ? (currentReplyQuote.role === 'bot' ? 'bot' : 'user') : undefined
+    };
+
+    setInput('');
+    setPendingImages([]);
+    if (textRef.current) textRef.current.style.height = 'auto';
+
+    if (loading || isStreaming) {
+      newMessage.isQueued = true;
+      setMessages(prev => [...prev, newMessage]);
+      setPendingQueue(prev => [...prev, { id: messageId, text, images, quote: currentReplyQuote }]);
+      return;
+    }
+
+    setMessages(prev => [...prev, newMessage]);
+    await sendDirect(messageId, text, images, currentReplyQuote);
+  };
+
+  // ── Auto-dequeue pending messages when AI becomes available ─────────────────
+  useEffect(() => {
+    if (!loading && !isStreaming && pendingQueue.length > 0) {
+      const nextMsg = pendingQueue[0];
+      setPendingQueue(prev => prev.slice(1));
+      setMessages(prev => prev.map(m => m.id === nextMsg.id ? { ...m, isQueued: false } : m));
+      sendDirect(nextMsg.id, nextMsg.text, nextMsg.images, nextMsg.quote);
+    }
+  }, [loading, isStreaming, pendingQueue]);
+
   const handleSubmit = () => sendMessage(input, pendingImages.length > 0 ? pendingImages : undefined);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim() || pendingImages.length > 0) {
+        handleSubmit();
+      }
+    }
   };
 
   const handleAutoResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+    e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,7 +382,6 @@ export default function AIChatEmbed() {
       if (newImages.length > 0) setPendingImages(prev => [...prev, ...newImages]);
       if (errors.length > 0) console.warn('أخطاء:', errors);
     };
-
     e.target.value = '';
   };
 
@@ -245,221 +389,420 @@ export default function AIChatEmbed() {
     setPendingImages(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const clearChat = () => setMessages([]);
+  const clearChat = () => {
+    setMessages([]);
+    setReplyingTo(null);
+  };
 
-  const canSend = !!((input.trim() || pendingImages.length) && !loading);
+  const handleCopyText = (text: string, idx: number) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCodeContent(code);
+    setTimeout(() => setCopiedCodeContent(null), 2000);
+  };
+
+  const handleShareMessage = async (text: string, idx: number) => {
+    const shareText = `رد من مساعد عطاء الذكي:\n\n${text}\n\nتم التوليد بواسطة منصة عطاء الخيرية`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'مساعد عطاء AI',
+          text: shareText
+        });
+        setSharedIdx(idx);
+        setTimeout(() => setSharedIdx(null), 2000);
+        return;
+      } catch (e) {
+        // fail, fallback to clipboard
+      }
+    }
+    navigator.clipboard?.writeText(shareText);
+    setSharedIdx(idx);
+    setTimeout(() => setSharedIdx(null), 2000);
+  };
+
+  const canSend = !!(input.trim() || pendingImages.length);
   const isEmpty = messages.length === 0;
+  const isBlocked = loading || isStreaming;
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ─── Custom Premium Markdown and Syntax Highlighting Renderer ──────────────
+  const renderMarkdown = (content: string) => {
+    if (!content) return null;
+    const parts = content.split(/(```[\s\S]*?```)/g);
+
+    return (
+      <div className="ac-markdown">
+        {parts.map((part, index) => {
+          if (part.startsWith('```')) {
+            const lines = part.split('\n');
+            const langLine = lines[0].replace('```', '').trim();
+            const language = langLine || 'code';
+            const codeContent = lines.slice(1, lines.length - 1).join('\n');
+
+            const highlightCode = (code: string) => {
+              const keywords = /\b(const|let|var|function|return|import|export|from|class|extends|if|else|for|while|try|catch|async|await|new)\b/g;
+              const strings = /('(?:\\'|[^'])*'|"(?:\\"|[^"])*"|`(?:\\`|[^`])*`)/g;
+              const numbers = /\b(\d+)\b/g;
+              const comments = /(\/\*[\s\S]*?\*\/|\/\/.+)$/gm;
+
+              let html = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+              html = html.replace(comments, '<span class="hl-comment">$1</span>');
+              html = html.replace(keywords, '<span class="hl-kw">$1</span>');
+              html = html.replace(strings, '<span class="hl-str">$1</span>');
+              html = html.replace(numbers, '<span class="hl-num">$1</span>');
+
+              return <code className="ac-code-pre" dangerouslySetInnerHTML={{ __html: html }} />;
+            };
+
+            return (
+              <div key={index} className="ac-code-block">
+                <div className="ac-code-header">
+                  <span className="ac-code-lang">{language}</span>
+                  <button
+                    type="button"
+                    className="ac-code-copy"
+                    onClick={() => handleCopyCode(codeContent)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                    </svg>
+                    {copiedCodeContent === codeContent ? 'تم نسخ الكود!' : 'نسخ الكود'}
+                  </button>
+                </div>
+                <pre>{highlightCode(codeContent)}</pre>
+              </div>
+            );
+          } else {
+            const textLines = part.split('\n');
+            return textLines.map((line, lIdx) => {
+              if (line.trim().startsWith('*') || line.trim().startsWith('-')) {
+                const cleanText = line.replace(/^[\s*-]+/, '').trim();
+                return (
+                  <ul key={`${index}-${lIdx}`}>
+                    <li>{parseInlineFormatting(cleanText)}</li>
+                  </ul>
+                );
+              }
+              if (line.trim() === '') return <div key={`${index}-${lIdx}`} style={{ height: '6px' }} />;
+              return <p key={`${index}-${lIdx}`}>{parseInlineFormatting(line)}</p>;
+            });
+          }
+        })}
+      </div>
+    );
+  };
+
+  const parseInlineFormatting = (text: string) => {
+    const boldParts = text.split(/(\*\*.*?\*\*)/g);
+    return boldParts.map((bPart, idx) => {
+      if (bPart.startsWith('**') && bPart.endsWith('**')) {
+        const cleanBold = bPart.substring(2, bPart.length - 2);
+        return <strong key={idx}>{parseInlineCode(cleanBold)}</strong>;
+      }
+      return parseInlineCode(bPart);
+    });
+  };
+
+  const parseInlineCode = (text: string) => {
+    const codeParts = text.split(/(`.*?`)/g);
+    return codeParts.map((cPart, idx) => {
+      if (cPart.startsWith('`') && cPart.endsWith('`')) {
+        return <code key={idx} className="ac-code inline-code">{cPart.substring(1, cPart.length - 1)}</code>;
+      }
+      return cPart;
+    });
+  };
 
   return (
-    <>
-      {/* wrapper مخصص للـ embed — بدون height:100dvh بتاعة ac-main */}
-      <div className="ac-embed-root" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden" }}>
-
-        {/* Topbar مصغر داخل الـ tab */}
-        <div className="ac-topbar" style={{ borderBottom: '1.5px solid var(--ac-border, #e5e7eb)' }}>
-          <div className="ac-topbar-left">
-            <div className="ac-model-badge">
-              <span className="ac-badge-dot" />
-              مساعد عطاء AI
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--ac-text3, #9ca3af)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
-              متصل
-            </div>
-          </div>
-          <div className="ac-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              type="button"
-              onClick={clearChat}
-              title="محادثة جديدة"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ac-text3, #9ca3af)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 8px', borderRadius: 8, transition: 'all 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--br-pale, rgba(16,163,127,0.1))')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-            >
-              <i className="ti ti-edit" aria-hidden="true" style={{ fontSize: 16 }} />
-              <span style={{ fontSize: 11 }}>جديد</span>
-            </button>
-            <div className="ac-user-av" title={user?.userName || 'المستخدم'} style={{ background: 'var(--br, #10a37f)', color: '#fff', boxShadow: '0 2px 8px rgba(16,163,127,0.35)' }}>{userInitial}</div>
+    <div className="ac-embed-root">
+      {/* Topbar inside tab */}
+      <div className="ac-topbar">
+        <div className="ac-topbar-left">
+          <div className="ac-model-badge">
+            <span className="ac-badge-dot" />
+            مساعد عطاء AI
           </div>
         </div>
+        <div className="ac-topbar-right">
+          {!isEmpty && (
+            <button
+              type="button"
+              className="ac-clear-btn-nav"
+              onClick={clearChat}
+              title="مسح المحادثة"
+            >
+              <TrashIcon />
+              <span>مسح المحادثة</span>
+            </button>
+          )}
+          <div className="ac-user-av" title={userName}>
+            <UserIcon />
+          </div>
+        </div>
+      </div>
 
-        {/* Messages */}
-        <div className="ac-msgs" ref={msgsRef}>
-          <div className="ac-msgs-inner">
-
-            {isEmpty ? (
-              <div className="ac-welcome">
-                <div className="ac-welcome-logo">
-                  <i className="ti ti-robot" aria-hidden="true" />
-                </div>
-                <h2>مرحباً، كيف أساعدك؟</h2>
-                <p>مساعدك الذكي لإدارة التبرعات. يمكنك سؤالي أو إرسال صورة لتحليلها فوراً بالذكاء الاصطناعي</p>
-                <div className="ac-cards">
-                  {SUGGESTION_CARDS.map(c => (
-                    <button key={c.title} className="ac-card" onClick={() => sendMessage(c.title)}>
-                      <span className="ac-card-ico"><i className={`ti ${c.icon}`} aria-hidden="true" /></span>
-                      <span className="ac-card-title">{c.title}</span>
-                      <span className="ac-card-sub">{c.sub}</span>
-                    </button>
-                  ))}
-                </div>
-                <div style={{ marginTop: 24, display: 'flex', gap: 16, alignItems: 'center', color: 'var(--ac-text3, #9ca3af)', fontSize: 11.5 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <i className="ti ti-photo" style={{ fontSize: 13 }} />
-                    تحليل الصور
-                  </span>
-                  <span>•</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <i className="ti ti-brain" style={{ fontSize: 13 }} />
-                    ذكاء اصطناعي
-                  </span>
-                  <span>•</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <i className="ti ti-clock" style={{ fontSize: 13 }} />
-                    24/7
-                  </span>
-                </div>
+      {/* Messages */}
+      <div
+        className="ac-msgs"
+        ref={msgsRef}
+        onMouseEnter={() => { isMouseOver.current = true; }}
+        onMouseLeave={() => { isMouseOver.current = false; }}
+      >
+        <div className="ac-msgs-inner">
+          {isEmpty ? (
+            <div className="ac-welcome">
+              <div className="ac-welcome-logo">
+                <BotIcon />
               </div>
-            ) : (
-              messages.map((m, i) => (
-                <div key={i}>
-                  <div className={`ac-row ${m.role === 'user' ? 'ac-user' : 'ac-bot'}`}>
-                    <div className={`ac-av ${m.role === 'user' ? 'ac-user' : 'ac-bot'}`}>
-                      {m.role === 'bot' ? <i className="ti ti-robot" aria-hidden="true" /> : userInitial}
-                    </div>
-                    <div className="ac-msg-body">
-                      {m.role === 'bot' && <div className="ac-bot-label">مساعد عطاء</div>}
-                      {m.imageUrls && m.imageUrls.length > 0 && (
-                        <div className="ac-img-gallery">
-                          {m.imageUrls.map((imgUrl, idx) => (
-                            <div key={idx} className="ac-img-wrap">
-                              <img src={imgUrl} alt={`صورة ${idx + 1}`} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {m.isAnalysis && (
-                        <span className="ac-analysis-badge">
-                          <i className="ti ti-zoom-scan" style={{ fontSize: 14 }} aria-hidden="true" />
-                          تحليل بالذكاء الاصطناعي
-                        </span>
-                      )}
-                      {m.text && (
-                        m.role === 'user'
-                          ? <div className="ac-bubble-user">{m.text}</div>
-                          : <div className="ac-text-bot">{m.text}</div>
-                      )}
-                    </div>
-                  </div>
-                  {i < messages.length - 1 && <div className="ac-sep" />}
-                </div>
-              ))
-            )}
-
-            {loading && (
-              <div className="ac-typing-row">
-                <div className="ac-av ac-bot">
-                  <i className="ti ti-robot" aria-hidden="true" />
-                </div>
-                <div className="ac-typing"><span /><span /><span /></div>
-              </div>
-            )}
-
-            {showQuickReplies && !isEmpty && (
-              <div className="ac-qr">
-                {QUICK_REPLIES.map(qr => (
-                  <button key={qr} className="ac-qr-btn" disabled={loading} onClick={() => sendMessage(qr)}>
-                    {qr}
+              <h2>مرحباً، كيف أساعدك؟</h2>
+              <p>مساعدك الذكي لإدارة التبرعات. يمكنك سؤالي أو إرسال صورة لتحليلها فوراً بالذكاء الاصطناعي</p>
+              <div className="ac-cards">
+                {SUGGESTION_CARDS.map(c => (
+                  <button key={c.title} className="ac-card" onClick={() => sendMessage(c.title)}>
+                    <span className="ac-card-ico">{c.icon}</span>
+                    <span className="ac-card-title">{c.title}</span>
+                    <span className="ac-card-sub">{c.sub}</span>
                   </button>
                 ))}
               </div>
+            </div>
+          ) : (
+            messages.map((m, i) => (
+              <div key={i}>
+                <div className={`ac-row ${m.role === 'user' ? 'ac-user' : 'ac-bot'}`}>
+                  <div className={`ac-av ${m.role === 'user' ? 'ac-user' : 'ac-bot'}`}>
+                    {m.role === 'bot' ? <BotIcon /> : <UserIcon />}
+                  </div>
+                  <div className="ac-msg-body">
+                    {m.role === 'bot' && <div className="ac-bot-label">مساعد عطاء</div>}
+                    
+                    {/* Replied to / Quote message bubble structure */}
+                    {m.quoteText && (
+                      <div className="ac-msg-quote">
+                        <span className="ac-quote-sender">
+                          {m.quoteSender === 'bot' ? 'مساعد عطاء' : 'الرسالة السابقة'}
+                        </span>
+                        <p className="ac-quote-body">{m.quoteText}</p>
+                      </div>
+                    )}
+
+                    {m.imageUrls && m.imageUrls.length > 0 && (
+                      <div className="ac-img-gallery">
+                        {m.imageUrls.map((imgUrl, idx) => (
+                          <div key={idx} className="ac-img-wrap">
+                            <img src={imgUrl} alt={`صورة ${idx + 1}`} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {m.isAnalysis && (
+                      <span className="ac-analysis-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width:13, height:13 }}><circle cx="12" cy="12" r="10"/><path d="m8 10 3 3 5-5"/></svg>
+                        تحليل ذكي
+                      </span>
+                    )}
+                    {m.text && (
+                      m.role === 'user' ? (
+                        <div className="ac-bubble-user">
+                          {m.text}
+                          {m.isQueued && (
+                            <div className="ac-queued-indicator" style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px', fontSize: '11.5px', opacity: 0.85 }}>
+                              <svg className="ac-hourglass-spin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
+                                <path d="M5 2h14" />
+                                <path d="M5 22h14" />
+                                <path d="M19 2v4c0 1.38-1.13 2.5-2.5 2.5S14 7.38 14 6V2" />
+                                <path d="M19 22v-4c0-1.38-1.13-2.5-2.5-2.5S14 16.62 14 18v4" />
+                                <path d="M12 12c-2.21 0-4-1.79-4-4V2h8v6c0 2.21-1.79 4-4 4z" />
+                                <path d="M12 12c2.21 0 4 1.79 4 4v6H8v-6c0-2.21 1.79-4 4-4z" />
+                              </svg>
+                              <span>في الانتظار...</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="ac-text-bot">{renderMarkdown(m.text)}</div>
+                      )
+                    )}
+
+                    {/* Sleek Action Buttons bar below bubble */}
+                    {!m.isQueued && (
+                      <div className="ac-bubble-actions">
+                        <button
+                          type="button"
+                          className="ac-action-btn"
+                          onClick={() => setReplyingTo(m)}
+                          title="رد"
+                        >
+                          <ReplyIcon />
+                        </button>
+                        <button
+                          type="button"
+                          className={`ac-action-btn${copiedIdx === i ? ' success' : ''}`}
+                          onClick={() => handleCopyText(m.text || '', i)}
+                          title="نسخ"
+                        >
+                          {copiedIdx === i ? <CheckIcon /> : <CopyIcon />}
+                        </button>
+                        <button
+                          type="button"
+                          className={`ac-action-btn${sharedIdx === i ? ' success' : ''}`}
+                          onClick={() => handleShareMessage(m.text || '', i)}
+                          title="مشاركة"
+                        >
+                          {sharedIdx === i ? <CheckIcon /> : <ShareIcon />}
+                        </button>
+                        {m.timestamp && (
+                          <span className="ac-msg-time">
+                            {new Date(m.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {i < messages.length - 1 && <div className="ac-sep" />}
+              </div>
+            ))
+          )}
+
+          {/* Typing indicator */}
+          {loading && (
+            <div className="ac-typing-row">
+              <div className="ac-av ac-bot">
+                <BotIcon />
+              </div>
+              <div className="ac-typing"><span /><span /><span /></div>
+            </div>
+          )}
+
+          {showQuickReplies && !isEmpty && (
+            <div className="ac-qr">
+              {QUICK_REPLIES.map(qr => (
+                <button key={qr} className="ac-qr-btn" disabled={isBlocked} onClick={() => sendMessage(qr)}>
+                  {qr}
+                </button>
+              ))}
+            </div>
+          )}
+          <div ref={msgsEndRef} style={{ height: 10 }} />
+        </div>
+      </div>
+
+      {/* Input Zone */}
+      <div className="ac-input-zone">
+        <div className="ac-input-inner">
+          {isStreaming && (
+            <div className="ac-stream-stop-row animate-up">
+              <button type="button" className="ac-stream-stop-btn" onClick={handleStopStreaming}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style={{ width: 12, height: 12, marginLeft: 6 }}>
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                </svg>
+                إيقاف التوليد
+              </button>
+            </div>
+          )}
+          <div className="ac-input-box">
+            {/* Quote Reply bar if active */}
+            {replyingTo && (
+              <div className="ac-quote-preview">
+                <div className="ac-quote-preview-content">
+                  <span className="ac-quote-preview-title">
+                    الرد على {replyingTo.role === 'bot' ? 'مساعد عطاء' : 'الرسالة السابقة'}
+                  </span>
+                  <p className="ac-quote-preview-text">{replyingTo.text}</p>
+                </div>
+                <button
+                  type="button"
+                  className="ac-quote-preview-close"
+                  onClick={() => setReplyingTo(null)}
+                  title="إلغاء الرد"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
             )}
 
-            <div ref={msgsEndRef} style={{ height: 10 }} />
-          </div>
-        </div>
-
-        {/* Input Zone */}
-        <div className="ac-input-zone">
-          <div className="ac-input-inner">
-            <div className="ac-input-box">
-
-              {pendingImages.length > 0 && (
-                <div className="ac-pending">
-                  <div className="ac-pending-gallery">
-                    {pendingImages.map((img, idx) => (
-                      <div key={idx} className="ac-pend-thumb">
-                        <img src={img.preview} alt={`معاينة ${idx + 1}`} />
-                        <button type="button" className="ac-pend-x" onClick={() => removeImage(idx)} aria-label="حذف الصورة">
-                          <i className="ti ti-x" aria-hidden="true" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="ac-pend-label">
-                    {pendingImages.length} من {MAX_IMAGES} صور
-                    <span>جاهزة للتحليل بالذكاء الاصطناعي</span>
-                  </div>
+            {pendingImages.length > 0 && (
+              <div className="ac-pending">
+                <div className="ac-pending-gallery">
+                  {pendingImages.map((img, idx) => (
+                    <div key={idx} className="ac-pend-thumb">
+                      <img src={img.preview} alt={`معاينة ${idx + 1}`} />
+                      <button type="button" className="ac-pend-x" onClick={() => removeImage(idx)} aria-label="حذف الصورة">
+                        <CloseIcon />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
+                <div className="ac-pend-label">
+                  {pendingImages.length} من {MAX_IMAGES} صور
+                  <span>جاهزة للتحليل الفوري</span>
+                </div>
+              </div>
+            )}
 
-              <div className="ac-input-textarea-row">
-                <textarea
-                  ref={textRef}
-                  className="ac-textarea"
-                  placeholder="اكتب رسالتك هنا..."
-                  value={input}
-                  rows={1}
-                  onChange={handleAutoResize}
-                  onKeyDown={handleKeyDown}
-                />
-                <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileChange} />
+            <div className="ac-input-textarea-row">
+              <textarea
+                ref={textRef}
+                className="ac-textarea"
+                placeholder={isBlocked ? "اكتب رسالة ليتم وضعها في الانتظار..." : "اكتب رسالتك هنا..."}
+                value={input}
+                rows={1}
+                onChange={handleAutoResize}
+                onKeyDown={handleKeyDown}
+              />
+              <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileChange} />
+            </div>
+
+            <div className="ac-input-actions-row">
+              <div className="ac-input-actions-right">
+                <button
+                  type="button"
+                  className="ac-img-btn"
+                  title={`إرفاق صور (${pendingImages.length}/${MAX_IMAGES})`}
+                  aria-label="إرفاق صور"
+                  disabled={pendingImages.length >= MAX_IMAGES}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <ImageIcon />
+                </button>
               </div>
 
-              <div className="ac-input-actions-row">
-                <div className="ac-input-actions-right">
-                  <button
-                    type="button"
-                    className="ac-icon-btn ac-img-btn"
-                    title={`إرفاق صور (${pendingImages.length}/${MAX_IMAGES})`}
-                    aria-label="إرفاق صور"
-                    disabled={loading || pendingImages.length >= MAX_IMAGES}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <i className="ti ti-photo-up" aria-hidden="true" />
-                  </button>
-                </div>
-
-                <div className="ac-input-actions-center">
-                  <div className="ac-input-model-badge">
-                    <span className="ac-input-badge-dot" />
-                    عطاء AI
-                  </div>
-                </div>
-
-                <div className="ac-input-actions-left">
-                  <button
-                    type="button"
-                    className="ac-icon-btn ac-send-btn"
-                    disabled={!canSend}
-                    onClick={handleSubmit}
-                    aria-label="إرسال"
-                  >
-                    <i className="ti ti-send-2" aria-hidden="true" />
-                  </button>
+              <div className="ac-input-actions-center">
+                <div className="ac-input-model-badge">
+                  <span className="ac-input-badge-dot" />
+                  عطاء AI
                 </div>
               </div>
 
-            </div>
-            <div className="ac-hint">
-              <kbd>Enter</kbd> للإرسال &nbsp;•&nbsp; <kbd>Shift+Enter</kbd> لسطر جديد
+              <div className="ac-input-actions-left">
+                <button
+                  type="button"
+                  className="ac-send-btn"
+                  disabled={!canSend}
+                  onClick={handleSubmit}
+                  aria-label="إرسال"
+                >
+                  <SendIcon />
+                </button>
+              </div>
             </div>
           </div>
+          <div className="ac-hint">
+            <kbd>Enter</kbd> للإرسال &nbsp;•&nbsp; <kbd>Shift+Enter</kbd> لسطر جديد
+          </div>
         </div>
-
       </div>
-    </>
+    </div>
   );
 }

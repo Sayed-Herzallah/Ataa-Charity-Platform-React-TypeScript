@@ -3200,3 +3200,24 @@ body.ap-light-theme .ap-filter-badge {
     color: #64748b !important;
   }
 }
+
+/* Back button in Donation Details of Charity Dashboard */
+.ap-icon-btn {
+  border-radius: var(--radius-sm, 8px) !important;
+  background: rgba(14, 201, 127, 0.12) !important;
+  color: var(--teal, #0ec97f) !important;
+  border: 1px solid rgba(14, 201, 127, 0.25) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all var(--transition, 0.2s) !important;
+}
+
+.ap-icon-btn:hover {
+  background: var(--teal, #0ec97f) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(14, 201, 127, 0.3) !important;
+  transform: translateY(-1px) !important;
+}

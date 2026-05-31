@@ -3,13 +3,16 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
 import '../../styles/css/AdminPanel.css';
 import '@tabler/icons-webfont/dist/tabler-icons.css';
+import '../../styles/css/mobile-fix.css'; 
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import AIChatEmbed from '../../components/shared/AIChatEmbed';
 import ScrollToTop from '../../components/shared/ScrollToTop';
+import { PremiumDatePicker, PremiumTimePicker } from '../../components/ui/PremiumDatePicker';
 import { usersApi } from '../../services';
+import { translateError } from '../../utils/translateError';
 import {
   apiFetch, fetchPage, fetchAll,
   User, Charity, Report, Tab, ApprovalStatus,
@@ -367,7 +370,7 @@ function EditCharityModal({ target, loading, setLoading, onClose, onSaved, showM
       showMsg('success', `تم تحديث "${form.charityName}" بنجاح`);
       onClose();
     } catch (err: unknown) {
-      showMsg('error', (err instanceof Error ? err.message : null) || 'فشل التحديث');
+      showMsg('error', translateError(err));
     } finally { setLoading(null); }
   };
 
@@ -643,31 +646,38 @@ function AdminPagination({
   startIndex: number;
   endIndex: number;
 }) {
-  if (totalPages <= 1) return null;
+  const effectiveTotalPages = Math.max(1, totalPages);
+  
+  const handlePageClick = (p: number) => {
+    onPageChange(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollable = document.querySelector('.ap-content');
+    if (scrollable) scrollable.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const pages: number[] = [];
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 1; i <= effectiveTotalPages; i++) {
     pages.push(i);
   }
 
   return (
-    <div className="ap-pagination-container">
+    <div className="ap-pagination-container" style={{ direction: "rtl" }}>
       <span className="ap-pagination-info">
-        {endIndex}-{startIndex} من {totalItems}
+        {totalItems > 0 ? `${startIndex}-${Math.min(endIndex, totalItems)} من ${totalItems}` : `0-0 من 0`}
       </span>
       <div className="ap-pagination-buttons">
         <button
           className="ap-pagination-btn"
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
+          onClick={() => handlePageClick(1)}
+          disabled={currentPage === 1 || effectiveTotalPages <= 1}
           title="الصفحة الأولى"
         >
           »
         </button>
         <button
           className="ap-pagination-btn prev-next"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
+          onClick={() => handlePageClick(currentPage - 1)}
+          disabled={currentPage === 1 || effectiveTotalPages <= 1}
         >
           &lt; السابق
         </button>
@@ -675,22 +685,23 @@ function AdminPagination({
           <button
             key={p}
             className={`ap-pagination-btn page-num ${currentPage === p ? 'active' : ''}`}
-            onClick={() => onPageChange(p)}
+            onClick={() => handlePageClick(p)}
+            disabled={effectiveTotalPages <= 1}
           >
             {p}
           </button>
         ))}
         <button
           className="ap-pagination-btn prev-next"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          onClick={() => handlePageClick(currentPage + 1)}
+          disabled={currentPage === effectiveTotalPages || effectiveTotalPages <= 1}
         >
           التالي &gt;
         </button>
         <button
           className="ap-pagination-btn"
-          onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
+          onClick={() => handlePageClick(effectiveTotalPages)}
+          disabled={currentPage === effectiveTotalPages || effectiveTotalPages <= 1}
           title="الصفحة الأخيرة"
         >
           «
@@ -1609,7 +1620,7 @@ export default function AdminPanel() {
           setAllUsersForTrend(prev => prev.filter(u => u._id !== id));
           showMsg('success', `تم حذف "${name}" بنجاح`);
         } catch (e: unknown) {
-          showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الحذف');
+          showMsg('error', translateError(e));
         } finally { setConfirmLoading(false); setConfirmOpts(null); }
       },
     });
@@ -1630,7 +1641,7 @@ export default function AdminPanel() {
       });
       showMsg('success', `تمت الموافقة على "${name}"`);
     } catch (e: unknown) {
-      showMsg('error', (e instanceof Error ? e.message : null) || 'فشلت الموافقة');
+      showMsg('error', translateError(e));
     } finally { setActionLoading(null); }
   };
 
@@ -1657,7 +1668,7 @@ export default function AdminPanel() {
       });
       showMsg('success', `تم رفض "${rejectTarget.name}"`);
     } catch (e: unknown) {
-      showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الرفض');
+      showMsg('error', translateError(e));
     } finally { setRejectLoading(false); setRejectTarget(null); }
   };
 
@@ -1674,7 +1685,7 @@ export default function AdminPanel() {
           setAllCharitiesForTrend(prev => prev.filter(c => c._id !== id));
           showMsg('success', `تم حذف "${name}" بنجاح`);
         } catch (e: unknown) {
-          showMsg('error', (e instanceof Error ? e.message : null) || 'فشل الحذف');
+          showMsg('error', translateError(e));
         } finally { setConfirmLoading(false); setConfirmOpts(null); }
       },
     });
@@ -1777,7 +1788,7 @@ export default function AdminPanel() {
       await refreshUser();
       showMsg('success', 'تم تحديث الملف الشخصي بنجاح');
     } catch (err: unknown) {
-      showMsg('error', err instanceof Error ? err.message : 'حدث خطأ');
+      showMsg('error', translateError(err));
     } finally { setSettingsSaving(false); }
   };
 
@@ -1792,7 +1803,7 @@ export default function AdminPanel() {
         navigate('/');
       }, 1500);
     } catch (err: unknown) {
-      showMsg('error', err instanceof Error ? err.message : 'فشل حذف الحساب');
+      showMsg('error', translateError(err));
     } finally {
       setDeleteBtnLoading(false);
       setShowDeleteModal(false);
@@ -1812,7 +1823,7 @@ export default function AdminPanel() {
       setPassForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
       showMsg('success', 'تم تغيير كلمة المرور بنجاح');
     } catch (err: unknown) {
-      showMsg('error', err instanceof Error ? err.message : 'حدث خطأ');
+      showMsg('error', translateError(err));
     } finally { setSettingsSaving(false); }
   };
 
@@ -1897,9 +1908,9 @@ export default function AdminPanel() {
       return reportsSort === 'newest' ? tb - ta : ta - tb;
     });
 
-  const USERS_PER_PAGE = 10;
-  const CHARITIES_PER_PAGE = 10;
-  const REPORTS_PER_PAGE = 10;
+  const USERS_PER_PAGE = 20;
+  const CHARITIES_PER_PAGE = 20;
+  const REPORTS_PER_PAGE = 20;
 
   const paginatedUsers = useMemo(() => {
     return filteredUsers.slice((usersPage - 1) * USERS_PER_PAGE, usersPage * USERS_PER_PAGE);
@@ -2135,15 +2146,15 @@ export default function AdminPanel() {
               </div>
             </div>
             <div className="ap-page-header-right">
+              <button className="ap-header-icon-btn" onClick={loadData} title="تحديث البيانات">
+                <i className="ti ti-refresh" />
+              </button>
               <button 
                 className="ap-header-icon-btn ap-theme-btn" 
                 onClick={toggleTheme} 
                 title={theme === 'dark' ? 'تفعيل الوضع النهارى' : 'تفعيل الوضع الليلي'}
               >
                 <i className={`ti ${theme === 'dark' ? 'ti-sun' : 'ti-moon'}`} />
-              </button>
-              <button className="ap-header-icon-btn" onClick={loadData} title="تحديث البيانات">
-                <i className="ti ti-refresh" />
               </button>
               <div className="ap-header-user" onClick={() => setTab('settings')} title="الإعدادات">
                 <div className="ap-header-avatar">{userName.slice(0, 1).toUpperCase()}</div>
@@ -2412,38 +2423,40 @@ export default function AdminPanel() {
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
                           <span className="ap-date-label">من</span>
-                          <input type="date" value={usersDateFrom} onChange={e => setUsersDateFrom(e.target.value)} title="من تاريخ" />
+                          <PremiumDatePicker value={usersDateFrom} onChange={setUsersDateFrom} placeholder="تاريخ البدء" />
                         </div>
                         <div className="ap-date-field">
                           <span className="ap-date-label">إلى</span>
-                          <input type="date" value={usersDateTo} onChange={e => setUsersDateTo(e.target.value)} title="إلى تاريخ" />
+                          <PremiumDatePicker value={usersDateTo} min={usersDateFrom || undefined} onChange={setUsersDateTo} placeholder="تاريخ الانتهاء" />
                         </div>
                         {(usersDateFrom || usersDateTo) && (
                           <button className="ap-date-range-clear" onClick={() => { setUsersDateFrom(''); setUsersDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
 
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab ap-filter-tab--sort${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab ap-filter-tab--sort${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                      {/* Sort & Reset grouped */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="ap-filter-tabs">
+                          <button className={`ap-filter-tab ap-filter-tab--sort${usersSort === 'newest' ? ' active' : ''}`} onClick={() => setUsersSort('newest')}>
+                            <i className="ti ti-sort-descending" /> الأحدث
+                          </button>
+                          <button className={`ap-filter-tab ap-filter-tab--sort${usersSort === 'oldest' ? ' active' : ''}`} onClick={() => setUsersSort('oldest')}>
+                            <i className="ti ti-sort-ascending" /> الأقدم
+                          </button>
+                        </div>
 
-                      {/* Clear Filters Button */}
-                      {(usersSearch !== '' || usersRoleFilter !== 'all' || usersDateFrom !== '' || usersDateTo !== '') && (
-                        <button className="ap-filter-reset-btn" onClick={() => {
-                          setUsersSearch('');
-                          setUsersRoleFilter('all');
-                          setUsersDateFrom('');
-                          setUsersDateTo('');
-                        }}>
-                          <i className="ti ti-filter-off" /> مسح التصفية
-                        </button>
-                      )}
+                        {(usersSearch !== '' || usersRoleFilter !== 'all' || usersDateFrom !== '' || usersDateTo !== '' || usersSort !== 'newest') && (
+                          <button className="ap-filter-reset-btn" onClick={() => {
+                            setUsersSearch('');
+                            setUsersRoleFilter('all');
+                            setUsersDateFrom('');
+                            setUsersDateTo('');
+                            setUsersSort('newest');
+                          }}>
+                            <i className="ti ti-filter-off" /> مسح التصفية
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2468,12 +2481,17 @@ export default function AdminPanel() {
                             return (
                               <tr key={u._id} className="ap-table-row-clickable" onClick={() => setUserDetailModal(u)}>
                                 <td data-label="المستخدم">
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div className="ap-table-avatar">
-                                      {u.userName?.slice(0, 1).toUpperCase() ?? '?'}
-                                    </div>
-                                    <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{u.userName}</span>
-                                  </div>
+                                  {(() => {
+                                    const displayName = u.userName?.includes('@') ? u.userName.split('@')[0] : (u.userName || 'مستخدم');
+                                    return (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div className="ap-table-avatar">
+                                          {displayName.slice(0, 1).toUpperCase()}
+                                        </div>
+                                        <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{displayName}</span>
+                                      </div>
+                                    );
+                                  })()}
                                 </td>
                                 <td data-label="البريد الإلكتروني" className="ap-table-mono ap-col-hide-sm">{u.email}</td>
                                 <td data-label="الدور"><RoleBadge role={u.roleType} /></td>
@@ -2509,11 +2527,18 @@ export default function AdminPanel() {
                         return (
                           <div key={u._id} className="ap-entity-card" onClick={() => setUserDetailModal(u)}>
                             <div className="ap-entity-card-header">
-                              <div className="ap-entity-avatar user">{u.userName?.slice(0, 1).toUpperCase()}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className="ap-entity-name">{u.userName}</div>
-                                <div className="ap-entity-email">{u.email}</div>
-                              </div>
+                              {(() => {
+                                const displayName = u.userName?.includes('@') ? u.userName.split('@')[0] : (u.userName || 'مستخدم');
+                                return (
+                                  <>
+                                    <div className="ap-entity-avatar user">{displayName.slice(0, 1).toUpperCase()}</div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div className="ap-entity-name">{displayName}</div>
+                                      <div className="ap-entity-email">{u.email}</div>
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
                             <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                               <RoleBadge role={u.roleType} />
@@ -2527,8 +2552,8 @@ export default function AdminPanel() {
                                 <i className="ti ti-eye" /> التفاصيل
                               </button>
                               {u.roleType !== 'admin' && (
-                                <button className="ap-action-btn delete" onClick={() => handleDeleteUser(u._id, u.userName)}>
-                                  <i className="ti ti-trash" /> حذف
+                                <button className="ap-action-btn delete" onClick={() => handleDeleteUser(u._id, u.userName)} title="حذف المستخدم">
+                                  <i className="ti ti-trash" />
                                 </button>
                               )}
                             </div>
@@ -2543,7 +2568,10 @@ export default function AdminPanel() {
                     totalPages={Math.ceil(filteredUsers.length / USERS_PER_PAGE)}
                     onPageChange={(p) => {
                       setUsersPage(p);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                       contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                      const scrollable = document.querySelector('.ap-content');
+                      if (scrollable) scrollable.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     totalItems={filteredUsers.length}
                     itemsPerPage={USERS_PER_PAGE}
@@ -2618,38 +2646,40 @@ export default function AdminPanel() {
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
                           <span className="ap-date-label">من</span>
-                          <input type="date" value={charitiesDateFrom} onChange={e => setCharitiesDateFrom(e.target.value)} title="من تاريخ" />
+                          <PremiumDatePicker value={charitiesDateFrom} onChange={setCharitiesDateFrom} placeholder="تاريخ البدء" />
                         </div>
                         <div className="ap-date-field">
                           <span className="ap-date-label">إلى</span>
-                          <input type="date" value={charitiesDateTo} onChange={e => setCharitiesDateTo(e.target.value)} title="إلى تاريخ" />
+                          <PremiumDatePicker value={charitiesDateTo} min={charitiesDateFrom || undefined} onChange={setCharitiesDateTo} placeholder="تاريخ الانتهاء" />
                         </div>
                         {(charitiesDateFrom || charitiesDateTo) && (
                           <button className="ap-date-range-clear" onClick={() => { setCharitiesDateFrom(''); setCharitiesDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
 
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab ap-filter-tab--sort${charitiesSort === 'newest' ? ' active' : ''}`} onClick={() => setCharitiesSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab ap-filter-tab--sort${charitiesSort === 'oldest' ? ' active' : ''}`} onClick={() => setCharitiesSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                      {/* Sort & Reset grouped */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="ap-filter-tabs">
+                          <button className={`ap-filter-tab ap-filter-tab--sort${charitiesSort === 'newest' ? ' active' : ''}`} onClick={() => setCharitiesSort('newest')}>
+                            <i className="ti ti-sort-descending" /> الأحدث
+                          </button>
+                          <button className={`ap-filter-tab ap-filter-tab--sort${charitiesSort === 'oldest' ? ' active' : ''}`} onClick={() => setCharitiesSort('oldest')}>
+                            <i className="ti ti-sort-ascending" /> الأقدم
+                          </button>
+                        </div>
 
-                      {/* Clear Filters Button */}
-                      {(charitiesSearch !== '' || charitiesFilter !== 'all' || charitiesDateFrom !== '' || charitiesDateTo !== '') && (
-                        <button className="ap-filter-reset-btn" onClick={() => {
-                          setCharitiesSearch('');
-                          setCharitiesFilter('all');
-                          setCharitiesDateFrom('');
-                          setCharitiesDateTo('');
-                        }}>
-                          <i className="ti ti-filter-off" /> مسح التصفية
-                        </button>
-                      )}
+                        {(charitiesSearch !== '' || charitiesFilter !== 'all' || charitiesDateFrom !== '' || charitiesDateTo !== '' || charitiesSort !== 'newest') && (
+                          <button className="ap-filter-reset-btn" onClick={() => {
+                            setCharitiesSearch('');
+                            setCharitiesFilter('all');
+                            setCharitiesDateFrom('');
+                            setCharitiesDateTo('');
+                            setCharitiesSort('newest');
+                          }}>
+                            <i className="ti ti-filter-off" /> مسح التصفية
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2774,7 +2804,10 @@ export default function AdminPanel() {
                     totalPages={Math.ceil(filteredCharities.length / CHARITIES_PER_PAGE)}
                     onPageChange={(p) => {
                       setCharitiesPage(p);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                       contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                      const scrollable = document.querySelector('.ap-content');
+                      if (scrollable) scrollable.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     totalItems={filteredCharities.length}
                     itemsPerPage={CHARITIES_PER_PAGE}
@@ -2828,38 +2861,40 @@ export default function AdminPanel() {
                       <div className="ap-date-range-wrap">
                         <div className="ap-date-field">
                           <span className="ap-date-label">من</span>
-                          <input type="date" value={reportsDateFrom} onChange={e => setReportsDateFrom(e.target.value)} title="من تاريخ" />
+                          <PremiumDatePicker value={reportsDateFrom} onChange={setReportsDateFrom} placeholder="تاريخ البدء" />
                         </div>
                         <div className="ap-date-field">
                           <span className="ap-date-label">إلى</span>
-                          <input type="date" value={reportsDateTo} onChange={e => setReportsDateTo(e.target.value)} title="إلى تاريخ" />
+                          <PremiumDatePicker value={reportsDateTo} min={reportsDateFrom || undefined} onChange={setReportsDateTo} placeholder="تاريخ الانتهاء" />
                         </div>
                         {(reportsDateFrom || reportsDateTo) && (
                           <button className="ap-date-range-clear" onClick={() => { setReportsDateFrom(''); setReportsDateTo(''); }} title="مسح التاريخ"><i className="ti ti-x" /></button>
                         )}
                       </div>
 
-                      {/* Sort */}
-                      <div className="ap-filter-tabs">
-                        <button className={`ap-filter-tab ap-filter-tab--sort${reportsSort === 'newest' ? ' active' : ''}`} onClick={() => setReportsSort('newest')}>
-                          <i className="ti ti-sort-descending" /> الأحدث
-                        </button>
-                        <button className={`ap-filter-tab ap-filter-tab--sort${reportsSort === 'oldest' ? ' active' : ''}`} onClick={() => setReportsSort('oldest')}>
-                          <i className="ti ti-sort-ascending" /> الأقدم
-                        </button>
-                      </div>
+                      {/* Sort & Reset grouped */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="ap-filter-tabs">
+                          <button className={`ap-filter-tab ap-filter-tab--sort${reportsSort === 'newest' ? ' active' : ''}`} onClick={() => setReportsSort('newest')}>
+                            <i className="ti ti-sort-descending" /> الأحدث
+                          </button>
+                          <button className={`ap-filter-tab ap-filter-tab--sort${reportsSort === 'oldest' ? ' active' : ''}`} onClick={() => setReportsSort('oldest')}>
+                            <i className="ti ti-sort-ascending" /> الأقدم
+                          </button>
+                        </div>
 
-                      {/* Clear Filters Button */}
-                      {(reportsSearch !== '' || reportsSenderFilter !== 'all' || reportsDateFrom !== '' || reportsDateTo !== '') && (
-                        <button className="ap-filter-reset-btn" onClick={() => {
-                          setReportsSearch('');
-                          setReportsSenderFilter('all');
-                          setReportsDateFrom('');
-                          setReportsDateTo('');
-                        }}>
-                          <i className="ti ti-filter-off" /> مسح التصفية
-                        </button>
-                      )}
+                        {(reportsSearch !== '' || reportsSenderFilter !== 'all' || reportsDateFrom !== '' || reportsDateTo !== '' || reportsSort !== 'newest') && (
+                          <button className="ap-filter-reset-btn" onClick={() => {
+                            setReportsSearch('');
+                            setReportsSenderFilter('all');
+                            setReportsDateFrom('');
+                            setReportsDateTo('');
+                            setReportsSort('newest');
+                          }}>
+                            <i className="ti ti-filter-off" /> مسح التصفية
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2943,7 +2978,10 @@ export default function AdminPanel() {
                     totalPages={Math.ceil(filteredReports.length / REPORTS_PER_PAGE)}
                     onPageChange={(p) => {
                       setReportsPage(p);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                       contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                      const scrollable = document.querySelector('.ap-content');
+                      if (scrollable) scrollable.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     totalItems={filteredReports.length}
                     itemsPerPage={REPORTS_PER_PAGE}
@@ -2989,21 +3027,16 @@ export default function AdminPanel() {
                             <div className="ap-sched-inputs">
                               <div className="ap-sched-field">
                                 <label>التاريخ</label>
-                                <input
-                                  type="date"
-                                  className="ap-sched-input"
+                                <PremiumDatePicker
                                   value={inp.date}
-                                  min={todayStr}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field">
                                 <label>الساعة</label>
-                                <input
-                                  type="time"
-                                  className="ap-sched-input"
+                                <PremiumTimePicker
                                   value={inp.time}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field ap-sched-field-sm">
@@ -3087,21 +3120,16 @@ export default function AdminPanel() {
                             <div className="ap-sched-inputs">
                               <div className="ap-sched-field">
                                 <label>التاريخ</label>
-                                <input
-                                  type="date"
-                                  className="ap-sched-input"
+                                <PremiumDatePicker
                                   value={inp.date}
-                                  min={todayStr}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], date: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field">
                                 <label>الساعة</label>
-                                <input
-                                  type="time"
-                                  className="ap-sched-input"
+                                <PremiumTimePicker
                                   value={inp.time}
-                                  onChange={e => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: e.target.value } }))}
+                                  onChange={val => setSchedInputs(p => ({ ...p, [key]: { ...p[key], time: val } }))}
                                 />
                               </div>
                               <div className="ap-sched-field ap-sched-field-sm">
@@ -3496,7 +3524,7 @@ export default function AdminPanel() {
 
       <MobileNav activeTab={tab} onTabChange={setTab} pendingCount={pendingCount} onLogout={handleLogout} newUsersCount={newUsersCount} newCharitiesCount={newCharitiesCount} newReportsCount={newReportsCount} />
 
-      <ScrollToTop containerRef={contentRef} />
+
 
       <Toast msg={toast} />
       <ConfirmModal opts={confirmOpts} loading={confirmLoading} onClose={() => { if (!confirmLoading) setConfirmOpts(null); }} />

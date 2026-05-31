@@ -1,203 +1,55 @@
-// // src/components/shared/ScrollToTop.tsx
-// import { useState, useEffect, useCallback } from 'react';
-
-// interface ScrollToTopProps {
-//   /** Optional ref to the scrollable container (e.g. ap-content div).
-//    *  When provided, the button listens to that element's scroll instead of window.
-//    *  This fixes the desktop issue where ap-layout has overflow:hidden and only
-//    *  ap-content actually scrolls. */
-//   containerRef?: React.RefObject<HTMLElement | null>;
-// }
-
-// export default function ScrollToTop(props?: any) {
-//   // If called directly as an onClick event handler (like in Footer.tsx: onClick={ScrollToTop}),
-//   // the first argument will be a React MouseEvent. We detect it and trigger the scroll immediately.
-//   const isMouseEvent = props && (props.nativeEvent || props.target || typeof props.preventDefault === 'function');
-
-//   if (isMouseEvent) {
-//     // Scroll window + all active dashboard containers immediately
-//     window.scrollTo({ top: 0, behavior: 'smooth' });
-//     document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-//     document.querySelectorAll('.ap-content').forEach(el => {
-//       el.scrollTo({ top: 0, behavior: 'smooth' });
-//     });
-//     return null;
-//   }
-
-//   // Normal Component rendering mode:
-//   const containerRef = props && typeof props === 'object' && 'containerRef' in props 
-//     ? (props.containerRef as React.RefObject<HTMLElement | null>)
-//     : undefined;
-
-//   const [visible, setVisible] = useState(false);
-
-//   const updateVisibility = useCallback(() => {
-//     if (containerRef?.current) {
-//       setVisible(containerRef.current.scrollTop > 150);
-//     } else {
-//       // Fallback: check window + any .ap-content containers in DOM
-//       let scrolled = window.scrollY > 150 || document.documentElement.scrollTop > 150;
-//       if (!scrolled) {
-//         const containers = document.querySelectorAll('.ap-content');
-//         for (let i = 0; i < containers.length; i++) {
-//           if ((containers[i] as HTMLElement).scrollTop > 150) {
-//             scrolled = true;
-//             break;
-//           }
-//         }
-//       }
-//       setVisible(scrolled);
-//     }
-//   }, [containerRef]);
-
-//   useEffect(() => {
-//     // A capture-phase scroll listener on window catches all scroll events in the document DOM tree,
-//     // including overflow-y scrolling on child divs like .ap-content.
-//     // This perfectly solves the React ref mount timing issues (containerRef.current is null on mount)
-//     // without any setInterval polling or memory leaks!
-//     window.addEventListener('scroll', updateVisibility, { capture: true, passive: true });
-//     updateVisibility();
-
-//     return () => {
-//       window.removeEventListener('scroll', updateVisibility, { capture: true });
-//     };
-//   }, [updateVisibility]);
-
-//   const scrollTop = () => {
-//     if (containerRef?.current) {
-//       containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-//     } else {
-//       window.scrollTo({ top: 0, behavior: 'smooth' });
-//       document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-//       document.querySelectorAll('.ap-content').forEach(el => {
-//         el.scrollTo({ top: 0, behavior: 'smooth' });
-//       });
-//     }
-//   };
-
-//   return (
-//     <button
-//       className={`ap-scroll-top-btn${visible ? ' visible' : ''}`}
-//       onClick={scrollTop}
-//       aria-label="العودة للأعلى"
-//       title="العودة للأعلى"
-//     >
-//       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-//         viewBox="0 0 24 24" fill="none" stroke="currentColor"
-//         strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-//         <line x1="12" y1="19" x2="12" y2="5"/>
-//         <polyline points="5 12 12 5 19 12"/>
-//       </svg>
-//     </button>
-//   );
-// }
 import { useState, useEffect, useCallback } from 'react';
 
 interface ScrollToTopProps {
-  /** Optional ref to the scrollable container (e.g. ap-content div).
-   *  When provided, the button listens to that element's scroll instead of window.
-   *  This fixes the desktop issue where ap-layout has overflow:hidden and only
-   *  ap-content actually scrolls. */
   containerRef?: React.RefObject<HTMLElement | null>;
 }
 
-export default function ScrollToTop(props?: any) {
-  // If called directly as an onClick event handler (like in Footer.tsx: onClick={ScrollToTop}),
-  // the first argument will be a React MouseEvent. We detect it and trigger the scroll immediately.
-  const isMouseEvent = props && (props.nativeEvent || props.target || typeof props.preventDefault === 'function');
-
-  if (isMouseEvent) {
-    // Scroll window + all active dashboard containers immediately
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-    document.querySelectorAll('.ap-content').forEach(el => {
-      el.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    return null;
-  }
-
-  // Normal Component rendering mode:
-  const containerRef = props && typeof props === 'object' && 'containerRef' in props 
-    ? (props.containerRef as React.RefObject<HTMLElement | null>)
-    : undefined;
-
+export default function ScrollToTop({ containerRef }: ScrollToTopProps) {
   const [visible, setVisible] = useState(false);
 
   const updateVisibility = useCallback(() => {
-    let scrolled = false;
-    
-    // 1. Check container Ref if provided
-    if (containerRef?.current && containerRef.current.scrollTop > 150) {
-      scrolled = true;
+    if (containerRef?.current && containerRef.current.scrollTop > 300) {
+      setVisible(true);
+      return;
     }
-    
-    // 2. Fallback: check window scroll
-    if (!scrolled && (window.scrollY > 150 || document.documentElement.scrollTop > 150)) {
-      scrolled = true;
+    if (window.scrollY > 300 || document.documentElement.scrollTop > 300) {
+      setVisible(true);
+      return;
     }
-    
-    // 3. Fallback: check any .ap-content, .ap-main, or scrollable containers in DOM
-    if (!scrolled) {
-      const containers = document.querySelectorAll('.ap-content, .ap-main, .ap-layout');
-      for (let i = 0; i < containers.length; i++) {
-        if ((containers[i] as HTMLElement).scrollTop > 150) {
-          scrolled = true;
-          break;
-        }
-      }
+    const containers = document.querySelectorAll<HTMLElement>('.ap-content, .ap-main');
+    if (Array.from(containers).some(el => el.scrollTop > 300)) {
+      setVisible(true);
+      return;
     }
-    
-    setVisible(scrolled);
+    setVisible(false);
   }, [containerRef]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      updateVisibility();
-    };
-
-    // 1. Listen on window (capture phase catches events from all elements)
-    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-    
-    // 2. Listen directly on the provided containerRef
-    const container = containerRef?.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll, { passive: true });
-    }
-
-    // 3. Fallback: Listen directly to scrollable areas in the DOM
-    const elements = document.querySelectorAll('.ap-content, .ap-main, .ap-layout');
-    elements.forEach(el => {
-      el.addEventListener('scroll', handleScroll, { passive: true });
-    });
-
-    // Check initial visibility
+    const target = containerRef?.current;
+    window.addEventListener('scroll', updateVisibility, { capture: true, passive: true });
+    target?.addEventListener('scroll', updateVisibility, { passive: true });
+    const apContents = document.querySelectorAll<HTMLElement>('.ap-content, .ap-main');
+    apContents.forEach(el => el.addEventListener('scroll', updateVisibility, { passive: true }));
     updateVisibility();
-
-    // Check periodically in case layout changes dynamically
-    const intervalId = setInterval(updateVisibility, 1000);
-
     return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true });
-      if (container) {
-        container.removeEventListener('scroll', handleScroll);
-      }
-      elements.forEach(el => {
-        el.removeEventListener('scroll', handleScroll);
-      });
-      clearInterval(intervalId);
+      window.removeEventListener('scroll', updateVisibility, { capture: true });
+      target?.removeEventListener('scroll', updateVisibility);
+      apContents.forEach(el => el.removeEventListener('scroll', updateVisibility));
     };
   }, [containerRef, updateVisibility]);
 
   const scrollTop = () => {
     if (containerRef?.current) {
       containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-      document.querySelectorAll('.ap-content').forEach(el => {
-        el.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+      return;
     }
+    const apContent = document.querySelector<HTMLElement>('.ap-content');
+    if (apContent && apContent.scrollTop > 0) {
+      apContent.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -217,22 +69,25 @@ export default function ScrollToTop(props?: any) {
       </button>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        /* ── Scroll To Top Button ── */
         .ap-scroll-top-btn {
           position: fixed !important;
-          bottom: 88px !important;
-          left: 24px !important;
-          right: auto !important;
+          bottom: 32px !important;
+          right: 24px !important;
+          left: auto !important;
           width: 48px !important;
           height: 48px !important;
           border-radius: 50% !important;
-          background: linear-gradient(135deg, var(--teal, #0ec97f) 0%, #0aaa68 100%) !important;
-          color: #ffffff !important;
+          /* Always brand blue background */
+          background: #3b82f6 !important;
+          /* Light mode: black arrow */
+          color: #000000 !important;
           border: none !important;
           cursor: pointer !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          box-shadow: 0 4px 20px rgba(14, 201, 127, 0.4) !important;
+          box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35) !important;
           z-index: 99999 !important;
           opacity: 0 !important;
           transform: translateY(16px) scale(0.9) !important;
@@ -240,23 +95,36 @@ export default function ScrollToTop(props?: any) {
           transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
                       transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
                       background 0.2s ease,
+                      color 0.2s ease,
                       box-shadow 0.2s ease !important;
         }
-
         .ap-scroll-top-btn.visible {
           opacity: 1 !important;
           transform: translateY(0) scale(1) !important;
           pointer-events: auto !important;
         }
-
         .ap-scroll-top-btn:hover {
-          background: linear-gradient(135deg, #0aaa68 0%, #088e56 100%) !important;
+          background: #2563eb !important;
+          color: #000000 !important;
           transform: translateY(-4px) scale(1.08) !important;
-          box-shadow: 0 8px 28px rgba(14, 201, 127, 0.55) !important;
+          box-shadow: 0 8px 28px rgba(59, 130, 246, 0.5) !important;
         }
-
         .ap-scroll-top-btn:active {
           transform: translateY(-1px) scale(0.96) !important;
+        }
+
+        /* ── Dark mode: blue background, white arrow ── */
+        body:not(.ap-light-theme) .ap-scroll-top-btn,
+        html[data-theme="dark"] .ap-scroll-top-btn {
+          background: #3b82f6 !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1.5px rgba(255, 255, 255, 0.08) !important;
+        }
+        body:not(.ap-light-theme) .ap-scroll-top-btn:hover,
+        html[data-theme="dark"] .ap-scroll-top-btn:hover {
+          background: #2563eb !important;
+          color: #ffffff !important;
+          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 0 1.5px rgba(255, 255, 255, 0.15) !important;
         }
 
         @media (max-width: 768px) {

@@ -4,10 +4,15 @@ import { request } from '../api.client';
 import type { Charity } from '../types';
 
 export const charityApi = {
-  /** GET /charity/charities */
-  getAll: () =>
-    request<{ success: boolean; charities: Charity[]; result?: any }>('/charity/charities'),
-
+  /** GET /charity/charities — بيجيب كل الجمعيات بدون حد */
+getAll: (params?: { page?: number; limit?: number }) => {
+  const qs = params
+    ? `?page=${params.page ?? 1}&limit=${params.limit ?? 9999}`
+    : '?limit=9999';
+  return request<{ success: boolean; charities: Charity[]; result?: any; total?: number }>(
+    `/charity/charities${qs}`
+  );
+},
   /** GET /charity/:id */
   getById: (id: string) =>
     request<{ success: boolean; charity: Charity }>(`/charity/${id}`),

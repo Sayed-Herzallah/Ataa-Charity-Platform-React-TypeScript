@@ -33,25 +33,73 @@
   padding: 20px;
 }
 
+/* الدائرة العلوية اليسرى - تكبر وتصغر وهي مثبتة في الركن */
 .vep-body::before {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(to right, var(--vep-teal-900), var(--vep-teal-400));
   clip-path: circle(28% at 0% 0%);
-  animation: vep-blob1 3s ease-in-out infinite alternate;
+  animation: blob-scale-left 8s ease-in-out infinite;
   pointer-events: none;
 }
 
+/* الدائرة السفلية اليمنى - تكبر وتصغر وهي مثبتة في الركن */
 .vep-body::after {
   content: '';
   position: absolute;
   inset: 0;
   background: var(--vep-teal-600);
   clip-path: circle(22% at 100% 100%);
-  animation: vep-blob2 3s ease-in-out infinite alternate;
+  animation: blob-scale-right 8s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
+}
+
+/* التوسيط المطلق والذكي للكارت في المنتصف تماماً على كل الشاشات بدون تداخل */
+.lp-body .vep-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  z-index: 10;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.lp-body .vep-body::before,
+.lp-body .vep-body::after {
+  display: none !important;
+}
+
+/* إخفاء زر الرئيسية المكرر عند الـ Nesting لمنع التداخل */
+.lp-body .vep-back-btn {
+  display: none !important;
+}
+
+/* أنيميشن التوسيع والتقلص (النبض الهادئ) مع ثبات المركز في الزاوية */
+@keyframes blob-scale-left {
+  0%, 100% {
+    clip-path: circle(28% at 0% 0%);
+  }
+  50% {
+    clip-path: circle(38% at 0% 0%);
+  }
+}
+
+@keyframes blob-scale-right {
+  0%, 100% {
+    clip-path: circle(22% at 100% 100%);
+  }
+  50% {
+    clip-path: circle(32% at 100% 100%);
+  }
 }
 
 @keyframes vep-blob1 {
@@ -107,13 +155,13 @@
   background: var(--vep-white);
   border-radius: 24px;
   box-shadow: 0 20px 60px rgba(13, 61, 63, 0.15), 0 4px 16px rgba(0, 0, 0, 0.06);
-  padding: 40px 36px 32px;
+  padding: 48px 44px 40px;
   width: 100%;
-  max-width: 460px;
+  max-width: 530px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   animation: vep-cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
@@ -225,19 +273,20 @@
   gap: 14px;
 }
 
+/* مربعات إدخال الرمز */
 .vep-otp-wrap {
   display: flex;
-  gap: 10px;
+  gap: 14px;
   justify-content: center;
 }
 
 .vep-otp-digit {
-  width: 52px;
-  height: 60px;
-  border-radius: 12px;
+  width: 60px;
+  height: 70px;
+  border-radius: 14px;
   border: 2px solid var(--vep-n300);
   background: var(--vep-n50);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   color: var(--vep-n900);
   caret-color: var(--vep-teal-600);
@@ -428,13 +477,13 @@
   background: var(--vep-white);
   border-radius: 28px;
   box-shadow: 0 24px 64px rgba(13, 61, 63, 0.14), 0 4px 16px rgba(0, 0, 0, 0.06);
-  padding: 48px 40px 40px;
+  padding: 54px 48px 44px;
   width: 100%;
-  max-width: 460px;
+  max-width: 530px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: 26px;
   text-align: center;
 }
 
@@ -690,7 +739,6 @@
   color: #b45309;
 }
 
-/* Responsive */
 @media (max-width: 480px) {
   .vep-card,
   .vep-result-card {

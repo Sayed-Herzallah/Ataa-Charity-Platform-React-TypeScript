@@ -851,8 +851,18 @@ body.ap-light-theme input[type="date"]::-webkit-calendar-picker-indicator {
 .ap-entity-email { font-size: 11.5px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ap-entity-date  { font-size: 11px; color: var(--t4); display: flex; align-items: center; gap: 5px; }
 .ap-entity-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.ap-entity-actions > button, .ap-entity-actions > .ap-card-eye-btn {
+.ap-entity-actions > .ap-card-eye-btn,
+.ap-entity-actions > .ap-action-btn.approve,
+.ap-entity-actions > .ap-action-btn.reject {
   flex: 1;
+  justify-content: center;
+  min-height: 32px;
+}
+.ap-entity-actions > .ap-action-btn.edit,
+.ap-entity-actions > .ap-action-btn.delete {
+  flex: 0 0 auto;
+  width: 32px;
+  padding: 0;
   justify-content: center;
   min-height: 32px;
 }

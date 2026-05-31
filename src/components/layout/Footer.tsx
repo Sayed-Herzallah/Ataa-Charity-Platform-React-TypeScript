@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import ScrollToTop from '../shared/ScrollToTop';
+
 
 export default function Footer() {
   return (
@@ -83,7 +83,7 @@ export default function Footer() {
 
           <div className="footer-col">
             <h4>الصفحات</h4>
-            <Link href="/" onClick={ScrollToTop}>الرئيسية</Link>
+            <Link href="/" onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); document.querySelector<HTMLElement>('.ap-content, .ap-main')?.scrollTo({ top: 0, behavior: 'smooth' }); }}>الرئيسية</Link>
             <Link href="/charities">الجمعيات</Link>
             <Link href="/about">عن المنصة</Link>
             <Link href="/contact">تواصل معنا</Link>

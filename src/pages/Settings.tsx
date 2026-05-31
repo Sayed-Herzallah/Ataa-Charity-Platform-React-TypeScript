@@ -67,7 +67,7 @@ export default function Settings() {
   useEffect(() => {
     if (tab === 'donations') {
       setLoadingData(true);
-      donorApi.getMyDonations().then(d => setDonations(d.donations || [])).catch(() => {}).finally(() => setLoadingData(false));
+      donorApi.getMyDonations().then((d: any) => setDonations(d.donations || d.data?.Data || d.data || [])).catch(() => {}).finally(() => setLoadingData(false));
     }
     if (tab === 'notifications') {
       setLoadingData(true);

@@ -13,30 +13,37 @@ export default function PageTransition({ children }: Props) {
     const el = ref.current;
     if (!el) return;
 
-    // reset فوري بدون animation
+    // 1. Reset state instantly to avoid flicker or jump
     el.style.transition = 'none';
     el.style.opacity = '0';
-    el.style.transform = 'translateY(24px)';
-    el.style.filter = 'blur(4px)';
+    el.style.transform = 'translate3d(0, 14px, 0)';
 
-    void el.offsetHeight; // force reflow
+    // Force repaint
+    void el.offsetHeight;
 
-    // شغّل الـ animation
+    // 2. Apply premium hardware-accelerated transitions
     el.style.transition = [
-      'opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
-      'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
-      'filter 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+      'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+      'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)'
     ].join(', ');
 
+    // 3. Drive transition home
     el.style.opacity = '1';
-    el.style.transform = 'translateY(0)';
-    el.style.filter = 'blur(0px)';
+    el.style.transform = 'translate3d(0, 0, 0)';
 
+    // Scroll to top instantly
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location]);
 
   return (
-    <div ref={ref} style={{ opacity: 0, transform: 'translateY(24px)', filter: 'blur(4px)', willChange: 'opacity, transform, filter' }}>
+    <div
+      ref={ref}
+      style={{
+        opacity: 0,
+        transform: 'translate3d(0, 14px, 0)',
+        willChange: 'opacity, transform'
+      }}
+    >
       {children}
     </div>
   );

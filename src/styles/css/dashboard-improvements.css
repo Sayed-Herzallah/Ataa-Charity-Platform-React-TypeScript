@@ -86,6 +86,8 @@
 .ap-chart-card {
   transition: all 200ms ease;
   border: 1px solid var(--border) !important;
+  position: relative;
+  min-width: 0;
 }
 
 .ap-chart-card:hover {
@@ -216,22 +218,96 @@
 
 /* ══ TABLE IMPROVEMENTS ══════════════════════════════════════════════════════ */
 
-.ap-table tr {
-  transition: background-color 150ms ease;
+/* Enable smooth horizontal scroll on tables in mobile */
+.ap-table-wrap {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  border-radius: 14px !important;
+  margin-bottom: 24px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
 }
 
-.ap-table tbody tr:hover td {
-  background: var(--surface3) !important;
+body.ap-light-theme .ap-table-wrap {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Custom premium scrollbar for table container */
+.ap-table-wrap::-webkit-scrollbar {
+  height: 6px !important;
+}
+.ap-table-wrap::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.ap-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--neutral-300) !important;
+  border-radius: 10px !important;
+}
+body:not(.ap-light-theme) .ap-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--neutral-700) !important;
+}
+
+/* Premium Clean SaaS Tables */
+.ap-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  text-align: right !important;
+}
+
+.ap-table thead tr {
+  background: transparent !important;
 }
 
 .ap-table th {
   background: var(--surface2) !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.2px;
+  color: var(--t1) !important;
+  font-weight: 800 !important;
+  padding: 14px 18px !important;
+  font-size: 12.5px !important;
+  border-bottom: 1px solid var(--border) !important;
+  letter-spacing: 0.2px !important;
+}
+
+body.ap-light-theme .ap-table th {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-bottom-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 .ap-table td {
-  padding: 12px 14px !important;
+  padding: 14px 18px !important;
+  font-size: 13px !important;
+  color: var(--t3) !important;
+  border-bottom: 1px solid var(--border) !important;
+  transition: all 0.2s ease !important;
+  background: transparent !important;
+}
+
+body:not(.ap-light-theme) .ap-table td {
+  color: #cbd5e1 !important;
+}
+
+.ap-table tbody tr {
+  transition: background-color 0.2s ease !important;
+}
+
+.ap-table tbody tr:hover {
+  background: var(--surface2) !important;
+}
+
+body:not(.ap-light-theme) .ap-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Make sure active status colors inside table remain vibrant */
+.ap-table td .ap-badge {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
 }
 
 /* ══ FORM ELEMENTS — Better consistency ══════════════════════════════════════ */
@@ -360,3 +436,1187 @@ i[class*="ti-"] {
   background: var(--teal);
   color: #fff;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM GLASSMORPHIC FILTER STYLES OVERHAUL (SaaS Stripe/Vercel)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ap-filters-bar {
+  background: rgba(22, 27, 38, 0.6) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  
+  /* Modern Symmetrical 2-Column Grid Layout */
+  display: grid !important;
+  grid-template-columns: 1.25fr 1fr !important; /* Elegant wider right column for search & status */
+  gap: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: all 0.3s ease !important;
+}
+
+body.ap-light-theme .ap-filters-bar {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1.5px solid rgba(15, 23, 42, 0.06) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.03) !important;
+}
+
+/* Stacks elements vertically inside each column for maximum breathing room */
+.ap-filters-group {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+
+/* Align contents beautifully inside groups */
+.ap-filters-group > .ap-search-wrap,
+.ap-filters-group > .ap-filter-tabs,
+.ap-filters-group > .ap-date-range-wrap {
+  width: 100% !important;
+}
+
+/* Status tabs flow horizontally and wrap if needed */
+.ap-filter-tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  justify-content: flex-start !important;
+}
+
+/* Symmetrical date range inputs */
+.ap-date-range-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.ap-date-field {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* Responsive collapse for tablets & mobile devices */
+@media (max-width: 1024px) {
+  .ap-filters-bar {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .ap-filters-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    padding: 16px !important;
+    height: auto !important;
+  }
+
+  .ap-filters-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .ap-search-wrap,
+  .ap-date-range-wrap,
+  .ap-filter-tabs,
+  .ap-filter-reset-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+
+  /* Segmented control tabs - 2x2 symmetrical professional grid */
+  .ap-filter-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    height: auto !important;
+    gap: 10px !important;
+    padding: 6px !important;
+    border-radius: 14px !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .ap-filter-tab {
+    flex: none !important;
+    width: 100% !important;
+    height: 40px !important;
+    white-space: nowrap !important;
+    padding: 0 10px !important;
+    font-size: 13px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Date range row layout to show both pickers perfectly side-by-side */
+  .ap-date-range-wrap {
+    display: flex !important;
+    flex-direction: row !important; /* Always row */
+    align-items: center !important;
+    height: 40px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+  }
+
+  .ap-date-field {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important; /* Prevent flex squishing */
+  }
+
+  /* Make sure date picker container takes full width */
+  .pdp-container {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Unified premium heights & layouts */
+.ap-search-wrap {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  min-width: 260px !important;
+  height: 40px !important;
+}
+
+.ap-search-input {
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  color: var(--t1) !important;
+  padding: 0 38px 0 16px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  outline: none !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.ap-light-theme .ap-search-input {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+  color: #0f172a !important;
+}
+
+.ap-search-input:focus {
+  border-color: var(--teal) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 0 0 3px rgba(14, 201, 127, 0.18) !important;
+}
+
+body.ap-light-theme .ap-search-input:focus {
+  background: #ffffff !important;
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px rgba(14, 201, 127, 0.1) !important;
+}
+
+.ap-search-icon {
+  position: absolute !important;
+  right: 13px !important;
+  color: var(--t3) !important;
+  font-size: 15px !important;
+  pointer-events: none !important;
+  transition: color 0.2s ease !important;
+}
+
+.ap-search-input:focus + .ap-search-icon,
+.ap-search-wrap:focus-within .ap-search-icon {
+  color: var(--teal) !important;
+}
+
+.ap-search-clear {
+  position: absolute !important;
+  left: 10px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: none !important;
+  color: var(--t3) !important;
+  cursor: pointer !important;
+}
+
+body.ap-light-theme .ap-search-clear {
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* segmented control tabs override */
+.ap-filter-tabs {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px !important;
+  padding: 3px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  height: 40px !important;
+  box-sizing: border-box !important;
+}
+
+body.ap-light-theme .ap-filter-tabs {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.ap-filter-tab {
+  height: 100% !important;
+  border-radius: 9px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--t3) !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.ap-light-theme .ap-filter-tab {
+  color: #475569 !important;
+}
+
+.ap-filter-tab:hover {
+  color: var(--t1) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+body.ap-light-theme .ap-filter-tab:hover {
+  color: #0f172a !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+.ap-filter-tab.active {
+  background: linear-gradient(135deg, rgba(14, 201, 127, 0.14), rgba(6, 182, 212, 0.14)) !important;
+  color: var(--teal) !important;
+  border: 1px solid rgba(14, 201, 127, 0.25) !important;
+  box-shadow: 0 4px 12px rgba(14, 201, 127, 0.08) !important;
+}
+
+body.ap-light-theme .ap-filter-tab.active {
+  background: #ffffff !important;
+  color: #0d3d3f !important;
+  border: 1px solid rgba(13, 61, 63, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Date range and fields styling */
+.ap-date-range-wrap {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px !important;
+  padding: 0 14px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.ap-light-theme .ap-date-range-wrap {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.ap-date-range-wrap:focus-within {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px rgba(14, 201, 127, 0.18) !important;
+}
+
+body.ap-light-theme .ap-date-range-wrap:focus-within {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px rgba(14, 201, 127, 0.1) !important;
+}
+
+.ap-date-field {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ap-date-label {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: var(--t3) !important;
+}
+
+body.ap-light-theme .ap-date-label {
+  color: #64748b !important;
+}
+
+/* Reset button styling */
+.ap-filter-reset-btn {
+  height: 40px !important;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 16px !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+  border: 1px solid rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+}
+
+.ap-filter-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #ff6b6b !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM ROYAL BLUE CALL-TO-ACTION BUTTON FOR DETAILS (GLOBAL)
+   ═══════════════════════════════════════════════════════════════ */
+.ap-card-eye-btn {
+  background: #0066ff !important; /* Premium Royal Blue */
+  color: #ffffff !important;      /* Pure white text */
+  border: 1px solid #0066ff !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2) !important;
+}
+
+.ap-card-eye-btn:hover {
+  background: #0052cc !important; /* Deep royal blue */
+  border-color: #0052cc !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0, 82, 204, 0.35) !important;
+}
+
+.ap-card-eye-btn:active {
+  transform: translateY(-0.5px) !important;
+}
+
+.ap-card-eye-btn i {
+  font-size: 13px !important;
+  color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM HIGH-CONTRAST DARK THEME TEXT & METADATA OVERHAUL
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Make card titles super crisp and readable in dark mode */
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-name,
+body:not(.ap-light-theme) .ap-entity-card h3 {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* Brighter sub-text for metadata (email, role, address) in dark mode */
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-email,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-meta,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-date,
+body:not(.ap-light-theme) .ap-entity-card p,
+body:not(.ap-light-theme) .ap-entity-card span:not([class*="badge"]) {
+  color: #cbd5e1 !important; /* Premium light silver-slate gray */
+  font-weight: 500 !important;
+}
+
+/* Beautiful bright glowing blue-gray icons for metadata in dark mode */
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-meta i,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-date i {
+  color: #38bdf8 !important; /* Sky blue, highly visible and glowing! */
+  margin-left: 6px !important;
+  font-size: 13px !important;
+}
+
+/* Ensure location pin icon has a distinct glowing red/orange color */
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-meta i.ti-map-pin {
+  color: #f87171 !important; /* Rose/orange glow for location */
+}
+
+/* Ensure registration certificate icon has a distinct glowing blue/cyan color */
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-meta i.ti-certificate {
+  color: #38bdf8 !important;
+}
+
+/* High-Contrast Accept and Reject Action Buttons in Dark Mode */
+body:not(.ap-light-theme) .ap-entity-actions .ap-action-btn.approve {
+  background: rgba(16, 185, 129, 0.18) !important; /* Brighter green alpha */
+  color: #34d399 !important;                         /* Bright mint emerald-400 */
+  border: 1px solid rgba(52, 211, 153, 0.4) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-actions .ap-action-btn.approve:hover {
+  background: #059669 !important; /* Rich solid emerald-600 */
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-actions .ap-action-btn.reject {
+  background: rgba(239, 68, 68, 0.18) !important; /* Brighter red alpha */
+  color: #f87171 !important;                       /* Bright rose-400 */
+  border: 1px solid rgba(248, 113, 113, 0.4) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-actions .ap-action-btn.reject:hover {
+  background: #dc2626 !important; /* Rich solid red-600 */
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Brighter and higher contrast filter status badges in Dark Mode */
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tabs .ap-filter-tab {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #cbd5e1 !important; /* Bright silver-gray instead of dim gray */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tabs .ap-filter-tab:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tabs .ap-filter-tab.active {
+  color: #ffffff !important;
+}
+
+/* Make sure active status colors are extremely vibrant and glowing */
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tab--all.active {
+  background: rgba(0, 102, 255, 0.25) !important;
+  border-color: #0066ff !important;
+}
+
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tab--pending.active {
+  background: rgba(245, 158, 11, 0.25) !important;
+  border-color: #f59e0b !important;
+}
+
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tab--approved.active,
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tab--accepted.active {
+  background: rgba(16, 185, 129, 0.25) !important;
+  border-color: #10b981 !important;
+}
+
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tab--rejected.active {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+}
+
+body:not(.ap-light-theme) .ap-filters-bar .ap-filter-tab--sort.active {
+  background: rgba(14, 201, 127, 0.25) !important;
+  border-color: #0ec97f !important;
+  color: #0ec97f !important;
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL RED NOTIFICATION & COUNT BADGES
+   ═══════════════════════════════════════════ */
+.ap-filter-tab-count,
+.ap-filter-badge,
+.ap-count-badge,
+.ap-nav-badge,
+.cd-notif-badge,
+.notif-bell-badge,
+.tab-badge {
+  background-color: #ef4444 !important; /* Brand Red for Light mode */
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body:not(.ap-light-theme) .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-badge,
+body:not(.ap-light-theme) .ap-count-badge,
+body:not(.ap-light-theme) .ap-nav-badge,
+body:not(.ap-light-theme) .cd-notif-badge,
+body:not(.ap-light-theme) .notif-bell-badge,
+body:not(.ap-light-theme) .tab-badge {
+  background-color: #dc2626 !important; /* Brand Red for Dark mode */
+  color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM HOVER MICRO-INTERACTIONS SYSTEM
+   ═══════════════════════════════════════════ */
+.ap-action-btn,
+.ap-btn-primary,
+.ap-btn-secondary,
+.btn-primary,
+.ap-nav-item,
+.ap-entity-card,
+.ap-filters-bar select,
+.ap-filters-bar input,
+.ap-filter-tab,
+.ap-kpi-card {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease !important;
+  will-change: transform, box-shadow;
+}
+
+/* Elevate with scale and drop shadows on hover */
+.ap-action-btn:hover,
+.ap-btn-primary:hover,
+.ap-btn-secondary:hover,
+.btn-primary:hover {
+  transform: scale(1.03) translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.22) !important;
+}
+
+.ap-nav-item:hover {
+  transform: scale(1.03) translateX(-2px) !important; /* Subtle slide out since nav is in sidebar */
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.ap-entity-card:hover {
+  transform: scale(1.02) translateY(-4px) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.15) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Ensure no layout shift or layout jumping on hover active states */
+.ap-action-btn:active,
+.ap-btn-primary:active,
+.ap-btn-secondary:active,
+.btn-primary:active,
+.ap-nav-item:active,
+.ap-entity-card:active {
+  transform: scale(0.98) translateY(0) !important;
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM SaaS CARD-STYLE ENTITY OVERHAUL
+   ═══════════════════════════════════════════ */
+.ap-entity-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  position: relative !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.ap-light-theme .ap-entity-card {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02) !important;
+}
+
+.ap-entity-card:hover {
+  transform: scale(1.02) translateY(-4px) !important;
+  border-color: var(--teal) !important;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.1), 0 0 0 1.5px var(--teal) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card:hover {
+  background: var(--surface3) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), 0 0 0 1.5px var(--teal) !important;
+}
+
+/* Avatar overrides for high contrast premium look */
+.ap-entity-avatar {
+  border-radius: 12px !important;
+  font-weight: 800 !important;
+  width: 42px !important;
+  height: 42px !important;
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #3b82f6 !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-avatar {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+/* Metadata lists inside card */
+.ap-entity-card .ap-entity-meta,
+.ap-entity-card .ap-entity-date,
+.ap-entity-card p,
+.ap-entity-card .ap-entity-email {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: var(--t3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-meta,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-date,
+body:not(.ap-light-theme) .ap-entity-card p,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-email {
+  color: #94a3b8 !important; /* Premium silver slate text */
+}
+
+/* Header Text styling */
+.ap-entity-name {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  color: var(--t1) !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-name {
+  color: #ffffff !important;
+}
+
+/* High contrast status badge inside card */
+.ap-entity-card span[class*="badge"] {
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  width: fit-content !important;
+  text-transform: uppercase !important;
+}
+
+/* Space out card actions */
+.ap-entity-actions {
+  margin-top: 12px !important;
+  gap: 8px !important;
+}
+
+/* ═══════════════════════════════════════════
+   FORCE ALL COUNTS AND BADGES TO STRICT RED (LIGHT & DARK MODE)
+   ═══════════════════════════════════════════ */
+.ap-filter-tab-count,
+.ap-filter-badge,
+.ap-filter-tab--all .ap-filter-tab-count,
+.ap-filter-tab--all .ap-filter-badge,
+.ap-filter-tab--all.active .ap-filter-tab-count,
+.ap-filter-tab--all.active .ap-filter-badge,
+.ap-filter-tab--pending .ap-filter-tab-count,
+.ap-filter-tab--pending .ap-filter-badge,
+.ap-filter-tab--pending.active .ap-filter-tab-count,
+.ap-filter-tab--pending.active .ap-filter-badge,
+.ap-filter-tab--accepted .ap-filter-tab-count,
+.ap-filter-tab--accepted .ap-filter-badge,
+.ap-filter-tab--accepted.active .ap-filter-tab-count,
+.ap-filter-tab--accepted.active .ap-filter-badge,
+.ap-filter-tab--approved .ap-filter-tab-count,
+.ap-filter-tab--approved .ap-filter-badge,
+.ap-filter-tab--approved.active .ap-filter-tab-count,
+.ap-filter-tab--approved.active .ap-filter-badge,
+.ap-filter-tab--rejected .ap-filter-tab-count,
+.ap-filter-tab--rejected .ap-filter-badge,
+.ap-filter-tab--rejected.active .ap-filter-tab-count,
+.ap-filter-tab--rejected.active .ap-filter-badge,
+.ap-count-badge,
+.ap-nav-badge,
+.cd-notif-badge,
+.notif-bell-badge,
+.tab-badge {
+  background: #ef4444 !important; /* Brand Red for Light mode */
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+body:not(.ap-light-theme) .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--all .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--all .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--all.active .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--all.active .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--pending .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--pending .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--pending.active .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--pending.active .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--accepted .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--accepted .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--accepted.active .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--accepted.active .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--approved .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--approved .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--approved.active .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--approved.active .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--rejected .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--rejected .ap-filter-badge,
+body:not(.ap-light-theme) .ap-filter-tab--rejected.active .ap-filter-tab-count,
+body:not(.ap-light-theme) .ap-filter-tab--rejected.active .ap-filter-badge,
+body:not(.ap-light-theme) .ap-count-badge,
+body:not(.ap-light-theme) .ap-nav-badge,
+body:not(.ap-light-theme) .cd-notif-badge,
+body:not(.ap-light-theme) .notif-bell-badge,
+body:not(.ap-light-theme) .tab-badge,
+html[data-theme="dark"] .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--all .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--all .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--all.active .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--all.active .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--pending .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--pending .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--pending.active .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--pending.active .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--accepted .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--accepted .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--accepted.active .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--accepted.active .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--approved .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--approved .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--approved.active .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--approved.active .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--rejected .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--rejected .ap-filter-badge,
+html[data-theme="dark"] .ap-filter-tab--rejected.active .ap-filter-tab-count,
+html[data-theme="dark"] .ap-filter-tab--rejected.active .ap-filter-badge,
+html[data-theme="dark"] .cd-notif-badge,
+html[data-theme="dark"] .notif-bell-badge,
+html[data-theme="dark"] .tab-badge {
+  background: #dc2626 !important; /* Brand Red for Dark mode */
+  color: #ffffff !important;
+  border: none !important;
+}
+
+/* ═══════════════════════════════════════════
+   ULTRA-PREMIUM SaaS ENTITY CARD OVERHAUL (GLOBAL)
+   ═══════════════════════════════════════════ */
+.ap-entity-card,
+.cd-donation-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  position: relative !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Dark theme overrides */
+body:not(.ap-light-theme) .ap-entity-card,
+body:not(.ap-light-theme) .cd-donation-card,
+html[data-theme="dark"] .ap-entity-card,
+html[data-theme="dark"] .cd-donation-card {
+  background: #151b26 !important; /* Premium deep slate-navy background */
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Elevate on hover */
+.ap-entity-card:hover,
+.cd-donation-card:hover {
+  transform: translateY(-5px) scale(1.01) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 16px 36px rgba(59, 130, 246, 0.12), 0 0 0 1.5px #3b82f6 !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card:hover,
+body:not(.ap-light-theme) .cd-donation-card:hover,
+html[data-theme="dark"] .ap-entity-card:hover,
+html[data-theme="dark"] .cd-donation-card:hover {
+  background: #1c2331 !important; /* Brighter slate on hover */
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1.5px #3b82f6 !important;
+}
+
+/* Header spacing and layout */
+.ap-entity-card-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+/* Avatar styling */
+.ap-entity-avatar,
+.ap-entity-card img {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 12px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f1f5f9 !important;
+  color: #3b82f6 !important;
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+  font-size: 20px !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-avatar,
+body:not(.ap-light-theme) .ap-entity-card img,
+html[data-theme="dark"] .ap-entity-avatar,
+html[data-theme="dark"] .ap-entity-card img {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Title text */
+.ap-entity-name {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-name,
+html[data-theme="dark"] .ap-entity-name {
+  color: #ffffff !important;
+}
+
+/* Subtitles */
+.ap-entity-email,
+.ap-entity-card .ap-entity-meta,
+.ap-entity-card .ap-entity-date,
+.ap-entity-card p {
+  font-size: 13px !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-email,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-meta,
+body:not(.ap-light-theme) .ap-entity-card .ap-entity-date,
+body:not(.ap-light-theme) .ap-entity-card p,
+html[data-theme="dark"] .ap-entity-email,
+html[data-theme="dark"] .ap-entity-card .ap-entity-meta,
+html[data-theme="dark"] .ap-entity-card .ap-entity-date,
+html[data-theme="dark"] .ap-entity-card p {
+  color: #94a3b8 !important; /* Premium silver text */
+}
+
+/* Metadata capsules inner styling */
+.ap-entity-card [style*="background: var(--surface2)"],
+.cd-donation-card [style*="background: var(--surface2)"],
+.ap-entity-card [style*="background: 'var(--surface2)'"],
+.cd-donation-card [style*="background: 'var(--surface2)'"],
+.ap-entity-card span[style*="background: var(--surface2)"],
+.cd-donation-card span[style*="background: var(--surface2)"] {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card [style*="background: var(--surface2)"],
+body:not(.ap-light-theme) .cd-donation-card [style*="background: var(--surface2)"],
+html[data-theme="dark"] .ap-entity-card [style*="background: var(--surface2)"],
+html[data-theme="dark"] .cd-donation-card [style*="background: var(--surface2)"],
+body:not(.ap-light-theme) .ap-entity-card span[style*="background: var(--surface2)"],
+body:not(.ap-light-theme) .cd-donation-card span[style*="background: var(--surface2)"],
+html[data-theme="dark"] .ap-entity-card span[style*="background: var(--surface2)"],
+html[data-theme="dark"] .cd-donation-card span[style*="background: var(--surface2)"] {
+  background: #1e2533 !important; /* Lighter surface for high contrast capsules */
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #cbd5e1 !important;
+}
+
+/* Status Badge Overrides inside card */
+.ap-entity-card .ap-badge,
+.cd-donation-card .ap-badge {
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+/* Card footer separator line */
+.ap-entity-card > div[style*="border-top"],
+.cd-donation-card > div[style*="border-top"] {
+  border-top: 1px solid #edf2f7 !important;
+  padding-top: 12px !important;
+  margin-top: auto !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card > div[style*="border-top"],
+body:not(.ap-light-theme) .cd-donation-card > div[style*="border-top"],
+html[data-theme="dark"] .ap-entity-card > div[style*="border-top"],
+html[data-theme="dark"] .cd-donation-card > div[style*="border-top"] {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* High Contrast Circle Buttons in Action rows */
+.ap-entity-actions .ap-action-btn,
+.ap-entity-actions .ap-card-eye-btn {
+  height: 36px !important;
+  border-radius: 10px !important;
+  font-weight: 800 !important;
+  font-size: 12.5px !important;
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM SaaS CLEAN TABLES OVERHAUL (GLOBAL)
+   ═══════════════════════════════════════════ */
+.ap-table-wrap {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02) !important;
+  margin-bottom: 24px !important;
+}
+
+body:not(.ap-light-theme) .ap-table-wrap,
+html[data-theme="dark"] .ap-table-wrap {
+  background: #0f1626 !important; /* Dark mode card surface background */
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45) !important;
+}
+
+.ap-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  text-align: right !important;
+}
+
+.ap-table thead tr {
+  background: #f8fafc !important;
+}
+
+body:not(.ap-light-theme) .ap-table thead tr,
+html[data-theme="dark"] .ap-table thead tr {
+  background: #141e30 !important; /* Darker header row */
+}
+
+.ap-table th {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  padding: 14px 18px !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  letter-spacing: 0.2px !important;
+}
+
+body:not(.ap-light-theme) .ap-table th,
+html[data-theme="dark"] .ap-table th {
+  color: #ffffff !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ap-table td {
+  padding: 16px 18px !important;
+  font-size: 13.5px !important;
+  color: #334155 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  transition: all 0.2s ease !important;
+  background: transparent !important;
+}
+
+body:not(.ap-light-theme) .ap-table td,
+html[data-theme="dark"] .ap-table td {
+  color: #cbd5e1 !important; /* Light silver text */
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.ap-table tbody tr {
+  transition: background-color 0.2s ease !important;
+  background: transparent !important;
+}
+
+.ap-table tbody tr:hover {
+  background: #f8fafc !important;
+}
+
+body:not(.ap-light-theme) .ap-table tbody tr:hover,
+html[data-theme="dark"] .ap-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* ═══════════════════════════════════════════
+   UNIFIED PREMIUM ACTIVE FILTER TABS OVERRIDE (GLOBAL)
+   ═══════════════════════════════════════════ */
+.ap-filter-tab.active,
+.ap-filter-tab--all.active,
+.ap-filter-tab--pending.active,
+.ap-filter-tab--accepted.active,
+.ap-filter-tab--approved.active,
+.ap-filter-tab--rejected.active,
+.ap-filter-tab--sort.active {
+  background: #3b82f6 !important; /* Unified brand blue background */
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25) !important;
+}
+
+body:not(.ap-light-theme) .ap-filter-tab.active,
+body:not(.ap-light-theme) .ap-filter-tab--all.active,
+body:not(.ap-light-theme) .ap-filter-tab--pending.active,
+body:not(.ap-light-theme) .ap-filter-tab--accepted.active,
+body:not(.ap-light-theme) .ap-filter-tab--approved.active,
+body:not(.ap-light-theme) .ap-filter-tab--rejected.active,
+body:not(.ap-light-theme) .ap-filter-tab--sort.active,
+html[data-theme="dark"] .ap-filter-tab.active,
+html[data-theme="dark"] .ap-filter-tab--all.active,
+html[data-theme="dark"] .ap-filter-tab--pending.active,
+html[data-theme="dark"] .ap-filter-tab--accepted.active,
+html[data-theme="dark"] .ap-filter-tab--approved.active,
+html[data-theme="dark"] .ap-filter-tab--rejected.active,
+html[data-theme="dark"] .ap-filter-tab--sort.active {
+  background: #3b82f6 !important; /* Unified brand blue in dark mode */
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM HIGH-CONTRAST CARD METADATA SPANS OVERRIDE (SPACE MISMATCH FIX)
+   ═══════════════════════════════════════════ */
+.ap-entity-card div[style*="flex: 1"] span,
+.cd-donation-card div[style*="flex: 1"] span,
+.ap-entity-card div[style*="flex:1"] span,
+.cd-donation-card div[style*="flex:1"] span,
+.ap-entity-card span[style*="var(--surface2)"],
+.cd-donation-card span[style*="var(--surface2)"],
+.ap-entity-card span[style*="surface2"] {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+body:not(.ap-light-theme) .ap-entity-card div[style*="flex: 1"] span,
+body:not(.ap-light-theme) .cd-donation-card div[style*="flex: 1"] span,
+body:not(.ap-light-theme) .ap-entity-card div[style*="flex:1"] span,
+body:not(.ap-light-theme) .cd-donation-card div[style*="flex:1"] span,
+body:not(.ap-light-theme) .ap-entity-card span[style*="var(--surface2)"],
+body:not(.ap-light-theme) .cd-donation-card span[style*="var(--surface2)"],
+body:not(.ap-light-theme) .ap-entity-card span[style*="surface2"],
+html[data-theme="dark"] .ap-entity-card div[style*="flex: 1"] span,
+html[data-theme="dark"] .cd-donation-card div[style*="flex: 1"] span,
+html[data-theme="dark"] .ap-entity-card div[style*="flex:1"] span,
+html[data-theme="dark"] .cd-donation-card div[style*="flex:1"] span,
+html[data-theme="dark"] .ap-entity-card span[style*="var(--surface2)"],
+html[data-theme="dark"] .cd-donation-card span[style*="var(--surface2)"],
+html[data-theme="dark"] .ap-entity-card span[style*="surface2"] {
+  background: #1e293b !important; /* Premium light surface for contrast */
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f1f5f9 !important; /* Premium light white/silver text */
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL ULTIMATE SCROLL-TO-TOP OVERRIDE (FORCES BLUE & THEME ADAPTIVE ARROWS EVERYWHERE)
+   ═══════════════════════════════════════════ */
+.ap-scroll-top-btn {
+  position: fixed !important;
+  bottom: 32px !important;
+  right: 24px !important;
+  left: auto !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50% !important;
+  background: #3b82f6 !important;
+  color: #000000 !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35) !important;
+  z-index: 999999 !important; /* High enough to overlay details panels */
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              background 0.2s ease,
+              color 0.2s ease,
+              box-shadow 0.2s ease !important;
+}
+
+.ap-scroll-top-btn.visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: auto !important;
+}
+
+.ap-scroll-top-btn:hover {
+  background: #2563eb !important;
+  color: #000000 !important;
+  transform: translateY(-4px) scale(1.08) !important;
+  box-shadow: 0 8px 28px rgba(59, 130, 246, 0.5) !important;
+}
+
+.ap-scroll-top-btn:active {
+  transform: translateY(-1px) scale(0.96) !important;
+}
+
+.ap-scroll-top-btn svg,
+.ap-scroll-top-btn i {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+body:not(.ap-light-theme) .ap-scroll-top-btn,
+html[data-theme="dark"] .ap-scroll-top-btn {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1.5px rgba(255, 255, 255, 0.08) !important;
+}
+
+body:not(.ap-light-theme) .ap-scroll-top-btn:hover,
+html[data-theme="dark"] .ap-scroll-top-btn:hover {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 0 1.5px rgba(255, 255, 255, 0.15) !important;
+}
+
+@media (max-width: 768px) {
+  .ap-scroll-top-btn {
+    bottom: calc(var(--mobile-nav-h, 60px) + 16px) !important;
+    left: auto !important;
+    right: 16px !important;
+    width: 42px !important;
+    height: 42px !important;
+  }
+}
+

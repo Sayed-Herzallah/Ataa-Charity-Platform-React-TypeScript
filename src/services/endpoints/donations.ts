@@ -12,7 +12,7 @@ export const donorApi = {
   create: (formData: FormData) =>
     request('/donor', { method: 'POST', body: formData }, true),
 
-  /** GET /donor — returns { success, donations } */
+  /** GET /donor — returns { success, donations } — no pagination params supported */
   getMyDonations: () =>
-    request<{ success: boolean; donations: Donation[] }>('/donor'),
+    request<{ success: boolean; donations?: Donation[]; Data?: Donation[] }>('/donor?limit=1000'),
 };

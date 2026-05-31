@@ -1,0 +1,568 @@
+/*
+ * ══════════════════════════════════════════════════════════════════════════
+ *  MOBILE FIX PATCH — ضع هذا الملف بعد كل الـ CSS الحالية
+ *  يحل مشاكل:
+ *   1. الفلاتر على الموبايل (بحث + تبويبات + تاريخ)
+ *   2. الجداول على الموبايل (عرض stacked احترافي)
+ *   3. UserDashboard عرض التبرعات
+ * ══════════════════════════════════════════════════════════════════════════
+ */
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 1 — FILTERS BAR: إعادة بناء كاملة للموبايل
+   ════════════════════════════════════════════════════════════════ */
+
+/* Desktop base — 2 col grid */
+.ap-filters-bar {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 16px !important;
+  padding: 16px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body.ap-light-theme .ap-filters-bar {
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.ap-filters-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* ── Tablet ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ap-filters-bar {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+}
+
+/* ── Mobile ≤ 768px ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ap-filters-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 12px !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .ap-filters-group {
+    gap: 8px !important;
+  }
+
+  /* Search: full width, proper height */
+  .ap-search-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+  }
+
+  .ap-search-input {
+    font-size: 14px !important;
+  }
+
+  /* Date range: row, both pickers side by side */
+  .ap-date-range-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 42px !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .ap-date-field {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  /* PremiumDatePicker container inside date field */
+  .ap-date-field > *:last-child {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .ap-date-label {
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Filter tabs: 2-column grid on mobile (status filters) */
+  .ap-filter-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    background: var(--surface2) !important;
+    padding: 5px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  /* Sort tabs: keep as row */
+  .ap-filter-tabs:has(.ap-filter-tab--sort) {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .ap-filter-tab {
+    width: 100% !important;
+    padding: 8px 6px !important;
+    font-size: 12px !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    height: 36px !important;
+    white-space: nowrap !important;
+  }
+
+  .ap-filter-tab span:not(.ap-filter-badge):not(.ap-filter-tab-count) {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 70px !important;
+  }
+
+  /* Reset button: full width */
+  .ap-filter-reset-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    height: 38px !important;
+  }
+
+  /* Sort + reset container: stack on mobile */
+  .ap-filters-group > div:last-child {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* Sort only tabs row */
+  div:has(> .ap-filter-tab--sort) {
+    width: 100% !important;
+  }
+}
+
+/* ── Small Mobile ≤ 480px ─────────────────────────────────────── */
+@media (max-width: 480px) {
+  .ap-filters-bar {
+    padding: 10px !important;
+    gap: 10px !important;
+  }
+
+  .ap-filter-tab {
+    font-size: 11.5px !important;
+    padding: 7px 4px !important;
+    gap: 3px !important;
+  }
+
+  /* Hide badge on very small screens if tab label is long */
+  .ap-filter-tab .ap-filter-badge {
+    display: none !important;
+  }
+
+  /* Show badge only on the "all" tab (most important) */
+  .ap-filter-tab--all .ap-filter-badge,
+  .ap-filter-tab.active .ap-filter-badge {
+    display: inline-flex !important;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 2 — TABLE: جدول احترافي على الموبايل
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Table wrapper: no horizontal scroll, transparent */
+  .ap-table-wrap {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow-x: visible !important;
+    contain: none !important;
+    padding: 0 !important;
+  }
+
+  /* Turn table into block */
+  .ap-table {
+    display: block !important;
+    width: 100% !important;
+    background: transparent !important;
+    min-width: unset !important;
+    border-collapse: separate !important;
+  }
+
+  /* Hide header */
+  .ap-table thead {
+    display: none !important;
+  }
+
+  /* tbody as block */
+  .ap-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  /* Each row becomes a card */
+  .ap-table tr {
+    display: block !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 12px 14px !important;
+    margin: 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    transition: border-color 0.15s ease !important;
+  }
+
+  body.ap-light-theme .ap-table tr {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .ap-table tr:hover {
+    border-color: var(--border2) !important;
+  }
+
+  /* Each cell: label + value layout */
+  .ap-table td {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 7px 0 !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    text-align: right !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    height: auto !important;
+    min-height: 32px !important;
+    overflow: visible !important;
+  }
+
+  body.ap-light-theme .ap-table td {
+    border-bottom-color: #f1f5f9 !important;
+  }
+
+  /* Last cell: no border */
+  .ap-table td:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Action cell (last): full width buttons */
+  .ap-table td:last-child > div {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* data-label pseudo label */
+  .ap-table td::before {
+    content: attr(data-label) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: var(--t4) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding-top: 2px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    font-family: 'Tajawal', sans-serif !important;
+    min-width: 70px !important;
+  }
+
+  body.ap-light-theme .ap-table td::before {
+    color: #94a3b8 !important;
+  }
+
+  /* Make content side flex properly */
+  .ap-table td > *:not(:first-child),
+  .ap-table td > div,
+  .ap-table td > span {
+    flex: 1 !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Email and mono text: wrap instead of overflow */
+  .ap-table-mono {
+    font-size: 11px !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* Avatar inside td */
+  .ap-table-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 13px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Hide columns with ap-col-hide-sm on mobile */
+  .ap-col-hide-sm {
+    display: none !important;
+  }
+
+  .ap-col-hide-xs {
+    display: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 3 — PAGINATION: ترقيم الصفحات على الموبايل
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  .ap-pagination-container {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .ap-pagination-buttons {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 4px !important;
+  }
+
+  /* Hide individual page number buttons, keep nav buttons only */
+  .ap-pagination-btn.page-num:not(.active) {
+    display: none !important;
+  }
+
+  .ap-pagination-btn {
+    height: 36px !important;
+    min-width: 36px !important;
+    font-size: 12.5px !important;
+    border-radius: 8px !important;
+  }
+
+  .ap-pagination-btn.prev-next {
+    padding: 0 12px !important;
+    font-size: 12px !important;
+  }
+
+  .ap-pagination-info {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: var(--t3) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 4 — USER DASHBOARD (ud-*): مشاكل خاصة بداشبورد المستخدم
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Fix: donations filter bar full width */
+  .ap-layout .ap-filters-bar {
+    margin-bottom: 0 !important;
+  }
+
+  /* Fix: card grid on mobile for donations */
+  .ap-card-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Fix: sort + date group stacks nicely */
+  .ap-filters-group > div {
+    width: 100% !important;
+  }
+
+  /* Fix: ViewToggle stays inline with section title */
+  .ap-section-header {
+    align-items: center !important;
+  }
+
+  .ap-section-header > div:first-child {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Fix: donation card overflow */
+  .ap-entity-card {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .ap-entity-name {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .ap-entity-email {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 5 — PREMIUM DATE PICKER: عرض كورط على الموبايل
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* PremiumDatePicker container */
+  .pdp-container {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* PremiumDatePicker trigger button */
+  .pdp-trigger {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0 6px !important;
+    font-size: 12px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Calendar dropdown: position fixed so it doesn't overflow */
+  .pdp-dropdown {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 9999 !important;
+    max-width: 90vw !important;
+    width: 300px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 6 — GENERAL MOBILE POLISH: تحسينات عامة للموبايل
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Content area: better padding */
+  .ap-content {
+    padding: 12px 10px 80px !important; /* extra bottom for mobile nav */
+  }
+
+  /* KPI grid: 2 col always on mobile */
+  .ap-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .ap-kpi-card {
+    padding: 12px 10px 10px !important;
+  }
+
+  .ap-kpi-value {
+    font-size: 20px !important;
+  }
+
+  .ap-kpi-label {
+    font-size: 10.5px !important;
+  }
+
+  /* Pro chart card: tighter */
+  .ap-pro-chart-card {
+    padding: 14px 12px !important;
+  }
+
+  /* Report card on mobile */
+  .ap-report-card {
+    padding: 12px !important;
+  }
+
+  .ap-report-card-top {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* Section title: smaller font */
+  .ap-section-title {
+    font-size: 13.5px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ap-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .ap-kpi-value {
+    font-size: 18px !important;
+  }
+
+  .ap-kpi-icon-wrap {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 15px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .ap-content {
+    padding: 8px 8px 80px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SECTION 7 — LCP FIX: تحسين أداء الـ Largest Contentful Paint
+   تقليل الـ renders الثقيلة على الموبايل
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Disable heavy backdrop-filter on mobile for performance */
+  .ap-filters-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--surface) !important;
+  }
+
+  /* Simplify animations on mobile */
+  .ap-kpi-card:hover {
+    transform: none !important;
+  }
+
+  .ap-entity-card:hover {
+    transform: none !important;
+  }
+
+  /* Reduce will-change usage */
+  .ap-kpi-card {
+    will-change: auto !important;
+  }
+}

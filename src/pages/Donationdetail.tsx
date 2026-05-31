@@ -94,6 +94,44 @@ const STYLES = `
 @keyframes ddSpin     { to { transform:rotate(360deg) } }
 @keyframes ddPulse    { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } }
 
+@keyframes ddScrollIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dd-scroll-top {
+  position: fixed;
+  bottom: 30px;
+  inset-inline-start: 30px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--surface2) !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--teal, #0ec97f) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25) !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  z-index: 9999;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: ddScrollIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dd-scroll-top:hover {
+  background: var(--teal, #0ec97f) !important;
+  border-color: var(--teal, #0ec97f) !important;
+  color: #fff !important;
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 35px var(--teal-glow, rgba(14, 201, 127, 0.3)) !important;
+}
+
+.dd-scroll-top:active {
+  transform: translateY(-1px) scale(0.96);
+}
+
 .dd-container {
   display: flex;
   flex-direction: column;
@@ -732,6 +770,38 @@ function InfoBox({ icon, label, value, color = 'var(--teal)' }: { icon: string; 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DonationDetail({ donation, onBack, onAction, actionLoading }: DonationDetailProps) {
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const apContent = document.querySelector('.ap-content');
+    const scrollTop = apContent ? apContent.scrollTop : window.pageYOffset || document.documentElement.scrollTop;
+    setShowScrollBtn(scrollTop > 200);
+  }, []);
+
+  useEffect(() => {
+    const apContent = document.querySelector('.ap-content');
+    if (apContent) {
+      apContent.addEventListener('scroll', handleScroll, { passive: true });
+      // Trigger once initially to check scroll state
+      handleScroll();
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      if (apContent) {
+        apContent.removeEventListener('scroll', handleScroll);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [handleScroll]);
+
+  const scrollToTop = () => {
+    const apContent = document.querySelector('.ap-content');
+    if (apContent) {
+      apContent.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (donation) {
@@ -1024,6 +1094,13 @@ export default function DonationDetail({ donation, onBack, onAction, actionLoadi
         </div>
 
       </div>
+
+      {/* ══ Scroll To Top Button ══ */}
+      {showScrollBtn && (
+        <button className="dd-scroll-top" onClick={scrollToTop} title="إلى الأعلى">
+          <i className="ti ti-chevron-up" />
+        </button>
+      )}
     </div>
   );
 }

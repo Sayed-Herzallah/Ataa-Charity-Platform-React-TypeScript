@@ -1,20 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'wouter';
 import DonationForm from './DonationForm';
 import '../../styles/css/DonationModal.css';
 
-/* ------------------------------------------------------------------ */
-/* Props for the overlay modal (used in Home.tsx and CharityDetail.tsx) */
-/* ------------------------------------------------------------------ */
 interface DonationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-/* ------------------------------------------------------------------ */
-/* Default export: overlay modal wrapper                                */
-/* ------------------------------------------------------------------ */
 export default function DonationModal({ isOpen, onClose, onSuccess }: DonationModalProps) {
   if (!isOpen) return null;
 
@@ -34,19 +28,20 @@ export default function DonationModal({ isOpen, onClose, onSuccess }: DonationMo
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '16px 24px',
-          borderBottom: '1px solid var(--neutral-100)',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--surface)'
         }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>إضافة تبرع جديد</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--t1)' }}>إضافة تبرع جديد</h2>
           <button
             className="modal-close"
             onClick={onClose}
-            style={{ position: 'static' }}
+            style={{ position: 'static', color: 'var(--t1)' }}
             aria-label="إغلاق"
           >
             ×
           </button>
         </div>
-        <div style={{ padding: '0 24px 24px' }}>
+        <div style={{ padding: '24px', background: 'var(--surface)' }}>
           <DonationForm onSuccess={onSuccess} onCancel={onClose} />
         </div>
       </div>
@@ -54,25 +49,58 @@ export default function DonationModal({ isOpen, onClose, onSuccess }: DonationMo
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Named export: standalone page for the /donate route (used in App.tsx) */
-/* ------------------------------------------------------------------ */
 export function DonationPage(): JSX.Element {
+  /* متزامن 100% مع خيار المستخدم للثيم الداكن/الفاتح */
+  useEffect(() => {
+    try {
+      const isDark = (localStorage.getItem('ap-theme') || 'dark') === 'dark';
+      document.body.classList.toggle('ap-light-theme', !isDark);
+    } catch {}
+    return () => {
+      document.body.classList.remove('ap-light-theme');
+    };
+  }, []);
+
   return (
-    <div style={{ background: 'var(--bg, #f7fafb)', minHeight: '100vh', padding: 24 }}>
-      <div style={{ maxWidth: 980, margin: '0 auto' }}>
-        <div className="donation-page-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <div className="donation-page-container">
+      <div className="donation-page-inner">
+        
+        {/* Header Section */}
+        <div className="donation-page-head">
           <div>
-            <h2 className="dp-title" style={{ margin: 0 }}>إضافة منتج للتبرع</h2>
-            <p className="dp-sub" style={{ margin: 0, color: 'var(--neutral-500)', fontSize: 14 }}>
-              صفحة مخصصة لإضافة تبرعات جديدة مع تجربة سلسة على الهاتف والكمبيوتر
+            <h2 className="dp-title">
+              <i className="ti ti-gift" />
+              إضافة تبرع جديد
+            </h2>
+            <p className="dp-sub">
+              ساهم في نشر الخير ومساعدة الآخرين من خلال أغراضك بحالة جيدة
             </p>
           </div>
           <Link href="/user-dashboard">
-            <button className="btn btn-ghost" style={{ marginLeft: 8 }}>العودة للوحة التحكم</button>
+            <button
+              className="ap-action-btn edit"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                borderRadius: 'var(--radius-sm)'
+              }}
+            >
+              <i className="ti ti-arrow-right" style={{ fontSize: 14 }} />
+              العودة للوحة التحكم
+            </button>
           </Link>
         </div>
-        <DonationForm />
+
+        {/* Form Card wrapper with glassmorphic styles */}
+        <div className="donation-page-card">
+          <DonationForm />
+        </div>
+
       </div>
     </div>
   );

@@ -13,9 +13,9 @@ export default function Home() {
 
   const handleDonateClick = () => {
     if (user) {
-      setShowDonate(true);
+      setLocation('/donate');
     } else {
-      setLocation('/authModals');
+      setLocation('/authModals?mode=signup');
     }
   };
 

@@ -13,4 +13,31 @@
 /* style dashboard */
 @import './CharityDashboard.css';
 @import './UserDashboard.css';
+@import './dashboard-improvements.css';
+
+/* ═══════════════════════════════════════════
+   GLOBAL BRAND BLUE & SELECTION STYLING OVERRIDE
+   ═══════════════════════════════════════════ */
+:root, body, .ap-layout {
+  --teal: #3b82f6 !important;
+  --teal2: #60a5fa !important;
+  --teal-dim: rgba(59, 130, 246, 0.1) !important;
+  --teal-glow: rgba(59, 130, 246, 0.2) !important;
+  
+  --brand-blue: #3b82f6 !important;
+}
+
+/* Unified Global Selection style */
+::selection {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+::-webkit-selection {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+::-moz-selection {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
 

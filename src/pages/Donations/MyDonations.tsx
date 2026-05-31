@@ -10,7 +10,7 @@ export default function MyDonationsPage() {
   useEffect(() => {
     donorApi
       .getMyDonations()
-      .then(res => setDonations(res.donations || []))
+      .then(res => setDonations(res.donations || res.Data || []))
       .catch(err => setError(err?.message || 'حدث خطأ أثناء تحميل التبرعات'))
       .finally(() => setLoading(false));
   }, []);
