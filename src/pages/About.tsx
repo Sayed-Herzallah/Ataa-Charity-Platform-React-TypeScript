@@ -160,7 +160,11 @@ export default function About() {
               <img
                 src=""
                 alt="أهدافنا"
-                onError={e => { (e.target as HTMLImageElement).src = '../../public/images/children.jpeg'; }}
+                // onError={e => { (e.target as HTMLImageElement).src = '../../public/images/children.jpeg'; }}
+                onError={e => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800';
+                }}
+
                 />
             </div>
             <div>
