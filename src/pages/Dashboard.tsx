@@ -4164,13 +4164,13 @@ export default function CharityDashboard() {
                           const donorAddress = donor.address !== '—' ? donor.address : (d as any).address || '—';
                           return (
                             <tr key={d._id} onClick={() => setSelectedDonation(d)} className="ap-table-row-clickable">
-                              <td style={{fontWeight:600,color:'var(--t1)'}}>{d.type}</td>
-                              <td><div style={{display:'flex',alignItems:'center',gap:8}}><div className="ap-table-avatar">{donor.initial}</div><div><div style={{fontWeight:600,color:'var(--t1)',fontSize:13}}>{donor.name}</div>{donor.phone !== '—' && <div style={{fontSize:11,color:'var(--t4)'}}>{donor.phone}</div>}</div></div></td>
-                              <td style={{color:'var(--t2)',fontSize:12}}>{d.quantity ? `${d.quantity} قطعة` : '—'}{d.size ? <span style={{marginRight:6,color:'var(--t4)'}}>{d.size}</span> : ''}</td>
-                              <td style={{color:'var(--t3)',fontSize:12,maxWidth:140}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{donorAddress}</div></td>
-                              <td><span className="ap-badge" style={{background:sc.bg,color:sc.color}}><span className="ap-badge-dot" style={{background:sc.dot}}/>{sc.label}</span></td>
-                              <td style={{color:'var(--t3)',fontSize:12}}>{fmt12(d.createdAt)}</td>
-                              <td onClick={e => e.stopPropagation()}>
+                              <td data-label="النوع" style={{fontWeight:600,color:'var(--t1)'}}>{d.type}</td>
+                              <td data-label="المتبرع"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="ap-table-avatar">{donor.initial}</div><div><div style={{fontWeight:600,color:'var(--t1)',fontSize:13}}>{donor.name}</div>{donor.phone !== '—' && <div style={{fontSize:11,color:'var(--t4)'}}>{donor.phone}</div>}</div></div></td>
+                              <td data-label="الكمية / المقاس" style={{color:'var(--t2)',fontSize:12}}>{d.quantity ? `${d.quantity} قطعة` : '—'}{d.size ? <span style={{marginRight:6,color:'var(--t4)'}}>{d.size}</span> : ''}</td>
+                              <td data-label="العنوان" style={{color:'var(--t3)',fontSize:12,maxWidth:140}}><div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{donorAddress}</div></td>
+                              <td data-label="الحالة"><span className="ap-badge" style={{background:sc.bg,color:sc.color}}><span className="ap-badge-dot" style={{background:sc.dot}}/>{sc.label}</span></td>
+                              <td data-label="التاريخ" style={{color:'var(--t3)',fontSize:12}}>{fmt12(d.createdAt)}</td>
+                              <td data-label="إجراء" onClick={e => e.stopPropagation()}>
                                 <div style={{display:'flex',gap:6}}>
                                   {d.status === 'pending' && <>
                                     <button className="ap-action-btn approve" disabled={busy} onClick={() => handleAction(d._id,'accepted')}>{actionLoading===`${d._id}-accepted`?<i className="ti ti-loader-2 ti-spin"/>:<i className="ti ti-check"/>}</button>

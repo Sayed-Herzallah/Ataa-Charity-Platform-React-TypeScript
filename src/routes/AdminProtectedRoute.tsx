@@ -104,7 +104,7 @@ export default function AdminProtectedRoute({ children }: AdminProtectedRoutePro
     if (isLoading) return;
 
     const checkAdminAuth = async () => {
-      const adminEmail = import.meta.env.ADMIN_EMAIL?.trim().toLowerCase();
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || import.meta.env.ADMIN_EMAIL)?.trim().toLowerCase();
       
       // 1. Check if user is logged in
       if (!user) {

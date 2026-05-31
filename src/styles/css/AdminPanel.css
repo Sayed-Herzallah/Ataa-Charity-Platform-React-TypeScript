@@ -1915,3 +1915,104 @@ body.ap-light-theme .ap-filter-tab--admin    .ap-filter-badge { background: rgba
     color: #64748b !important;
   }
 }
+
+/* Responsive filter toolbar hardening shared by admin, charity, and user dashboards. */
+.ap-filters-bar,
+.ap-filters-group,
+.ap-filter-tabs,
+.ap-date-range-wrap,
+.ap-search-wrap {
+  min-width: 0;
+}
+
+.ap-filters-bar {
+  overflow: visible;
+}
+
+.ap-filters-group {
+  max-width: 100%;
+}
+
+.ap-filters-group > div[style*="display: flex"] {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.ap-search-wrap {
+  flex: 1 1 260px;
+  max-width: 100%;
+}
+
+.ap-filter-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ap-filter-tab {
+  flex: 0 0 auto;
+}
+
+.ap-date-range-wrap {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .ap-filters-bar {
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  .ap-filters-group {
+    width: 100% !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .ap-search-wrap,
+  .ap-date-range-wrap,
+  .ap-filter-reset-btn {
+    width: 100% !important;
+  }
+
+  .ap-filter-tabs {
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    padding: 4px !important;
+  }
+
+  .ap-filter-tab {
+    min-height: 34px;
+    white-space: nowrap !important;
+  }
+
+  .ap-date-range-wrap {
+    height: auto !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .ap-date-field,
+  .ap-date-field .pdp-container,
+  .ap-date-field .pdp-input-wrap,
+  .ap-date-field input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .ap-date-range-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .ap-date-range-clear {
+    justify-self: end;
+  }
+}

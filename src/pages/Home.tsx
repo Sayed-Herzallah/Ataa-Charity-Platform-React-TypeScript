@@ -74,9 +74,9 @@ export default function Home() {
               <img
                 src="/images/hero.jpeg"
                 alt="عطاء"
-                onError={e => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800';
-                }}
+                // onError={e => {
+                //   (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800';
+                // }}
               />
               <div className="hero-img-badge">
                 <div className="hero-img-badge-icon">🤝</div>

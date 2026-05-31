@@ -35,7 +35,7 @@ interface RegisterForm {
 
 // ─── Validation Rules ─────────────────────────────────────────────────────────
 
-const EMAIL_ADMIN = import.meta.env.ADMIN_EMAIL || '';
+const EMAIL_ADMIN = import.meta.env.VITE_ADMIN_EMAIL || import.meta.env.ADMIN_EMAIL || '';
 
 const rules = {
   userName:      { re: /^[a-zA-Z\u0621-\u064A][^#&<>"~;$^%{}]{2,29}$/, msg: 'اسم المستخدم: يبدأ بحرف، 3-30 حرف، بدون رموز خاصة',              ok: 'اسم المستخدم مقبول ✓' },
@@ -359,8 +359,8 @@ function LoginSection({
     setLoading(true);
     try {
       const trimmedEmail = email.trim().toLowerCase();
-      const adminEmail = import.meta.env.ADMIN_EMAIL?.trim().toLowerCase();
-      const adminPassword = import.meta.env.ADMIN_PASSWORD;
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || import.meta.env.ADMIN_EMAIL)?.trim().toLowerCase();
+      const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || import.meta.env.ADMIN_PASSWORD;
 
       // 1. Pre-login secure checks: if the email matches the ADMIN_EMAIL, the password must match the ADMIN_PASSWORD
       if (adminEmail && trimmedEmail === adminEmail) {

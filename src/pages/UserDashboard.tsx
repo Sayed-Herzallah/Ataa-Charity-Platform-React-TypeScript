@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, memo, useMemo } from 'react';
+﻿import React, { useEffect, useState, useCallback, useRef, memo, useMemo } from 'react';
 import ScrollToTop from '../components/shared/ScrollToTop';
 import { useAuth } from '../contexts/AuthContext';
 import { donorApi, reportApi, notificationApi, usersApi, ratingApi, charityApi, Donation, Charity } from '../services';
@@ -1794,7 +1794,7 @@ export default function UserDashboard(): JSX.Element | null {
 
                             return (
                               <tr key={d._id} className="ap-table-row-clickable">
-                                <td>
+                                <td data-label="نوع التبرع">
                                   <div className="ud-type-cell">
                                     <div className="ud-type-ico"><i className="ti ti-shirt" /></div>
                                     <div>
@@ -1803,20 +1803,20 @@ export default function UserDashboard(): JSX.Element | null {
                                     </div>
                                   </div>
                                 </td>
-                                <td><span className="ud-qty">{formatNumber(d.quantity)} قطع</span></td>
-                                <td>
+                                <td data-label="الكمية"><span className="ud-qty">{formatNumber(d.quantity)} قطع</span></td>
+                                <td data-label="الجمعية">
                                   <span className="ud-charity-tag">
                                     <i className="ti ti-building-community" />
                                     {getCharityName(d)}
                                   </span>
                                 </td>
-                                <td style={{ color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>
+                                <td data-label="حالة القطعة" style={{ color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>
                                   {condLabel}
                                 </td>
-                                <td style={{ color: 'var(--t3)', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap' }} className="ap-table-mono">
+                                <td data-label="التاريخ" style={{ color: 'var(--t3)', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap' }} className="ap-table-mono">
                                   {formatDate(d.createdAt)}
                                 </td>
-                                <td>
+                                <td data-label="الحالة">
                                   <span
                                     className="ud-status"
                                     style={{ color: sc.color, background: sc.bg, borderColor: sc.border }}
@@ -1825,7 +1825,7 @@ export default function UserDashboard(): JSX.Element | null {
                                     {sc.label}
                                   </span>
                                 </td>
-                                <td>
+                                <td data-label="إجراء">
                                   {canRate && (
                                     alreadyRated
                                       ? (
